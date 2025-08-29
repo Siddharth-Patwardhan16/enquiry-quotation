@@ -160,7 +160,7 @@ export const dashboardRouter = createTRPCRouter({
     const quotationTasks = await db.quotation.findMany({
       where: {
         status: {
-          in: ['DRAFT', 'PENDING']
+          in: ['DRAFT', 'LIVE']
         },
         validityPeriod: {
           gte: now,
@@ -243,7 +243,7 @@ export const dashboardRouter = createTRPCRouter({
       status: 'pending' as const,
       customerName: communication.customer.name,
       description: communication.proposedNextAction || communication.description,
-      assignedTo: communication.employee.name,
+      assignedTo: communication.employee?.name || 'Unassigned',
       sourceId: communication.id,
       sourceType: 'communication'
     }));

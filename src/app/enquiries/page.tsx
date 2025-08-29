@@ -113,8 +113,8 @@ export default function EnquiriesPage() {
         subject: enquiry.subject || '',
         description: enquiry.description || '',
         requirements: enquiry.requirements || '',
-        priority: enquiry.priority || 'Medium',
-        source: enquiry.source || 'Website',
+        priority: (enquiry.priority || 'Medium') as 'Low' | 'Medium' | 'High' | 'Urgent',
+        source: (enquiry.source || 'Website') as 'Website' | 'Referral' | 'Cold Call' | 'Trade Show' | 'Social Media' | 'Other',
         expectedBudget: enquiry.expectedBudget || '',
         timeline: enquiry.timeline || '',
         notes: enquiry.notes || '',
@@ -140,7 +140,7 @@ export default function EnquiriesPage() {
         updateEnquiryMutation.mutate({
           id: editingEnquiry,
           ...editData
-        });
+        } as any);
       } catch (error) {
         console.error('Error updating enquiry:', error);
       }
@@ -149,7 +149,7 @@ export default function EnquiriesPage() {
 
   const handleCancelEdit = () => {
     setEditingEnquiry(null);
-    setEditData({});
+    setEditData({} as any);
   };
 
   const handleCloseView = () => {
@@ -439,7 +439,7 @@ export default function EnquiriesPage() {
                     </label>
                     <select
                       value={editData.priority}
-                      onChange={(e) => setEditData({ ...editData, priority: e.target.value })}
+                      onChange={(e) => setEditData({ ...editData, priority: e.target.value as 'Low' | 'Medium' | 'High' | 'Urgent' })}
                       className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="Low">Low</option>
@@ -454,7 +454,7 @@ export default function EnquiriesPage() {
                     </label>
                     <select
                       value={editData.source}
-                      onChange={(e) => setEditData({ ...editData, source: e.target.value })}
+                      onChange={(e) => setEditData({ ...editData, source: e.target.value as 'Website' | 'Referral' | 'Cold Call' | 'Trade Show' | 'Social Media' | 'Other' })}
                       className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="Website">Website</option>

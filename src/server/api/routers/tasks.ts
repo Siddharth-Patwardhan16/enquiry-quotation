@@ -38,7 +38,7 @@ export const tasksRouter = createTRPCRouter({
       const quotationTasks = await db.quotation.findMany({
         where: {
           status: {
-            in: ['DRAFT', 'PENDING']
+            in: ['DRAFT', 'LIVE']
           },
           validityPeriod: {
             gte: now,
@@ -114,11 +114,11 @@ export const tasksRouter = createTRPCRouter({
           status: 'pending' as const,
           customerName: communication.customer.name,
           description: communication.proposedNextAction || communication.description,
-          assignedTo: communication.employee.name,
+          assignedTo: communication.employee?.name || 'Unassigned',
           sourceId: communication.id,
           sourceType: 'communication',
           createdAt: communication.createdAt,
-          updatedAt: communication.updatedAt
+          updatedAt: communication.createdAt
         }))
       ];
 
@@ -178,7 +178,7 @@ export const tasksRouter = createTRPCRouter({
       db.quotation.count({
         where: {
           status: {
-            in: ['DRAFT', 'PENDING']
+            in: ['DRAFT', 'LIVE']
           },
           validityPeriod: {
             gte: now,
@@ -237,7 +237,7 @@ export const tasksRouter = createTRPCRouter({
         await db.communication.update({
           where: { id: sourceId },
           data: { 
-            description: input.notes ? `${input.description}\n\nTask completed on ${new Date().toISOString()}` : undefined
+            description: input.notes ? `${input.notes}\n\nTask completed on ${new Date().toISOString()}` : undefined
           }
         });
       }

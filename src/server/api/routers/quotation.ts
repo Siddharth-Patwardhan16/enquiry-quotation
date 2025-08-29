@@ -64,7 +64,10 @@ export const quotationRouter = createTRPCRouter({
         console.error(error);
         
         // Check if it's a Prisma constraint violation error
-        if (error.code === 'P2002' && error.meta?.target?.includes('quotationNumber')) {
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002' && 
+            'meta' in error && error.meta && typeof error.meta === 'object' && 
+            'target' in error.meta && Array.isArray(error.meta.target) && 
+            error.meta.target.includes('quotationNumber')) {
           throw new TRPCError({
             code: 'CONFLICT',
             message: `Quotation number "${quotationNumber}" already exists. Please use a different quotation number.`,
