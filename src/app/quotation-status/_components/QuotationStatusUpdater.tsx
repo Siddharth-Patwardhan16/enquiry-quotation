@@ -34,7 +34,7 @@ export function QuotationStatusUpdater({ quotation }: { quotation: Quotation }) 
         updateStatusMutation.mutate({ 
           quotationId: quotation.id, 
           status: newStatus, 
-          lostReason: reason.toUpperCase() as any 
+          lostReason: reason.toUpperCase() as 'PRICE' | 'DELIVERY_SCHEDULE' | 'LACK_OF_CONFIDENCE' | 'OTHER'
         });
       } else {
         setCurrentStatus(quotation.status); // Revert if user cancels or enters invalid reason
@@ -58,7 +58,7 @@ export function QuotationStatusUpdater({ quotation }: { quotation: Quotation }) 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'DRAFT': return 'bg-gray-100 text-gray-800 border-gray-300';
-      case 'PENDING': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'LIVE': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
       case 'SUBMITTED': return 'bg-blue-100 text-blue-800 border-blue-300';
       case 'WON': return 'bg-green-100 text-green-800 border-green-300';
       case 'LOST': return 'bg-red-100 text-red-800 border-red-300';
@@ -70,7 +70,7 @@ export function QuotationStatusUpdater({ quotation }: { quotation: Quotation }) 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'DRAFT': return '📝';
-      case 'PENDING': return '⏳';
+      case 'LIVE': return '⏳';
       case 'SUBMITTED': return '📤';
       case 'WON': return '🏆';
       case 'LOST': return '❌';

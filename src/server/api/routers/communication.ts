@@ -34,6 +34,10 @@ export const communicationRouter = createTRPCRouter({
               name: true,
               officeAddress: true,
               officeCity: true,
+              officeName: true,
+              plantName: true,
+              plantAddress: true,
+              plantCity: true,
               officeState: true,
               officeCountry: true,
               officeReceptionNumber: true,
@@ -186,18 +190,18 @@ export const communicationRouter = createTRPCRouter({
         });
 
         return communication;
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error creating communication:', error);
         
         // Provide more specific error messages
-        if (error?.code === 'P2002') {
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
           throw new TRPCError({
             code: 'CONFLICT',
             message: 'A communication with this information already exists.',
           });
         }
         
-        if (error?.code === 'P2003') {
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'P2003') {
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message: 'Invalid customer or contact ID provided.',
@@ -206,7 +210,7 @@ export const communicationRouter = createTRPCRouter({
         
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: `Failed to create communication: ${error?.message || 'Unknown error'}`,
+          message: `Failed to create communication: ${error && typeof error === 'object' && 'message' in error ? String(error.message) : 'Unknown error'}`,
         });
       }
     }),
