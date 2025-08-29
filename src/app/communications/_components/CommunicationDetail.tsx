@@ -13,8 +13,45 @@ import {
   Edit
 } from 'lucide-react';
 
+// Define the communication type based on what's returned from the API
+type Communication = {
+  id: string;
+  subject: string;
+  description: string;
+  type: string;
+  nextCommunicationDate?: string | null;
+  proposedNextAction?: string | null;
+  customerId: string;
+  contactId?: string | null;
+  employeeId: string;
+  createdAt: string;
+  updatedAt: string;
+  customer: {
+    id: string;
+    name: string;
+    officeAddress?: string;
+    officeCity?: string;
+    officeState?: string;
+    officeCountry?: string;
+    officeReceptionNumber?: string;
+  };
+  contact?: {
+    id: string;
+    name: string;
+    designation?: string;
+    officialCellNumber?: string;
+    personalCellNumber?: string;
+    locationType?: string;
+  } | null;
+  employee: {
+    id: string;
+    name: string;
+    role: string;
+  };
+};
+
 interface CommunicationDetailProps {
-  communication: any;
+  communication: Communication;
   onBack?: () => void;
   onEdit?: () => void;
 }

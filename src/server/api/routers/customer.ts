@@ -132,16 +132,35 @@ export const customerRouter = createTRPCRouter({
     .input(CreateCustomerSchema)
     .mutation(async ({ input }) => {
       try {
+        // Check for existing customers with the same office name or plant name
+        if (input.officeName) {
+          const existingOffice = await db.customer.findFirst({
+            where: { officeName: input.officeName }
+          });
+          if (existingOffice) {
+            throw new Error(`An office with the name "${input.officeName}" already exists. Please use a different office name.`);
+          }
+        }
+
+        if (input.plantName) {
+          const existingPlant = await db.customer.findFirst({
+            where: { plantName: input.plantName }
+          });
+          if (existingPlant) {
+            throw new Error(`A plant with the name "${input.plantName}" already exists. Please use a different plant name.`);
+          }
+        }
+
         return await db.customer.create({
           data: {
             name: input.name,
-            officeName: input.officeName,
+            officeName: input.officeName || null,
             officeAddress: input.officeAddress,
             officeCity: input.officeCity,
             officeState: input.officeState,
             officeCountry: input.officeCountry,
             officeReceptionNumber: input.officeReceptionNumber,
-            plantName: input.plantName,
+            plantName: input.plantName || null,
             plantAddress: input.plantAddress,
             plantCity: input.plantCity,
             plantState: input.plantState,
@@ -159,6 +178,19 @@ export const customerRouter = createTRPCRouter({
         });
       } catch (error) {
         console.error('Error creating customer:', error);
+        
+        // Handle Prisma unique constraint errors
+        if (error instanceof Error && error.message.includes('already exists')) {
+          throw error;
+        }
+        
+        // Handle other Prisma errors
+        if (error && typeof error === 'object' && 'code' in error) {
+          if (error.code === 'P2002') {
+            throw new Error('A customer with this office name or plant name already exists. Please use different names.');
+          }
+        }
+        
         throw new Error('Failed to create customer');
       }
     }),

@@ -69,7 +69,7 @@ export function EditCustomerForm({ customer, onCancel, onSuccess }: EditCustomer
     watch,
     formState: { errors, isValid },
   } = useForm<FormData>({
-    resolver: zodResolver(CreateCustomerSchema) as any,
+    resolver: zodResolver(CreateCustomerSchema),
     defaultValues: {
       name: customer.name,
       isNew: customer.isNew,
@@ -133,7 +133,7 @@ export function EditCustomerForm({ customer, onCancel, onSuccess }: EditCustomer
     },
   });
 
-  const onSubmit = (data: any) => {
+  const onSubmit = (data: FormData) => {
     if (!isValid) {
       showError('Validation Error', 'Please fill in all required fields correctly.');
       return;

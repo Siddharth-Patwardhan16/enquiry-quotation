@@ -15,12 +15,12 @@ import { NewCustomerForm } from './components/NewCustomerForm'
 import { NewQuotationForm } from './components/NewQuotationForm'
 
 export default function App() {
-  const [user, setUser] = useState(null)
-  const [userProfile, setUserProfile] = useState(null)
+  const [user, setUser] = useState<any>(null)
+  const [userProfile, setUserProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState('dashboard')
-  const [selectedId, setSelectedId] = useState(null)
-  const [accessToken, setAccessToken] = useState(null)
+  const [selectedId, setSelectedId] = useState<any>(null)
+  const [accessToken, setAccessToken] = useState<string | null>(null)
 
   const supabase = createClient(
     `https://${projectId}.supabase.co`,
@@ -76,7 +76,7 @@ export default function App() {
     }
   }
 
-  const handleLogin = async (email, password) => {
+  const handleLogin = async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -101,7 +101,7 @@ export default function App() {
     }
   }
 
-  const handleSignup = async (email, password, name, role) => {
+  const handleSignup = async (email: string, password: string, name: string, role: string) => {
     try {
       const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-cb9ae747/signup`, {
         method: 'POST',
@@ -134,14 +134,14 @@ export default function App() {
     setSelectedId(null)
   }
 
-  const navigate = (page, id = null) => {
+  const navigate = (page: string, id: any = null) => {
     setCurrentPage(page)
     setSelectedId(id)
   }
 
   const renderCurrentPage = () => {
     const pageProps = {
-      accessToken,
+      accessToken: accessToken || '',
       navigate,
       selectedId,
       userProfile
@@ -191,7 +191,7 @@ export default function App() {
       currentPage={currentPage}
       onNavigate={navigate}
       onLogout={handleLogout}
-      accessToken={accessToken}
+      accessToken={accessToken || ''}
     >
       {renderCurrentPage()}
     </MainLayout>

@@ -42,7 +42,7 @@ export function CustomerDetail({ accessToken, navigate, selectedId }: CustomerDe
       
       if (customerResponse.ok) {
         const customers = await customerResponse.json()
-        const customerData = customers.find(c => c.id === selectedId)
+        const customerData = customers.find((c: any) => c.id === selectedId)
         setCustomer(customerData)
       }
 
@@ -54,7 +54,7 @@ export function CustomerDetail({ accessToken, navigate, selectedId }: CustomerDe
       
       if (enquiriesResponse.ok) {
         const enquiriesData = await enquiriesResponse.json()
-        setEnquiries(enquiriesData.filter(e => e.customerId === selectedId))
+        setEnquiries(enquiriesData.filter((e: any) => e.customerId === selectedId))
       }
 
       // Fetch related quotations  
@@ -65,7 +65,7 @@ export function CustomerDetail({ accessToken, navigate, selectedId }: CustomerDe
       
       if (quotationsResponse.ok) {
         const quotationsData = await quotationsResponse.json()
-        setQuotations(quotationsData.filter(q => q.customerId === selectedId))
+        setQuotations(quotationsData.filter((q: any) => q.customerId === selectedId))
       }
     } catch (error) {
       console.log('Error fetching customer data:', error)
@@ -85,7 +85,7 @@ export function CustomerDetail({ accessToken, navigate, selectedId }: CustomerDe
     )
   }
 
-  const formatCurrency = (amount) => {
+  const formatCurrency = (amount: any) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',

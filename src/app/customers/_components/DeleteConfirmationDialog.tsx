@@ -48,7 +48,7 @@ export function DeleteConfirmationDialog({
         {/* Content */}
         <div className="p-6">
           <p className="text-gray-700 mb-4">
-            Are you sure you want to delete <span className="font-semibold text-gray-900">"{customerName}"</span>?
+            Are you sure you want to delete <span className="font-semibold text-gray-900">&quot;{customerName}&quot;</span>?
           </p>
           <p className="text-sm text-gray-500 mb-6">
             This will permanently remove the customer and all associated data from your system.

@@ -355,7 +355,7 @@ export default function CustomersPage() {
               <div className="flex items-center space-x-2">
                 <Search className="w-4 h-4 text-blue-600" />
                 <span className="text-sm text-blue-800">
-                  Search results for "{searchTerm}" in {searchType === 'all' ? 'all fields' : searchType + ' names'}
+                  Search results for &quot;{searchTerm}&quot; in {searchType === 'all' ? 'all fields' : searchType + ' names'}
                 </span>
               </div>
               <button

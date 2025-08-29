@@ -23,15 +23,63 @@ const CommunicationSchema = z.object({
 
 type FormData = z.infer<typeof CommunicationSchema>;
 
+// Define the communication type based on what's returned from the API
+type Communication = {
+  id: string;
+  subject: string;
+  briefDescription: string;
+  communicationType: 'TELEPHONIC' | 'VIRTUAL_MEETING' | 'EMAIL' | 'PLANT_VISIT' | 'OFFICE_VISIT';
+  nextCommunicationDate?: string | null;
+  proposedNextAction?: string | null;
+  customerId: string;
+  contactId?: string | null;
+  employeeId: string;
+  createdAt: string;
+  updatedAt: string;
+  customer: {
+    id: string;
+    name: string;
+    officeAddress?: string;
+    officeCity?: string;
+    officeState?: string;
+    officeCountry?: string;
+    officeReceptionNumber?: string;
+  };
+  contact?: {
+    id: string;
+    name: string;
+    designation?: string;
+    officialCellNumber?: string;
+    personalCellNumber?: string;
+    locationType?: string;
+  } | null;
+  employee: {
+    id: string;
+    name: string;
+    role: string;
+  };
+};
+
+// Define customer type
+type Customer = {
+  id: string;
+  name: string;
+  officeAddress?: string;
+  officeCity?: string;
+  officeState?: string;
+  officeCountry?: string;
+  officeReceptionNumber?: string;
+};
+
 interface CommunicationFormProps {
   onSuccess?: () => void;
-  initialData?: any;
+  initialData?: Communication;
   mode?: 'create' | 'edit';
 }
 
 export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: CommunicationFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [selectedCommunicationType, setSelectedCommunicationType] = useState<string>('TELEPHONIC');
 
   // Fetch data
@@ -317,7 +365,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
                   className="sr-only"
                   onChange={(e) => {
                     setSelectedCommunicationType(e.target.value);
-                    setValue('communicationType', e.target.value as any);
+                    setValue('communicationType', e.target.value as 'TELEPHONIC' | 'VIRTUAL_MEETING' | 'EMAIL' | 'PLANT_VISIT' | 'OFFICE_VISIT');
                   }}
                 />
                 <div className="flex items-center space-x-3 w-full">

@@ -36,8 +36,29 @@ export default function EnquiriesPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  // Define the edit data type
+  type EditEnquiryData = {
+    subject: string;
+    description: string;
+    requirements: string;
+    priority: 'Low' | 'Medium' | 'High' | 'Urgent';
+    source: 'Website' | 'Referral' | 'Cold Call' | 'Trade Show' | 'Social Media' | 'Other';
+    expectedBudget: string;
+    timeline: string;
+    notes: string;
+  };
+
   const [editingEnquiry, setEditingEnquiry] = useState<number | null>(null);
-  const [editData, setEditData] = useState<any>({});
+  const [editData, setEditData] = useState<EditEnquiryData>({
+    subject: '',
+    description: '',
+    requirements: '',
+    priority: 'Medium',
+    source: 'Website',
+    expectedBudget: '',
+    timeline: '',
+    notes: '',
+  });
   const [viewingEnquiry, setViewingEnquiry] = useState<number | null>(null);
 
   if (error) return <div>Error: {error.message}</div>;

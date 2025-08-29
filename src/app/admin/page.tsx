@@ -104,7 +104,7 @@ export default function AdminPage() {
         <div className="text-center">
           <div className="text-red-600 text-6xl mb-4">🚫</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
-          <p className="text-gray-600">You don't have permission to access this page.</p>
+          <p className="text-gray-600">You don&apos;t have permission to access this page.</p>
           <button
             onClick={() => router.push('/dashboard')}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
@@ -231,7 +231,7 @@ export default function AdminPage() {
                       <div className="flex items-center space-x-2">
                         <select
                           value={user.role}
-                          onChange={(e) => handleRoleUpdate(user.id, e.target.value as any)}
+                          onChange={(e) => handleRoleUpdate(user.id, e.target.value as 'MARKETING' | 'MANAGER' | 'ADMINISTRATOR')}
                           disabled={updateRoleMutation.isPending}
                           className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                         >
