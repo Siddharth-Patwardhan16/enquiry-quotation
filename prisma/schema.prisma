@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id         String    @id @default(uuid())
+  email      String    @unique
+  supabaseId String?   @unique
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  employee   Employee?
+}
+
+model Customer {
+  id                        String          @id @default(uuid())
+  name                      String
+  isNew                     Boolean         @default(true)
+  officeAddress             String?
+  officeCity                String?
+  officeState               String?
+  officeCountry             String?
+  officeReceptionNumber     String?
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+  existingGraphiteSuppliers String?
+  plantAddress              String?
+  plantCity                 String?
+  plantCountry              String?
+  plantReceptionNumber      String?
+  plantState                String?
+  poHeatExchanger           Int             @default(0)
+  poMiscellaneous           Int             @default(0)
+  poRuptureDiscs            Int             @default(0)
+  poThermowells             Int             @default(0)
+  poWaterJetSteamJet        Int             @default(0)
+  problemsFaced             String?
+  officeName                String?         @unique
+  plantName                 String?         @unique
+  communications            Communication[]
+  contacts                  Contact[]
+  enquiries                 Enquiry[]
+}
+
+model Contact {
+  id                 String          @id @default(uuid())
+  name               String
+  designation        String?
+  officialCellNumber String?
+  personalCellNumber String?
+  locationType       LocationType
+  locationAddress    String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  customerId         String
+  communications     Communication[]
+  customer           Customer        @relation(fields: [customerId], references: [id])
+}
+
+model Employee {
+  id             String          @id @default(uuid())
+  name           String
+  email          String          @unique
+  role           Role
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  userId         String?         @unique
+  communications Communication[]
+  user           User?           @relation(fields: [userId], references: [id])
+  enquiries      Enquiry[]
+}
+
+model Enquiry {
+  id                Int           @id @default(autoincrement())
+  subject           String
+  description       String?
+  requirements      String?
+  expectedBudget    String?
+  timeline          String?
+  enquiryDate       DateTime?
+  priority          String?
+  source            String?
+  notes             String?
+  status            EnquiryStatus @default(NEW)
+  regretReason      String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  customerId        String
+  marketingPersonId String
+  documents         Document[]
+  customer          Customer      @relation(fields: [customerId], references: [id])
+  marketingPerson   Employee      @relation(fields: [marketingPersonId], references: [id])
+  quotations        Quotation[]
+}
+
+model Quotation {
+  id                  String          @id @default(uuid())
+  quotationNumber     String          @unique
+  quotationDate       DateTime        @default(now())
+  validityPeriod      DateTime?
+  revisionNumber      Int             @default(0)
+  totalBasicPrice     Decimal?
+  gst                 Decimal?
+  transportCosts      Decimal?
+  insuranceCosts      Decimal?
+  paymentTerms        String?
+  deliverySchedule    String?
+  specialInstructions String?
+  currency            String          @default("USD")
+  subtotal            Decimal?
+  tax                 Decimal?
+  totalValue          Decimal?
+  status              QuotationStatus @default(DRAFT)
+  lostReason          String?
+  purchaseOrderNumber String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  enquiryId           Int
+  documents           Document[]
+  enquiry             Enquiry         @relation(fields: [enquiryId], references: [id])
+  items               QuotationItem[]
+}
+
+model QuotationItem {
+  id                  String    @id @default(uuid())
+  materialDescription String
+  specifications      String?
+  quantity            Int
+  pricePerUnit        Decimal
+  total               Decimal?
+  createdAt           DateTime  @default(now())
+  quotationId         String
+  quotation           Quotation @relation(fields: [quotationId], references: [id])
+}
+
+model Communication {
+  id                    String            @id @default(uuid())
+  subject               String
+  description           String
+  type                  CommunicationType
+  nextCommunicationDate DateTime?
+  proposedNextAction    String?
+  createdAt             DateTime          @default(now())
+  customerId            String
+  contactId             String?
+  employeeId            String?
+  contact               Contact?          @relation(fields: [contactId], references: [id])
+  customer              Customer          @relation(fields: [customerId], references: [id])
+  employee              Employee?         @relation(fields: [employeeId], references: [id])
+}
+
+model Document {
+  id          String       @id @default(uuid())
+  fileName    String
+  fileUrl     String
+  type        DocumentType
+  createdAt   DateTime     @default(now())
+  enquiryId   Int?
+  quotationId String?
+  enquiry     Enquiry?     @relation(fields: [enquiryId], references: [id])
+  quotation   Quotation?   @relation(fields: [quotationId], references: [id])
+}
+
+enum Role {
+  MARKETING
+  MANAGER
+  ADMINISTRATOR
+}
+
+enum LocationType {
+  OFFICE
+  PLANT
+}
+
+enum EnquiryStatus {
+  NEW
+  IN_PROGRESS
+  QUOTED
+  CLOSED
+}
+
+enum QuotationStatus {
+  DRAFT
+  LIVE
+  SUBMITTED
+  WON
+  LOST
+  RECEIVED
+}
+
+enum LostReason {
+  PRICE
+  DELIVERY_SCHEDULE
+  LACK_OF_CONFIDENCE
+  OTHER
+}
+
+enum CommunicationType {
+  TELEPHONIC
+  VIRTUAL_MEETING
+  EMAIL
+  PLANT_VISIT
+  OFFICE_VISIT
+}
+
+enum DocumentType {
+  CUSTOMER_REQUIREMENT
+  TECHNICAL_DRAWING
+  PURCHASE_ORDER
+}
