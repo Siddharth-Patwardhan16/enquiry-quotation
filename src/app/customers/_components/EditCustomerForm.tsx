@@ -6,7 +6,7 @@ import { CreateCustomerSchema } from '@/lib/validators/customer';
 import type { z } from 'zod';
 import { api } from '@/trpc/client';
 import { Save, X, Building, Factory, Package, Info } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useToast } from '@/components/ui/toast';
 
 type FormData = z.infer<typeof CreateCustomerSchema>;
@@ -15,23 +15,23 @@ interface Customer {
   id: string;
   name: string;
   isNew: boolean;
-  officeAddress?: string;
-  officeCity?: string;
-  officeState?: string;
-  officeCountry?: string;
-  officeReceptionNumber?: string;
-  plantAddress?: string;
-  plantCity?: string;
-  plantState?: string;
-  plantCountry?: string;
-  plantReceptionNumber?: string;
+  officeAddress?: string | null;
+  officeCity?: string | null;
+  officeState?: string | null;
+  officeCountry?: string | null;
+  officeReceptionNumber?: string | null;
+  plantAddress?: string | null;
+  plantCity?: string | null;
+  plantState?: string | null;
+  plantCountry?: string | null;
+  plantReceptionNumber?: string | null;
   poRuptureDiscs?: boolean;
   poThermowells?: boolean;
   poHeatExchanger?: boolean;
   poMiscellaneous?: boolean;
   poWaterJetSteamJet?: boolean;
-  existingGraphiteSuppliers?: string;
-  problemsFaced?: string;
+  existingGraphiteSuppliers?: string | null;
+  problemsFaced?: string | null;
 }
 
 interface EditCustomerFormProps {
@@ -69,7 +69,8 @@ export function EditCustomerForm({ customer, onCancel, onSuccess }: EditCustomer
     watch,
     formState: { errors, isValid },
   } = useForm<FormData>({
-    resolver: zodResolver(CreateCustomerSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(CreateCustomerSchema) as any,
     defaultValues: {
       name: customer.name,
       isNew: customer.isNew,

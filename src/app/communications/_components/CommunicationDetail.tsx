@@ -19,35 +19,37 @@ type Communication = {
   subject: string;
   description: string;
   type: string;
-  nextCommunicationDate?: string | null;
+  enquiryRelated?: string | null;
+  generalDescription?: string | null;
+  nextCommunicationDate?: string | Date | null;
   proposedNextAction?: string | null;
   customerId: string;
   contactId?: string | null;
-  employeeId: string;
-  createdAt: string;
-  updatedAt: string;
+  employeeId?: string | null;
+  createdAt: string | Date;
+  updatedAt?: string;
   customer: {
     id: string;
     name: string;
-    officeAddress?: string;
-    officeCity?: string;
-    officeState?: string;
-    officeCountry?: string;
-    officeReceptionNumber?: string;
+    officeAddress?: string | null;
+    officeCity?: string | null;
+    officeState?: string | null;
+    officeCountry?: string | null;
+    officeReceptionNumber?: string | null;
   };
   contact?: {
     id: string;
     name: string;
-    designation?: string;
-    officialCellNumber?: string;
-    personalCellNumber?: string;
-    locationType?: string;
+    designation?: string | null;
+    officialCellNumber?: string | null;
+    personalCellNumber?: string | null;
+    locationType?: string | null;
   } | null;
-  employee: {
+  employee?: {
     id: string;
     name: string;
     role: string;
-  };
+  } | null;
 };
 
 interface CommunicationDetailProps {

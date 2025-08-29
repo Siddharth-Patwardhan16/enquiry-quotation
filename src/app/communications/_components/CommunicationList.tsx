@@ -9,7 +9,6 @@ import {
   Building, 
   MapPin, 
   Search, 
-  Filter, 
   Calendar,
   User,
   Edit,
@@ -24,48 +23,48 @@ type Communication = {
   subject: string;
   description: string;
   type: string;
-  nextCommunicationDate?: string | null;
+  enquiryRelated?: string | null;
+  generalDescription?: string | null;
+  nextCommunicationDate?: string | Date | null;
   proposedNextAction?: string | null;
   customerId: string;
   contactId?: string | null;
-  employeeId: string;
-  createdAt: string;
-  updatedAt: string;
+  employeeId?: string | null;
+  createdAt: string | Date;
+  updatedAt?: string;
   customer: {
     id: string;
     name: string;
-    officeAddress?: string;
-    officeCity?: string;
-    officeState?: string;
-    officeCountry?: string;
-    officeReceptionNumber?: string;
+    officeAddress?: string | null;
+    officeCity?: string | null;
+    officeState?: string | null;
+    officeCountry?: string | null;
+    officeReceptionNumber?: string | null;
   };
   contact?: {
     id: string;
     name: string;
-    designation?: string;
-    officialCellNumber?: string;
-    personalCellNumber?: string;
-    locationType?: string;
+    designation?: string | null;
+    officialCellNumber?: string | null;
+    personalCellNumber?: string | null;
+    locationType?: string | null;
   } | null;
-  employee: {
+  employee?: {
     id: string;
     name: string;
     role: string;
-  };
+  } | null;
 };
 
 interface CommunicationListProps {
   onEdit?: (communication: Communication) => void;
   onView?: (communication: Communication) => void;
-  onDelete?: (communication: Communication) => void;
   onCreateNew?: () => void;
 }
 
 export function CommunicationList({ 
   onEdit, 
   onView, 
-  onDelete, 
   onCreateNew 
 }: CommunicationListProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -242,9 +241,9 @@ export function CommunicationList({
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">
-                    {getCommunicationTypeIcon(communication.type)}
-                    <span className={getCommunicationTypeBadge(communication.type)}>
-                      {getCommunicationTypeLabel(communication.type)}
+                                         {getCommunicationTypeIcon(communication.type)}
+                     <span className={getCommunicationTypeBadge(communication.type)}>
+                       {getCommunicationTypeLabel(communication.type)}
                     </span>
                     <span className="text-sm text-gray-500">
                       {new Date(communication.createdAt).toLocaleDateString()}
@@ -275,9 +274,9 @@ export function CommunicationList({
                     </div>
                   </div>
 
-                  <p className="text-sm text-gray-600 line-clamp-2">
-                    {communication.description}
-                  </p>
+                                     <p className="text-sm text-gray-600 line-clamp-2">
+                     {communication.description}
+                   </p>
 
                   {communication.proposedNextAction && (
                     <div className="mt-2">

@@ -78,7 +78,7 @@ export const adminRouter = createTRPCRouter({
       });
 
       return users;
-    } catch (error) {
+    } catch {
       throw new TRPCError({ 
         code: 'INTERNAL_SERVER_ERROR', 
         message: 'Failed to fetch users' 
@@ -110,7 +110,7 @@ export const adminRouter = createTRPCRouter({
           message: `Role updated for ${updatedUser.name}`,
           user: updatedUser,
         };
-      } catch (error) {
+      } catch {
         throw new TRPCError({ 
           code: 'INTERNAL_SERVER_ERROR', 
           message: 'Failed to update user role' 

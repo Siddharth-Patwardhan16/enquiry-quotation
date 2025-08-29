@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, AlertCircle, CheckCircle, FileText, Building, User, ChevronRight, Plus, Filter } from 'lucide-react';
+import { Calendar, Clock, AlertCircle, CheckCircle, FileText, Building, User, ChevronRight, Filter } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/trpc/client';
@@ -40,14 +40,7 @@ export function UpcomingTasks({ tasks, isLoading }: UpcomingTasksProps) {
     }
   };
 
-  const getPriorityBgColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'bg-red-50 border-red-200';
-      case 'medium': return 'bg-yellow-50 border-yellow-200';
-      case 'low': return 'bg-green-50 border-green-200';
-      default: return 'bg-gray-50 border-gray-200';
-    }
-  };
+
 
   const getStatusColor = (status: string) => {
     switch (status) {

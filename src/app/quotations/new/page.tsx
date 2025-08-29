@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm, useFieldArray, useWatch } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CreateQuotationSchema } from '@/lib/validators/quotation';
 import type { z } from 'zod';
@@ -117,7 +117,7 @@ export default function NewQuotationPage() {
     const percentages = parseCustomPaymentPlan(value);
     if (percentages) {
       // Create a structured payment plan description
-      const planDescription = percentages.map((p, i) => `${p}%`).join('-');
+      const planDescription = percentages.map((p) => `${p}%`).join('-');
       setValue('paymentTerms', `Custom Plan (${planDescription})`);
     } else if (value.trim()) {
       setCustomPaymentError('Please enter valid percentages that sum to 100 (e.g., 30-30-40)');

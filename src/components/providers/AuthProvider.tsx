@@ -1,7 +1,6 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { api } from '../../trpc/client';
 
 interface User {
   id: string;

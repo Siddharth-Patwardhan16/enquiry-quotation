@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+
 import { Trash2, X, AlertTriangle } from 'lucide-react';
 
 interface DeleteConfirmationDialogProps {

@@ -6,7 +6,7 @@ import { CreateCustomerSchema } from '@/lib/validators/customer';
 import type { z } from 'zod';
 import { api } from '@/trpc/client';
 import { Save, Building, Factory, Package, Info } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/toast';
 
@@ -38,16 +38,17 @@ export function CreateCustomerForm({ onSuccess }: CreateCustomerFormProps) {
   const router = useRouter();
   const { success, error: showError } = useToast();
   const utils = api.useUtils();
-  const [selectedCountry, setSelectedCountry] = useState('India');
+
 
   const {
     register,
     handleSubmit,
     reset,
     watch,
-    setValue,
+
     formState: { errors, isValid },
   } = useForm<FormData>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(CreateCustomerSchema) as any,
     defaultValues: {
       name: '',
@@ -68,10 +69,7 @@ export function CreateCustomerForm({ onSuccess }: CreateCustomerFormProps) {
   const watchedOfficeCountry = watch('officeCountry');
   const watchedPlantCountry = watch('plantCountry');
 
-  // Update selected country when form changes
-  useEffect(() => {
-    setSelectedCountry(watchedOfficeCountry || 'India');
-  }, [watchedOfficeCountry]);
+
 
   const createCustomer = api.customer.create.useMutation({
     onSuccess: (data) => {
@@ -81,7 +79,6 @@ export function CreateCustomerForm({ onSuccess }: CreateCustomerFormProps) {
       // Reset form and redirect after a short delay to show the success message
       setTimeout(() => {
         reset();
-        setSelectedCountry('India');
         router.push('/customers');
         if (onSuccess) {
           onSuccess();
@@ -99,12 +96,12 @@ export function CreateCustomerForm({ onSuccess }: CreateCustomerFormProps) {
     };
   }, [reset]);
 
-  const onSubmit = (data: any) => {
+  const onSubmit = (data: FormData) => {
     if (!isValid) {
       showError('Validation Error', 'Please fill in all required fields correctly.');
       return;
     }
-    createCustomer.mutate(data as FormData);
+    createCustomer.mutate(data);
   };
 
   return (
@@ -515,7 +512,6 @@ export function CreateCustomerForm({ onSuccess }: CreateCustomerFormProps) {
             type="button"
             onClick={() => {
               reset();
-              setSelectedCountry('India');
             }}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
           >

@@ -60,7 +60,7 @@ export default function CustomersPage() {
   // State for modals
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showDetailView, setShowDetailView] = useState(false);
-  const [showEditForm, setShowEditForm] = useState(false);
+
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
@@ -111,7 +111,6 @@ export default function CustomersPage() {
   // Handle edit customer
   const handleEditCustomer = (customer: Customer) => {
     setCustomerToEdit(customer);
-    setShowEditForm(true);
   };
 
   // Handle delete customer
@@ -401,11 +400,9 @@ export default function CustomersPage() {
         <EditCustomerForm
           customer={customerToEdit}
           onCancel={() => {
-            setShowEditForm(false);
             setCustomerToEdit(null);
           }}
           onSuccess={() => {
-            setShowEditForm(false);
             setCustomerToEdit(null);
           }}
         />

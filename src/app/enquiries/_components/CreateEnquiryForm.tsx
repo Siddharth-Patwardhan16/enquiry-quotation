@@ -12,11 +12,7 @@ import {
   Save, 
   X, 
   Building, 
-  FileText, 
-  Calendar, 
-  User, 
-  AlertCircle,
-  CheckCircle
+  FileText
 } from 'lucide-react';
 
 type FormData = z.infer<typeof CreateEnquirySchema>;
@@ -39,8 +35,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
     handleSubmit,
     reset,
     formState: { errors, isValid },
-    watch,
-    setValue,
+
   } = useForm<FormData>({
     resolver: zodResolver(CreateEnquirySchema),
     defaultValues: {
