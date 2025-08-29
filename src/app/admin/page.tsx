@@ -214,7 +214,7 @@ export default function AdminPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {usersQuery.data?.map((user) => (
+                {usersQuery.data?.map((user: { id: string; name: string; email: string; role: string; createdAt: Date }) => (
                   <div key={user.id} className="border border-gray-200 rounded-md p-4">
                     <div className="flex items-center justify-between">
                       <div>
