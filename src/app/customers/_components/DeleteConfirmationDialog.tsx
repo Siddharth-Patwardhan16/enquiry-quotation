@@ -4,21 +4,19 @@
 import { Trash2, X, AlertTriangle } from 'lucide-react';
 
 interface DeleteConfirmationDialogProps {
-  customerName: string;
-  customerId: string;
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (id: string) => void;
-  isDeleting: boolean;
+  onConfirm: () => void;
+  customerName: string;
+  isDeleting?: boolean;
 }
 
 export function DeleteConfirmationDialog({
   customerName,
-  customerId,
   isOpen,
   onClose,
   onConfirm,
-  isDeleting
+  isDeleting = false
 }: DeleteConfirmationDialogProps) {
   if (!isOpen) return null;
 
@@ -65,7 +63,7 @@ export function DeleteConfirmationDialog({
             Cancel
           </button>
           <button
-            onClick={() => onConfirm(customerId)}
+            onClick={onConfirm}
             disabled={isDeleting}
             className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
           >

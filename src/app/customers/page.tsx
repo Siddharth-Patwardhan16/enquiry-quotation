@@ -412,13 +412,12 @@ export default function CustomersPage() {
       {customerToDelete && (
         <DeleteConfirmationDialog
           customerName={customerToDelete.name}
-          customerId={customerToDelete.id}
           isOpen={showDeleteDialog}
           onClose={() => {
             setShowDeleteDialog(false);
             setCustomerToDelete(null);
           }}
-          onConfirm={confirmDelete}
+          onConfirm={() => confirmDelete(customerToDelete.id)}
           isDeleting={deleteCustomer.isPending}
         />
       )}

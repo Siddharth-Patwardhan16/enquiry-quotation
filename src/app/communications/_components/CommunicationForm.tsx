@@ -174,8 +174,6 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
     setIsSubmitting(true);
     
     if (mode === 'edit' && initialData?.id) {
-      // Filter out contactId from initialData since we're not using it anymore
-      const { contactId, ...updateData } = initialData;
       console.log('Updating communication:', { id: initialData.id, ...data });
       updateCommunication.mutate({ id: initialData.id, ...data });
     } else {
