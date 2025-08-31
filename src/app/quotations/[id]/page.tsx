@@ -4,6 +4,12 @@ import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/trpc/client';
 import { ArrowLeft, Building, Download, Upload, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
+import type { AppRouter } from '@/server/api/root';
+import type { inferRouterOutputs } from '@trpc/server';
+
+// Use the same type as other quotation components
+type Quotation = NonNullable<inferRouterOutputs<AppRouter>['quotation']['getById']>;
+type QuotationItem = NonNullable<Quotation['items']>[0];
 
 export default function QuotationDetailPage() {
   const params = useParams();
@@ -189,7 +195,7 @@ export default function QuotationDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {quotation.items?.map((item) => (
+                  {quotation.items?.map((item: QuotationItem) => (
                     <tr key={item.id} className="border-b">
                       <td className="p-3 text-gray-900">
                         {item.materialDescription}
