@@ -3,6 +3,11 @@
 import Link from 'next/link';
 import { api } from '@/trpc/client';
 import { Calculator, TrendingUp, Clock, CheckCircle, Eye, Plus } from 'lucide-react';
+import type { AppRouter } from '@/server/api/root';
+import type { inferRouterOutputs } from '@trpc/server';
+
+// Use the same type as other quotation components
+type Quotation = inferRouterOutputs<AppRouter>['quotation']['getAll'][0];
 
 export default function QuotationsPage() {
   const { data: quotations, isLoading, error } = api.quotation.getAll.useQuery();
@@ -12,14 +17,14 @@ export default function QuotationsPage() {
   // Calculate stats
   const stats = {
     total: quotations?.length || 0,
-    draft: quotations?.filter(q => q.status === 'DRAFT').length || 0,
-    live: quotations?.filter(q => ['LIVE', 'SUBMITTED'].includes(q.status)).length || 0,
-    won: quotations?.filter(q => q.status === 'WON').length || 0
+    draft: quotations?.filter((q: Quotation) => q.status === 'DRAFT').length || 0,
+    live: quotations?.filter((q: Quotation) => ['LIVE', 'SUBMITTED'].includes(q.status)).length || 0,
+    won: quotations?.filter((q: Quotation) => q.status === 'WON').length || 0
   };
 
   const totalValue = quotations
-    ?.filter(q => ['LIVE', 'SUBMITTED'].includes(q.status))
-    .reduce((sum, q) => sum + (Number(q.totalValue) || 0), 0) || 0;
+    ?.filter((q: Quotation) => ['LIVE', 'SUBMITTED'].includes(q.status))
+    .reduce((sum: number, q: Quotation) => sum + (Number(q.totalValue) || 0), 0) || 0;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
