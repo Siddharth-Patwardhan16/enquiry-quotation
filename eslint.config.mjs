@@ -12,12 +12,25 @@ const compat = new FlatCompat({
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
+    languageOptions: {
+      parserOptions: {
+        project: "./tsconfig.json",
+        tsconfigRootDir: __dirname,
+      },
+    },
     rules: {
-      // Temporarily disable all strict type checking for deployment
-      "@typescript-eslint/no-explicit-any": "error",
-      // Keep unused vars as warnings for now
-      "@typescript-eslint/no-unused-vars": "warn",
-      "no-unused-vars": "warn",
+      // Apply strict rules for production quality
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-vars": "error",
+      "no-unused-vars": "error",
+      "@typescript-eslint/no-unsafe-assignment": "error",
+      "@typescript-eslint/no-unsafe-call": "error",
+      "@typescript-eslint/no-unsafe-member-access": "error",
+      "@typescript-eslint/no-unsafe-return": "error",
+      "@typescript-eslint/prefer-nullish-coalescing": "error",
+      "@typescript-eslint/prefer-optional-chain": "error",
+      "@typescript-eslint/require-await": "error",
+      "@typescript-eslint/return-await": "error",
     },
   },
 ];

@@ -15,16 +15,16 @@ export default function QuotationsPage() {
   if (error) return <div>Error: {error.message}</div>;
 
   // Calculate stats
-  const stats = {
-    total: quotations?.length || 0,
-    draft: quotations?.filter((q: Quotation) => q.status === 'DRAFT').length || 0,
-    live: quotations?.filter((q: Quotation) => ['LIVE', 'SUBMITTED'].includes(q.status)).length || 0,
-    won: quotations?.filter((q: Quotation) => q.status === 'WON').length || 0
-  };
+      const stats = {
+      total: quotations?.length ?? 0,
+      draft: quotations?.filter((q: Quotation) => q.status === 'DRAFT').length ?? 0,
+      live: quotations?.filter((q: Quotation) => ['LIVE', 'SUBMITTED'].includes(q.status)).length ?? 0,
+      won: quotations?.filter((q: Quotation) => q.status === 'WON').length ?? 0
+    };
 
   const totalValue = quotations
     ?.filter((q: Quotation) => ['LIVE', 'SUBMITTED'].includes(q.status))
-    .reduce((sum: number, q: Quotation) => sum + (Number(q.totalValue) || 0), 0) || 0;
+          .reduce((sum: number, q: Quotation) => sum + (Number(q.totalValue) ?? 0), 0) ?? 0;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -45,7 +45,7 @@ export default function QuotationsPage() {
       'RECEIVED': { color: 'bg-purple-100 text-purple-800', label: 'Received' }
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['DRAFT'];
+          const config = statusConfig[status as keyof typeof statusConfig] ?? statusConfig['DRAFT'];
     
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>
@@ -179,10 +179,10 @@ export default function QuotationsPage() {
                       <td className="p-4 font-medium text-gray-900">{q.quotationNumber}</td>
                       <td className="p-4 text-gray-900">{q.enquiry.customer.name}</td>
                       <td className="p-4 text-gray-500">
-                        {new Date(q.quotationDate || q.createdAt).toLocaleDateString()}
+                        {new Date(q.quotationDate ?? q.createdAt).toLocaleDateString()}
                       </td>
                       <td className="p-4 text-gray-900">
-                        {formatCurrency(Number(q.totalValue) || 0)}
+                        {formatCurrency(Number(q.totalValue) ?? 0)}
                       </td>
                       <td className="p-4">{getStatusBadge(q.status)}</td>
                       <td className="p-4 text-right">

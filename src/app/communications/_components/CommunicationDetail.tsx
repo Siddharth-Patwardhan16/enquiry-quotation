@@ -138,7 +138,7 @@ export function CommunicationDetail({ communication, onBack, onEdit }: Communica
                   <span className="text-gray-900">{communication.customer.officeAddress}</span>
                 </div>
               )}
-              {(communication.customer?.officeCity || communication.customer?.officeState) && (
+              {(communication.customer?.officeCity ?? communication.customer?.officeState) && (
                 <div>
                   <span className="font-medium text-gray-700">Location: </span>
                   <span className="text-gray-900">
@@ -210,7 +210,7 @@ export function CommunicationDetail({ communication, onBack, onEdit }: Communica
         </div>
 
         {/* Next Communication */}
-        {(communication.nextCommunicationDate || communication.proposedNextAction) && (
+        {(communication.nextCommunicationDate ?? communication.proposedNextAction) && (
           <div className="bg-green-50 rounded-lg p-4 border border-green-200">
             <h4 className="font-medium text-green-900 mb-3">Next Communication</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

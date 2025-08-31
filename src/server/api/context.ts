@@ -11,7 +11,7 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
   };
 };
 
-export const createTRPCContext = async () => {
+export const createTRPCContext = () => {
   // For now, return a basic context without auth
   // You can implement proper auth later
   return createInnerTRPCContext({

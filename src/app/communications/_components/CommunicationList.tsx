@@ -19,8 +19,8 @@ import {
 import type { Communication } from '@/types/communication';
 
 interface CommunicationListProps {
-  onEdit?: (_communication: Communication) => void;
-  onView?: (_communication: Communication) => void;
+  onEdit?: (communication: Communication) => void;
+  onView?: (communication: Communication) => void;
   onCreateNew?: () => void;
 }
 
@@ -97,7 +97,7 @@ export function CommunicationList({
     const matchesCustomer = filterCustomer === 'all' || comm.customerId === filterCustomer;
 
     return matchesSearch && matchesType && matchesCustomer;
-  }) || [];
+  }) ?? [];
 
   const handleDelete = (communication: Communication) => {
     if (confirm('Are you sure you want to delete this communication?')) {

@@ -68,7 +68,7 @@ const ChartContext = React.createContext<ChartContextProps | null>(null);
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
-    ([, config]) => config.theme || config.color,
+          ([, config]) => config.theme ?? config.color,
   );
 
   if (!colorConfig.length) {
@@ -85,7 +85,7 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 ${colorConfig
   .map(([_key, itemConfig]) => {
     const color =
-      itemConfig.theme?.[_key as keyof typeof itemConfig.theme] ||
+              itemConfig.theme?.[_key as keyof typeof itemConfig.theme] ??
       itemConfig.color;
     return color ? `  --color-${_key}: ${color};` : null;
   })

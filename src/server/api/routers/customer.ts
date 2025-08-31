@@ -154,13 +154,13 @@ export const customerRouter = createTRPCRouter({
         return await db.customer.create({
           data: {
             name: input.name,
-            officeName: input.officeName || null,
+            officeName: input.officeName ?? null,
             officeAddress: input.officeAddress,
             officeCity: input.officeCity,
             officeState: input.officeState,
             officeCountry: input.officeCountry,
             officeReceptionNumber: input.officeReceptionNumber,
-            plantName: input.plantName || null,
+            plantName: input.plantName ?? null,
             plantAddress: input.plantAddress,
             plantCity: input.plantCity,
             plantState: input.plantState,

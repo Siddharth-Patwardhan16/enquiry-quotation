@@ -47,7 +47,7 @@ export function NavigationLayout({ children }: NavigationLayoutProps) {
 
   const getCurrentPage = () => {
     const currentItem = navigationItems.find(item => pathname.startsWith(item.path));
-    return currentItem?.id || 'dashboard';
+            return currentItem?.id ?? 'dashboard';
   };
 
   return (

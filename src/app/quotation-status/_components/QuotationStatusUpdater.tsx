@@ -30,7 +30,7 @@ export function QuotationStatusUpdater({ quotation }: { quotation: Quotation }) 
 
     if (newStatus === 'LOST') {
       const reason = prompt("Why was this quotation lost?\n\nOptions:\n- PRICE\n- DELIVERY_SCHEDULE\n- LACK_OF_CONFIDENCE\n- OTHER\n\nPlease enter one of the above options:");
-      if (reason && ['PRICE', 'DELIVERY_SCHEDULE', 'LACK_OF_CONFIDENCE', 'OTHER'].includes(reason.toUpperCase())) {
+      if (reason?.trim() && ['PRICE', 'DELIVERY_SCHEDULE', 'LACK_OF_CONFIDENCE', 'OTHER'].includes(reason.toUpperCase())) {
         updateStatusMutation.mutate({ 
           quotationId: quotation.id, 
           status: newStatus, 
@@ -41,7 +41,7 @@ export function QuotationStatusUpdater({ quotation }: { quotation: Quotation }) 
       }
     } else if (newStatus === 'WON' || newStatus === 'RECEIVED') {
       const poNumber = prompt("Please enter the Purchase Order (PO) Number:");
-      if (poNumber && poNumber.trim()) {
+      if (poNumber?.trim()) {
         updateStatusMutation.mutate({ 
           quotationId: quotation.id, 
           status: newStatus, 

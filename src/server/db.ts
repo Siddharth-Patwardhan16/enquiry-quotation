@@ -10,7 +10,7 @@ export const prisma =
     log: process.env.NODE_ENV === "development" ? ["query"] : [],
     datasources: {
       db: {
-        url: process.env.DIRECT_URL || process.env.DATABASE_URL,
+        url: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
       },
     },
   });

@@ -204,49 +204,81 @@ export const dashboardRouter = createTRPCRouter({
     });
 
     // Convert enquiries to tasks
-    const enquiryTaskList = enquiryTasks.map(enquiry => ({
-      id: `enquiry-${enquiry.id}`,
-      title: `Follow up on ${enquiry.subject}`,
-      type: 'enquiry' as const,
-      dueDate: new Date(enquiry.createdAt.getTime() + 3 * 24 * 60 * 60 * 1000), // 3 days after creation
-      priority: (enquiry.priority?.toLowerCase() as 'high' | 'medium' | 'low') || 'medium',
-      status: 'pending' as const,
-      customerName: enquiry.customer.name,
-      description: enquiry.description || enquiry.requirements || 'Follow up required',
-      assignedTo: enquiry.marketingPerson.name,
-      sourceId: enquiry.id,
-      sourceType: 'enquiry'
-    }));
+    const enquiryTaskList = (enquiryTasks as unknown[]).map((enquiry) => {
+      const e = enquiry as {
+        id: number;
+        subject: string;
+        createdAt: Date;
+        priority?: string;
+        customer: { name: string };
+        description?: string;
+        requirements?: string;
+        marketingPerson: { name: string };
+      };
+      return {
+        id: `enquiry-${e.id}`,
+        title: `Follow up on ${e.subject}`,
+        type: 'enquiry' as const,
+        dueDate: new Date(e.createdAt.getTime() + 3 * 24 * 60 * 60 * 1000), // 3 days after creation
+        priority: (e.priority?.toLowerCase() as 'high' | 'medium' | 'low') ?? 'medium',
+        status: 'pending' as const,
+        customerName: e.customer.name,
+        description: e.description ?? e.requirements ?? 'Follow up required',
+        assignedTo: e.marketingPerson.name,
+        sourceId: e.id,
+        sourceType: 'enquiry'
+      };
+    });
 
     // Convert quotations to tasks
-    const quotationTaskList = quotationTasks.map(quotation => ({
-      id: `quotation-${quotation.id}`,
-      title: `Complete quotation ${quotation.quotationNumber}`,
-      type: 'quotation' as const,
-      dueDate: quotation.validityPeriod || new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
-      priority: 'medium' as const,
-      status: quotation.status === 'DRAFT' ? 'pending' as const : 'in-progress' as const,
-      customerName: quotation.enquiry.customer.name,
-      description: `Quotation ${quotation.status.toLowerCase()} - needs completion`,
-      assignedTo: 'Marketing Team',
-      sourceId: quotation.id,
-      sourceType: 'quotation'
-    }));
+    const quotationTaskList = (quotationTasks as unknown[]).map((quotation) => {
+      const q = quotation as {
+        id: number;
+        quotationNumber: string;
+        validityPeriod?: Date;
+        status: string;
+        enquiry: { customer: { name: string } };
+      };
+      return {
+        id: `quotation-${q.id}`,
+        title: `Complete quotation ${q.quotationNumber}`,
+        type: 'quotation' as const,
+        dueDate: q.validityPeriod ?? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+        priority: 'medium' as const,
+        status: q.status === 'DRAFT' ? 'pending' as const : 'in-progress' as const,
+        customerName: q.enquiry.customer.name,
+        description: `Quotation ${q.status.toLowerCase()} - needs completion`,
+        assignedTo: 'Marketing Team',
+        sourceId: q.id,
+        sourceType: 'quotation'
+      };
+    });
 
     // Convert communications to tasks
-    const communicationTaskList = communicationTasks.map(communication => ({
-      id: `communication-${communication.id}`,
-      title: `Follow up: ${communication.subject}`,
-      type: 'communication' as const,
-      dueDate: communication.nextCommunicationDate || new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
-      priority: 'medium' as const,
-      status: 'pending' as const,
-      customerName: communication.customer.name,
-      description: communication.proposedNextAction || communication.description,
-      assignedTo: communication.employee?.name || 'Unassigned',
-      sourceId: communication.id,
-      sourceType: 'communication'
-    }));
+    const communicationTaskList = (communicationTasks as unknown[]).map((communication) => {
+      const c = communication as {
+        id: number;
+        subject: string;
+        nextCommunicationDate?: Date;
+        customer: { name: string };
+        proposedNextAction?: string;
+        description?: string;
+        employee?: { name: string };
+      };
+      return {
+        id: `communication-${c.id}`,
+        title: `Follow up: ${c.subject}`,
+        type: 'communication' as const,
+        dueDate: c.nextCommunicationDate ?? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+        priority: 'medium' as const,
+        status: 'pending' as const,
+        customerName: c.customer.name,
+        description: c.proposedNextAction ?? c.description,
+        assignedTo: c.employee?.name ?? 'Unassigned',
+        sourceId: c.id,
+        sourceType: 'communication'
+      };
+    });
 
     // Combine all tasks and sort by priority and due date
     const allTasks = [...enquiryTaskList, ...quotationTaskList, ...communicationTaskList];

@@ -87,7 +87,7 @@ export function CustomerDetailView({ customer, isOpen, onClose }: CustomerDetail
                   Reception Number
                 </label>
                 <p className="text-sm text-gray-900 mt-1">
-                  {customer.officeReceptionNumber || 'Not provided'}
+                                      {customer.officeReceptionNumber ?? 'Not provided'}
                 </p>
               </div>
             </div>
@@ -112,19 +112,19 @@ export function CustomerDetailView({ customer, isOpen, onClose }: CustomerDetail
                 <div>
                   <label className="text-sm font-medium text-gray-500">City</label>
                   <p className="text-sm text-gray-900 mt-1">
-                    {customer.officeCity || 'Not provided'}
+                    {customer.officeCity ?? 'Not provided'}
                   </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">State/Province</label>
                   <p className="text-sm text-gray-900 mt-1">
-                    {customer.officeState || 'Not provided'}
+                    {customer.officeState ?? 'Not provided'}
                   </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Country</label>
                   <p className="text-sm text-gray-900 mt-1">
-                    {customer.officeCountry || 'Not provided'}
+                    {customer.officeCountry ?? 'Not provided'}
                   </p>
                 </div>
               </div>

@@ -157,7 +157,7 @@ export default function QuotationDetailPage() {
 
               <div>
                 <p className="text-sm text-gray-500">Payment Terms</p>
-                <p className="text-gray-900">{quotation.paymentTerms || 'Not specified'}</p>
+                <p className="text-gray-900">{quotation.paymentTerms ?? 'Not specified'}</p>
               </div>
             </div>
 
@@ -201,7 +201,7 @@ export default function QuotationDetailPage() {
                         {item.materialDescription}
                       </td>
                       <td className="p-3 text-gray-500 text-sm">
-                        {item.specifications || '-'}
+                        {item.specifications ?? '-'}
                       </td>
                       <td className="p-3 text-right">
                         {item.quantity}
@@ -230,17 +230,17 @@ export default function QuotationDetailPage() {
                 <div className="border-t pt-2">
                   <div className="flex justify-between">
                     <span>Subtotal:</span>
-                    <span>{formatCurrency(Number(quotation.subtotal) || 0)}</span>
+                    <span>{formatCurrency(Number(quotation.subtotal) ?? 0)}</span>
                   </div>
                 </div>
                 <div className="flex justify-between">
                   <span>Tax (10%):</span>
-                  <span>{formatCurrency(Number(quotation.tax) || 0)}</span>
+                                      <span>{formatCurrency(Number(quotation.tax) ?? 0)}</span>
                 </div>
                 <div className="border-t pt-2">
                   <div className="flex justify-between text-lg font-semibold">
                     <span>Total:</span>
-                    <span>{formatCurrency(Number(quotation.totalValue) || 0)}</span>
+                    <span>{formatCurrency(Number(quotation.totalValue) ?? 0)}</span>
                   </div>
                 </div>
               </div>

@@ -19,8 +19,8 @@ export function UpcomingTasks({ tasks, isLoading }: UpcomingTasksProps) {
   const { data: apiTasks, isLoading: isLoadingTasks } = api.dashboard.getUpcomingTasks.useQuery();
   
   // Use provided tasks prop or fall back to API data
-  const displayTasks = tasks || apiTasks || [];
-  const isDataLoading = isLoading || isLoadingTasks;
+  const displayTasks = tasks ?? apiTasks ?? [];
+  const isDataLoading = isLoading ?? isLoadingTasks;
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -110,7 +110,7 @@ export function UpcomingTasks({ tasks, isLoading }: UpcomingTasksProps) {
   const sortedTasks = displayTasks.sort((a, b) => {
     // Sort by priority first (high > medium > low)
     const priorityOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
-    const priorityDiff = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+    const priorityDiff = (priorityOrder[b.priority ?? 'low'] ?? 0) - (priorityOrder[a.priority ?? 'low'] ?? 0);
     
     if (priorityDiff !== 0) return priorityDiff;
     

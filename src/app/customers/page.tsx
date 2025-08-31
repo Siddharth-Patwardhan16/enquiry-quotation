@@ -95,12 +95,12 @@ export default function CustomersPage() {
   if (error) return <div>Error: {error.message}</div>;
 
   // Use search results if searching, otherwise use all customers
-  const filteredCustomers = searchTerm.length > 0 ? (searchResults || []) : (customers || []);
+      const filteredCustomers = searchTerm.length > 0 ? (searchResults ?? []) : (customers ?? []);
 
   // Calculate stats
-  const totalCustomers = customers?.length || 0;
-  const newCustomers = customers?.filter((c: Customer) => c.isNew).length || 0;
-  const activeRegions = new Set(customers?.map((c: Customer) => c.officeCountry).filter(Boolean)).size;
+      const totalCustomers = customers?.length ?? 0;
+    const newCustomers = customers?.filter((c: Customer) => c.isNew).length ?? 0;
+    const activeRegions = new Set(customers?.map((c: Customer) => c.officeCountry).filter(Boolean)).size;
 
   // Handle view customer
   const handleViewCustomer = (customer: Customer) => {
@@ -375,7 +375,7 @@ export default function CustomersPage() {
               <div className="text-sm text-gray-500">
                 {searchTerm.length > 0 
                   ? `Found ${filteredCustomers.length} matching customers`
-                  : `Showing ${filteredCustomers.length} of ${customers?.length || 0} customers`
+                  : `Showing ${filteredCustomers.length} of ${customers?.length ?? 0} customers`
                 }
               </div>
             </div>

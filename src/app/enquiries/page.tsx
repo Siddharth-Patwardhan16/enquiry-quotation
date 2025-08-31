@@ -99,15 +99,15 @@ export default function EnquiriesPage() {
     const matchesStatus = statusFilter === 'all' || enquiry.status === statusFilter;
     
     return matchesSearch && matchesStatus;
-  }) || [];
+  }) ?? [];
 
   // Calculate stats
-  const stats = {
-    total: enquiries?.length || 0,
-    new: enquiries?.filter((e: Enquiry) => e.status === 'NEW').length || 0,
-    inProgress: enquiries?.filter((e: Enquiry) => e.status === 'IN_PROGRESS').length || 0,
-    quoted: enquiries?.filter((e: Enquiry) => e.status === 'QUOTED').length || 0
-  };
+      const stats = {
+      total: enquiries?.length ?? 0,
+      new: enquiries?.filter((e: Enquiry) => e.status === 'NEW').length ?? 0,
+      inProgress: enquiries?.filter((e: Enquiry) => e.status === 'IN_PROGRESS').length ?? 0,
+      quoted: enquiries?.filter((e: Enquiry) => e.status === 'QUOTED').length ?? 0
+    };
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -117,7 +117,7 @@ export default function EnquiriesPage() {
       'CLOSED': { color: 'bg-gray-100 text-gray-800', label: 'Closed' }
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['NEW'];
+          const config = statusConfig[status as keyof typeof statusConfig] ?? statusConfig['NEW'];
     
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>
@@ -135,23 +135,23 @@ export default function EnquiriesPage() {
     if (enquiry) {
       setEditingEnquiry(enquiryId);
       setEditData({
-        subject: enquiry.subject || '',
-        description: enquiry.description || '',
-        requirements: enquiry.requirements || '',
-        priority: (enquiry.priority || 'Medium') as 'Low' | 'Medium' | 'High' | 'Urgent',
-        source: (enquiry.source || 'Website') as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media',
-        expectedBudget: enquiry.expectedBudget || '',
-        timeline: enquiry.timeline || '',
-        notes: enquiry.notes || '',
+        subject: enquiry.subject ?? '',
+        description: enquiry.description ?? '',
+        requirements: enquiry.requirements ?? '',
+        priority: (enquiry.priority ?? 'Medium') as 'Low' | 'Medium' | 'High' | 'Urgent',
+        source: (enquiry.source ?? 'Website') as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media',
+        expectedBudget: enquiry.expectedBudget ?? '',
+        timeline: enquiry.timeline ?? '',
+        notes: enquiry.notes ?? '',
       });
     }
   };
 
-  const handleDeleteEnquiry = async (_enquiryId: number) => {
+  const handleDeleteEnquiry = (enquiryId: number) => {
     if (confirm('Are you sure you want to delete this enquiry? This action cannot be undone.')) {
       try {
         // For now, just show a success message since the API expects different types
-        alert('Delete functionality would be implemented here with proper API integration');
+        alert(`Delete functionality would be implemented here for enquiry ${enquiryId} with proper API integration`);
         // In a real implementation, you would call the delete API here
       } catch (error) {
         console.error('Error deleting enquiry:', error);
@@ -159,7 +159,7 @@ export default function EnquiriesPage() {
     }
   };
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = () => {
     if (editingEnquiry) {
       try {
         updateEnquiryMutation.mutate({
@@ -375,14 +375,14 @@ export default function EnquiriesPage() {
                                                      <td className="p-4 align-middle">
                              <div className="text-sm text-gray-900">{enquiry.subject}</div>
                              <div className="text-xs text-gray-500 truncate max-w-xs">
-                               {enquiry.description || 'No description'}
+                               {enquiry.description ?? 'No description'}
                              </div>
                            </td>
                           <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900">
-                            {enquiry.customer?.name || 'N/A'}
+                            {enquiry.customer?.name ?? 'N/A'}
                           </td>
                           <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900">
-                            {enquiry.marketingPerson?.name || 'Unassigned'}
+                            {enquiry.marketingPerson?.name ?? 'Unassigned'}
                           </td>
                           <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-500">
                             {new Date(enquiry.createdAt).toLocaleDateString()}
@@ -446,7 +446,7 @@ export default function EnquiriesPage() {
             {filteredEnquiries.length > 0 && (
               <div className="flex items-center justify-between mt-6">
                 <div className="text-sm text-gray-500">
-                  Showing {filteredEnquiries.length} of {enquiries?.length || 0} enquiries
+                  Showing {filteredEnquiries.length} of {enquiries?.length ?? 0} enquiries
                 </div>
               </div>
             )}
@@ -605,19 +605,19 @@ export default function EnquiriesPage() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Priority
                         </label>
-                        <p className="text-gray-900">{enquiry.priority || 'Not specified'}</p>
+                        <p className="text-gray-900">{enquiry.priority ?? 'Not specified'}</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Source
                         </label>
-                        <p className="text-gray-900">{enquiry.source || 'Not specified'}</p>
+                        <p className="text-gray-900">{enquiry.source ?? 'Not specified'}</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Expected Budget
                         </label>
-                        <p className="text-gray-900">{enquiry.expectedBudget || 'Not specified'}</p>
+                        <p className="text-gray-900">{enquiry.expectedBudget ?? 'Not specified'}</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -631,13 +631,13 @@ export default function EnquiriesPage() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Customer
                         </label>
-                        <p className="text-gray-900">{enquiry.customer?.name || 'Not specified'}</p>
+                        <p className="text-gray-900">{enquiry.customer?.name ?? 'Not specified'}</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Marketing Person
                         </label>
-                        <p className="text-gray-900">{enquiry.marketingPerson?.name || 'Not specified'}</p>
+                        <p className="text-gray-900">{enquiry.marketingPerson?.name ?? 'Not specified'}</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -651,7 +651,7 @@ export default function EnquiriesPage() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Description
                         </label>
-                        <p className="text-gray-900">{enquiry.description || 'No description provided'}</p>
+                        <p className="text-gray-900">{enquiry.description ?? 'No description provided'}</p>
                       </div>
                     </div>
                   );

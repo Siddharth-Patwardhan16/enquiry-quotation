@@ -56,8 +56,8 @@ export default function NewQuotationPage() {
   });
 
   // Watch the items to calculate totals in real-time
-  const watchedItems = watch('items') || [];
-  const currency = watch('currency') || 'USD';
+      const watchedItems = watch('items') ?? [];
+    const currency = watch('currency') ?? 'USD';
   const watchedPaymentTerms = watch('paymentTerms');
   
   // Check for duplicate quotation numbers
@@ -72,15 +72,15 @@ export default function NewQuotationPage() {
 
   // Calculate totals
   const totalBasicPrice = watchedItems.reduce((sum, item) => {
-    const quantity = Number(item.quantity) || 0;
-    const pricePerUnit = Number(item.pricePerUnit) || 0;
+    const quantity = Number(item.quantity) ?? 0;
+    const pricePerUnit = Number(item.pricePerUnit) ?? 0;
     return sum + (quantity * pricePerUnit);
   }, 0);
   
   // Watch commercial terms for grand total calculation
-  const transportCosts = Number(watch('transportCosts')) || 0;
-  const insuranceCosts = Number(watch('insuranceCosts')) || 0;
-  const gst = Number(watch('gst')) || 0;
+  const transportCosts = Number(watch('transportCosts')) ?? 0;
+  const insuranceCosts = Number(watch('insuranceCosts')) ?? 0;
+  const gst = Number(watch('gst')) ?? 0;
   
   // Calculate grand total including commercial terms
   const grandTotal = totalBasicPrice + transportCosts + insuranceCosts + gst;
@@ -183,7 +183,7 @@ export default function NewQuotationPage() {
       percentages: percentages,
       milestones: percentages.map((percentage, index) => ({
         percentage: `${percentage}%`,
-        description: milestones[index] || `Payment ${index + 1}: Due upon completion of phase ${index + 1}.`
+        description: milestones[index] ?? `Payment ${index + 1}: Due upon completion of phase ${index + 1}.`
       }))
     };
   };
@@ -520,8 +520,8 @@ export default function NewQuotationPage() {
           
           {fields.map((field, index) => {
             const item = watchedItems[index];
-            const quantity = Number(item?.quantity) || 0;
-            const pricePerUnit = Number(item?.pricePerUnit) || 0;
+                  const quantity = Number(item?.quantity) ?? 0;
+      const pricePerUnit = Number(item?.pricePerUnit) ?? 0;
             const itemTotal = quantity * pricePerUnit;
             
                          return (

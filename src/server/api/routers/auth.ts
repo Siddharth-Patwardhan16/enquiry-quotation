@@ -160,7 +160,7 @@ export const authRouter = createTRPCRouter({
       }
     }),
 
-  signOut: publicProcedure.mutation(async () => {
+  signOut: publicProcedure.mutation(() => {
     // For now, just return success
     // You can implement proper signout logic later
     return { success: true };

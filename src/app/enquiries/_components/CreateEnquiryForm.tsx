@@ -65,7 +65,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
     },
   });
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = (data: FormData) => {
     if (!isValid) {
       showError('Validation Error', 'Please fill in all required fields correctly.');
       return;

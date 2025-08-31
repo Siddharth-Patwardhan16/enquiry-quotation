@@ -105,7 +105,7 @@ export default function CommunicationsPage() {
             </div>
             <CommunicationForm
               mode={editingCommunication ? 'edit' : 'create'}
-              initialData={editingCommunication || undefined}
+              initialData={editingCommunication ?? undefined}
               onSuccess={handleFormSubmit}
             />
           </div>

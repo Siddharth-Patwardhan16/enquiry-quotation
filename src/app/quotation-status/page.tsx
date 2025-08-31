@@ -30,18 +30,18 @@ export default function QuotationStatusPage() {
   }
 
   // Calculate stats
-  const stats = {
-    total: quotations?.length || 0,
-    draft: quotations?.filter((q: Quotation) => q.status === 'DRAFT').length || 0,
-    live: quotations?.filter((q: Quotation) => ['LIVE', 'SUBMITTED'].includes(q.status)).length || 0,
-    won: quotations?.filter((q: Quotation) => q.status === 'WON').length || 0,
-    lost: quotations?.filter((q: Quotation) => q.status === 'LOST').length || 0,
-    received: quotations?.filter((q: Quotation) => q.status === 'RECEIVED').length || 0
-  };
+      const stats = {
+      total: quotations?.length ?? 0,
+      draft: quotations?.filter((q: Quotation) => q.status === 'DRAFT').length ?? 0,
+      live: quotations?.filter((q: Quotation) => ['LIVE', 'SUBMITTED'].includes(q.status)).length ?? 0,
+      won: quotations?.filter((q: Quotation) => q.status === 'WON').length ?? 0,
+      lost: quotations?.filter((q: Quotation) => q.status === 'LOST').length ?? 0,
+      received: quotations?.filter((q: Quotation) => q.status === 'RECEIVED').length ?? 0
+    };
 
   const totalValue = quotations
     ?.filter((q: Quotation) => ['LIVE', 'SUBMITTED', 'WON', 'RECEIVED'].includes(q.status))
-    .reduce((sum: number, q: Quotation) => sum + (Number(q.totalValue) || 0), 0) || 0;
+          .reduce((sum: number, q: Quotation) => sum + (Number(q.totalValue) ?? 0), 0) ?? 0;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -235,12 +235,12 @@ export default function QuotationStatusPage() {
                       <div className="text-sm font-medium text-gray-900">{quotation.quotationNumber}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{quotation.enquiry?.customer?.name || 'N/A'}</div>
+                      <div className="text-sm text-gray-900">{quotation.enquiry?.customer?.name ?? 'N/A'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 max-w-xs truncate" title={quotation.enquiry?.subject || 'N/A'}>
-                        {quotation.enquiry?.subject || 'N/A'}
-                      </div>
+                                          <div className="text-sm text-gray-900 max-w-xs truncate" title={quotation.enquiry?.subject ?? 'N/A'}>
+                      {quotation.enquiry?.subject ?? 'N/A'}
+                    </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">

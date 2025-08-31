@@ -47,7 +47,6 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
 
   // Fetch data
   const { data: customers, isLoading: loadingCustomers } = api.customer.getAll.useQuery();
-  const { data: contacts } = api.contact.getAll.useQuery();
   const { data: enquiries } = api.enquiry.getAll.useQuery();
 
   const {
@@ -67,9 +66,9 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
         subject: initialData.subject,
                 description: initialData.description,
         type: initialData.type,
-        enquiryRelated: initialData.enquiryRelated || undefined,
-        nextCommunicationDate: initialData.nextCommunicationDate?.toISOString().split('T')[0] || undefined,
-        proposedNextAction: initialData.proposedNextAction || undefined,
+        enquiryRelated: initialData.enquiryRelated ?? undefined,
+        nextCommunicationDate: initialData.nextCommunicationDate?.toISOString().split('T')[0] ?? undefined,
+        proposedNextAction: initialData.proposedNextAction ?? undefined,
       } : {}),
     },
   });
@@ -80,13 +79,13 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
   // const filteredContacts = contacts?.filter((contact: { customerId: string }) => contact.customerId === watchedCustomerId) || [];
   
   // Filter enquiries based on selected customer
-  const filteredEnquiries = enquiries?.filter((enquiry: { customerId: string; id: number; subject: string }) => enquiry.customerId === watchedCustomerId) || [];
+  const filteredEnquiries = enquiries?.filter((enquiry: { customerId: string; id: number; subject: string }) => enquiry.customerId === watchedCustomerId) ?? [];
 
   // Update customer info when selection changes
   useEffect(() => {
     if (watchedCustomerId) {
       const customer = customers?.find((c: { id: string }) => c.id === watchedCustomerId);
-      setSelectedCustomer(customer || null);
+              setSelectedCustomer(customer ?? null);
     }
   }, [watchedCustomerId, customers]);
 

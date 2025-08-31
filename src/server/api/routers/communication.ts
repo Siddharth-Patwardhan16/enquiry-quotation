@@ -232,7 +232,7 @@ export const communicationRouter = createTRPCRouter({
             nextCommunicationDate: updateData.nextCommunicationDate ? new Date(updateData.nextCommunicationDate) : null,
             proposedNextAction: updateData.proposedNextAction,
             customerId: updateData.customerId,
-            contactId: updateData.contactId || null, // Handle optional contactId
+            contactId: updateData.contactId ?? null, // Handle optional contactId
           },
           include: {
             customer: {
