@@ -2,16 +2,38 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CreateCustomerSchema } from '@/lib/validators/customer';
-import type { z } from 'zod';
+import { z } from 'zod';
 import { api } from '@/trpc/client';
 import { Save, X, Building, Factory, Package, Info } from 'lucide-react';
 import { useEffect } from 'react';
 import { useToast } from '@/components/ui/toast';
 
-type FormData = z.infer<typeof CreateCustomerSchema> & {
-  isNew: boolean;
-};
+// Local validation schema that matches the form data
+const FormValidationSchema = z.object({
+  name: z.string().min(2, 'Customer name is required'),
+  isNew: z.boolean(),
+  officeCountry: z.string(),
+  plantCountry: z.string(),
+  officeName: z.string().optional(),
+  plantName: z.string().optional(),
+  poRuptureDiscs: z.boolean(),
+  poThermowells: z.boolean(),
+  poHeatExchanger: z.boolean(),
+  poMiscellaneous: z.boolean(),
+  poWaterJetSteamJet: z.boolean(),
+  officeAddress: z.string().optional(),
+  officeCity: z.string().optional(),
+  officeState: z.string().optional(),
+  officeReceptionNumber: z.string().optional(),
+  plantAddress: z.string().optional(),
+  plantCity: z.string().optional(),
+  plantState: z.string().optional(),
+  plantReceptionNumber: z.string().optional(),
+  existingGraphiteSuppliers: z.string().optional(),
+  problemsFaced: z.string().optional(),
+});
+
+type FormData = z.infer<typeof FormValidationSchema>;
 
 interface Customer {
   id: string;
@@ -71,7 +93,7 @@ export function EditCustomerForm({ customer, onCancel, onSuccess }: EditCustomer
     watch,
     formState: { errors, isValid },
   } = useForm<FormData>({
-    resolver: zodResolver(CreateCustomerSchema),
+    resolver: zodResolver(FormValidationSchema),
     defaultValues: {
       name: customer.name,
       isNew: customer.isNew,
