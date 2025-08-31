@@ -8,6 +8,11 @@ import { api } from '@/trpc/client';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Save } from 'lucide-react';
 import { useState } from 'react';
+import type { AppRouter } from '@/server/api/root';
+import type { inferRouterOutputs } from '@trpc/server';
+
+// Use the same type as other enquiry components
+type Enquiry = inferRouterOutputs<AppRouter>['enquiry']['getAll'][0];
 
 // Generate a unique quotation number
 const generateQuotationNumber = (): string => {
@@ -314,7 +319,7 @@ export default function NewQuotationPage() {
                 className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">{isLoadingEnquiries ? "Loading..." : "Select Enquiry"}</option>
-                {enquiries?.map(e => (
+                {enquiries?.map((e: Enquiry) => (
                   <option key={e.id} value={e.id}>
                     {e.customer?.name} - {e.subject}
                   </option>
