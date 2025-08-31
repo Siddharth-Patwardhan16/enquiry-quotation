@@ -64,7 +64,7 @@ export default function EnquiriesPage() {
   if (error) return <div>Error: {error.message}</div>;
 
   // Filter enquiries based on search and status
-  const filteredEnquiries = enquiries?.filter(enquiry => {
+  const filteredEnquiries = enquiries?.filter((enquiry: any) => {
     const matchesSearch = 
       enquiry.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       enquiry.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -78,9 +78,9 @@ export default function EnquiriesPage() {
   // Calculate stats
   const stats = {
     total: enquiries?.length || 0,
-    new: enquiries?.filter(e => e.status === 'NEW').length || 0,
-    inProgress: enquiries?.filter(e => e.status === 'IN_PROGRESS').length || 0,
-    quoted: enquiries?.filter(e => e.status === 'QUOTED').length || 0
+    new: enquiries?.filter((e: any) => e.status === 'NEW').length || 0,
+    inProgress: enquiries?.filter((e: any) => e.status === 'IN_PROGRESS').length || 0,
+    quoted: enquiries?.filter((e: any) => e.status === 'QUOTED').length || 0
   };
 
   const getStatusBadge = (status: string) => {
@@ -105,7 +105,7 @@ export default function EnquiriesPage() {
   };
 
   const handleEditEnquiry = (enquiryId: number) => {
-    const enquiry = enquiries?.find(e => e.id === enquiryId);
+    const enquiry = enquiries?.find((e: any) => e.id === enquiryId);
     if (enquiry) {
       setEditingEnquiry(enquiryId);
       setEditData({
