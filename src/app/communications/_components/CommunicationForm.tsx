@@ -111,10 +111,10 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
   const watchedCustomerId = watch('customerId');
 
   // Filter contacts based on selected customer
-  const filteredContacts = contacts?.filter(contact => contact.customerId === watchedCustomerId) || [];
+  const filteredContacts = contacts?.filter((contact: { customerId: string }) => contact.customerId === watchedCustomerId) || [];
 
   // Filter enquiries based on selected customer
-  const filteredEnquiries = enquiries?.filter(enquiry => enquiry.customerId === watchedCustomerId) || [];
+  const filteredEnquiries = enquiries?.filter((enquiry: { customerId: string }) => enquiry.customerId === watchedCustomerId) || [];
 
   // Update customer info when selection changes
   useEffect(() => {
