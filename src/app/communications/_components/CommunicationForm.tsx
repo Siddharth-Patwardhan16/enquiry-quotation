@@ -66,11 +66,11 @@ type Communication = {
 type Customer = {
   id: string;
   name: string;
-  officeAddress?: string;
-  officeCity?: string;
-  officeState?: string;
-  officeCountry?: string;
-  officeReceptionNumber?: string;
+  officeAddress: string | null;
+  officeCity: string | null;
+  officeState: string | null;
+  officeCountry: string | null;
+  officeReceptionNumber: string | null;
 };
 
 interface CommunicationFormProps {

@@ -69,7 +69,6 @@ export function EditCustomerForm({ customer, onCancel, onSuccess }: EditCustomer
     watch,
     formState: { errors, isValid },
   } = useForm<FormData>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(CreateCustomerSchema) as any,
     defaultValues: {
       name: customer.name,

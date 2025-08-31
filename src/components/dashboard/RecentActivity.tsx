@@ -29,7 +29,7 @@ export function RecentEnquiries({ recentEnquiries, isLoadingEnquiries }: { recen
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Enquiries</h2>
       {isLoadingEnquiries ? (
         <div className="space-y-3">
-          {[...Array(5)].map((_, i) => (
+          {Array.from({ length: 5 }, (_, i) => (
             <div key={i} className="animate-pulse">
               <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
               <div className="h-3 bg-gray-200 rounded w-1/2"></div>
@@ -62,7 +62,7 @@ export function RecentQuotations({ recentQuotations, isLoadingQuotations }: { re
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Quotations</h2>
       {isLoadingQuotations ? (
         <div className="space-y-3">
-          {[...Array(5)].map((_, i) => (
+          {Array.from({ length: 5 }, (_, i) => (
             <div key={i} className="animate-pulse">
               <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
               <div className="h-3 bg-gray-200 rounded w-1/2"></div>

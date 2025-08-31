@@ -147,7 +147,6 @@ export default function CommunicationsPage() {
         {viewMode === 'form' && (
           <CommunicationForm
             mode={editingCommunication ? 'edit' : 'create'}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             initialData={editingCommunication as any || undefined}
             onSuccess={handleFormSuccess}
           />

@@ -11,10 +11,13 @@ export function UserSyncProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (supabaseUser && session) {
       // Sync the Supabase user to our Prisma database
+      const userMetadata = supabaseUser.user_metadata as { full_name?: string } | null;
+      const fullName = userMetadata?.full_name || supabaseUser.email?.split('@')[0] || 'Unknown User';
+      
       syncUserMutation.mutate({
         supabaseUserId: supabaseUser.id,
         email: supabaseUser.email || '',
-        name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'Unknown User',
+        name: fullName,
       }, {
         onSuccess: (data) => {
           console.log('User synced successfully:', data);
