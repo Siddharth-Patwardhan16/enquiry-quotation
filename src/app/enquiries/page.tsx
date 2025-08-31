@@ -1,6 +1,6 @@
 'use client';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 
 import { useState } from 'react';
 import { api } from '@/trpc/client';
@@ -19,6 +19,23 @@ import {
   X
 } from 'lucide-react';
 
+// Define the enquiry type based on what we actually use
+interface Enquiry {
+  id: number;
+  subject?: string;
+  description?: string | null;
+  customer?: { name?: string };
+  marketingPerson?: { name?: string };
+  status: string;
+  createdAt: Date;
+  priority?: string | null;
+  source?: string | null;
+  requirements?: string | null;
+  expectedBudget?: string | null;
+  timeline?: string | null;
+  notes?: string | null;
+}
+
 export default function EnquiriesPage() {
   const enquiriesQuery = api.enquiry.getAll.useQuery();
   const { data: enquiries, isLoading, error } = enquiriesQuery;
@@ -26,7 +43,16 @@ export default function EnquiriesPage() {
     onSuccess: () => {
       enquiriesQuery.refetch();
       setEditingEnquiry(null);
-      setEditData({} as any);
+      setEditData({
+        subject: '',
+        description: '',
+        requirements: '',
+        priority: 'Medium',
+        source: 'Website',
+        expectedBudget: '',
+        timeline: '',
+        notes: '',
+      });
     },
     onError: (error) => {
       console.error('Error updating enquiry:', error);
@@ -42,7 +68,7 @@ export default function EnquiriesPage() {
     description: string;
     requirements: string;
     priority: 'Low' | 'Medium' | 'High' | 'Urgent';
-    source: 'Website' | 'Referral' | 'Cold Call' | 'Trade Show' | 'Social Media' | 'Other';
+    source: 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media';
     expectedBudget: string;
     timeline: string;
     notes: string;
@@ -64,7 +90,7 @@ export default function EnquiriesPage() {
   if (error) return <div>Error: {error.message}</div>;
 
   // Filter enquiries based on search and status
-  const filteredEnquiries = enquiries?.filter((enquiry: any) => {
+  const filteredEnquiries = enquiries?.filter((enquiry: Enquiry) => {
     const matchesSearch = 
       enquiry.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       enquiry.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -78,9 +104,9 @@ export default function EnquiriesPage() {
   // Calculate stats
   const stats = {
     total: enquiries?.length || 0,
-    new: enquiries?.filter((e: any) => e.status === 'NEW').length || 0,
-    inProgress: enquiries?.filter((e: any) => e.status === 'IN_PROGRESS').length || 0,
-    quoted: enquiries?.filter((e: any) => e.status === 'QUOTED').length || 0
+    new: enquiries?.filter((e: Enquiry) => e.status === 'NEW').length || 0,
+    inProgress: enquiries?.filter((e: Enquiry) => e.status === 'IN_PROGRESS').length || 0,
+    quoted: enquiries?.filter((e: Enquiry) => e.status === 'QUOTED').length || 0
   };
 
   const getStatusBadge = (status: string) => {
@@ -105,7 +131,7 @@ export default function EnquiriesPage() {
   };
 
   const handleEditEnquiry = (enquiryId: number) => {
-    const enquiry = enquiries?.find((e: any) => e.id === enquiryId);
+    const enquiry = enquiries?.find((e: Enquiry) => e.id === enquiryId);
     if (enquiry) {
       setEditingEnquiry(enquiryId);
       setEditData({
@@ -113,7 +139,7 @@ export default function EnquiriesPage() {
         description: enquiry.description || '',
         requirements: enquiry.requirements || '',
         priority: (enquiry.priority || 'Medium') as 'Low' | 'Medium' | 'High' | 'Urgent',
-        source: (enquiry.source || 'Website') as 'Website' | 'Referral' | 'Cold Call' | 'Trade Show' | 'Social Media' | 'Other',
+        source: (enquiry.source || 'Website') as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media',
         expectedBudget: enquiry.expectedBudget || '',
         timeline: enquiry.timeline || '',
         notes: enquiry.notes || '',
@@ -139,7 +165,7 @@ export default function EnquiriesPage() {
         updateEnquiryMutation.mutate({
           id: editingEnquiry,
           ...editData
-        } as any);
+        });
       } catch (error) {
         console.error('Error updating enquiry:', error);
       }
@@ -148,7 +174,16 @@ export default function EnquiriesPage() {
 
   const handleCancelEdit = () => {
     setEditingEnquiry(null);
-    setEditData({} as any);
+    setEditData({
+      subject: '',
+      description: '',
+      requirements: '',
+      priority: 'Medium',
+      source: 'Website',
+      expectedBudget: '',
+      timeline: '',
+      notes: '',
+    });
   };
 
   const handleCloseView = () => {
@@ -332,7 +367,7 @@ export default function EnquiriesPage() {
                         </td>
                       </tr>
                     ) : filteredEnquiries.length > 0 ? (
-                      filteredEnquiries.map((enquiry) => (
+                      filteredEnquiries.map((enquiry: Enquiry) => (
                         <tr key={enquiry.id} className="hover:bg-gray-50 data-[state=selected]:bg-muted border-b transition-colors">
                                                      <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900">
                              #{enquiry.id.toString().slice(-8)}
@@ -453,7 +488,7 @@ export default function EnquiriesPage() {
                     </label>
                     <select
                       value={editData.source}
-                      onChange={(e) => setEditData({ ...editData, source: e.target.value as 'Website' | 'Referral' | 'Cold Call' | 'Trade Show' | 'Social Media' | 'Other' })}
+                      onChange={(e) => setEditData({ ...editData, source: e.target.value as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' })}
                       className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="Website">Website</option>
