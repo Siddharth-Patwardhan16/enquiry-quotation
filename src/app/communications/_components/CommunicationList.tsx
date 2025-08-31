@@ -198,7 +198,7 @@ export function CommunicationList({
             </div>
           </div>
         ) : (
-          filteredCommunications.map((communication) => (
+                     filteredCommunications.map((communication: Communication) => (
             <div key={communication.id} className="px-6 py-4 hover:bg-gray-50">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
