@@ -118,7 +118,7 @@ export function UpcomingTasks({ tasks, isLoading }: UpcomingTasksProps) {
 
   const sortedTasks = displayTasks.sort((a, b) => {
     // Sort by priority first (high > medium > low)
-    const priorityOrder = { high: 3, medium: 2, low: 1 };
+    const priorityOrder: Record<Task['priority'], number> = { high: 3, medium: 2, low: 1 };
     const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
     
     if (priorityDiff !== 0) return priorityDiff;
