@@ -140,7 +140,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                   <option value="" className="text-black bg-white">
                     {isLoadingCustomers ? 'Loading customers...' : 'Select a customer'}
                   </option>
-                  {customers?.map((customer) => (
+                  {customers?.map((customer: { id: string; name: string }) => (
                     <option key={customer.id} value={customer.id} className="text-black bg-white">
                       {customer.name}
                     </option>
