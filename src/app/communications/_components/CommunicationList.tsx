@@ -170,7 +170,7 @@ export function CommunicationList({
               className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="all">All Customers</option>
-              {customers?.map(customer => (
+              {customers?.map((customer: { id: string; name: string }) => (
                 <option key={customer.id} value={customer.id}>
                   {customer.name}
                 </option>
