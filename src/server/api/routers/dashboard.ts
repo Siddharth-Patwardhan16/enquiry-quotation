@@ -111,7 +111,7 @@ export const dashboardRouter = createTRPCRouter({
     });
 
     // Group by month and count enquiries
-    const monthlyData = monthlyTrends.reduce((acc: Record<number, number>, trend) => {
+    const monthlyData = monthlyTrends.reduce((acc: Record<number, number>, trend: { createdAt: Date; _count: { id: number } }) => {
       const month = trend.createdAt.getMonth();
       acc[month] = (acc[month] || 0) + trend._count.id;
       return acc;
