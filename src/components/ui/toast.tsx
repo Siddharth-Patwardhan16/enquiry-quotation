@@ -9,7 +9,7 @@ export interface ToastProps {
   title: string;
   message?: string;
   duration?: number;
-  onClose: (id: string) => void;
+  onClose: (_id: string) => void;
 }
 
 export function Toast({ id, type, title, message, duration = 5000, onClose }: ToastProps) {
@@ -68,7 +68,7 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
   );
 }
 
-export function ToastContainer({ toasts, onClose }: { toasts: ToastProps[]; onClose: (id: string) => void }) {
+export function ToastContainer({ toasts, onClose }: { toasts: ToastProps[]; onClose: (_id: string) => void }) {
   return (
     <div className="fixed top-4 right-4 z-50 space-y-2">
       {toasts.map((toast) => (

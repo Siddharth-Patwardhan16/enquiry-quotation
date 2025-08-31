@@ -17,7 +17,7 @@ export const enquiryRouter = createTRPCRouter({
         throw new Error('No marketing person found in the database');
       }
       
-      return await db.enquiry.create({
+      return db.enquiry.create({
         data: {
           subject: input.subject,
           customerId: input.customerId,
@@ -37,7 +37,7 @@ export const enquiryRouter = createTRPCRouter({
 
   // Procedure to get all enquiries with customer names
   getAll: publicProcedure.query(async () => {
-    return await db.enquiry.findMany({
+    return db.enquiry.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
         customer: {
@@ -90,7 +90,7 @@ export const enquiryRouter = createTRPCRouter({
   updateStatus: publicProcedure
     .input(UpdateEnquirySchema)
     .mutation(async ({ input }) => {
-      return await db.enquiry.update({
+      return db.enquiry.update({
         where: { id: input.id },
         data: { status: input.status },
       });
@@ -101,7 +101,7 @@ export const enquiryRouter = createTRPCRouter({
     .input(UpdateEnquiryFullSchema)
     .mutation(async ({ input }) => {
       const { id, ...updateData } = input;
-      return await db.enquiry.update({
+      return db.enquiry.update({
         where: { id },
         data: updateData,
       });
@@ -111,7 +111,7 @@ export const enquiryRouter = createTRPCRouter({
   delete: publicProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      return await db.enquiry.delete({
+      return db.enquiry.delete({
         where: { id: input.id },
       });
     }),

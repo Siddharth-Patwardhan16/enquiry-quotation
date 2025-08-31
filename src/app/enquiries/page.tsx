@@ -117,7 +117,7 @@ export default function EnquiriesPage() {
       'CLOSED': { color: 'bg-gray-100 text-gray-800', label: 'Closed' }
     };
     
-          const config = statusConfig[status as keyof typeof statusConfig] ?? statusConfig['NEW'];
+          const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['NEW'];
     
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>

@@ -19,8 +19,8 @@ import {
 import type { Communication } from '@/types/communication';
 
 interface CommunicationListProps {
-  onEdit?: (communication: Communication) => void;
-  onView?: (communication: Communication) => void;
+  onEdit?: (_communication: Communication) => void;
+  onView?: (_communication: Communication) => void;
   onCreateNew?: () => void;
 }
 
@@ -262,7 +262,7 @@ export function CommunicationList({
                   {onEdit && (
                     <button
                       onClick={() => onEdit(communication)}
-                      className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-md"
+                      className="p-4 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-md"
                       title="Edit communication"
                     >
                       <Edit className="h-4 w-4" />

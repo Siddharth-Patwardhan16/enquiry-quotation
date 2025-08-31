@@ -34,10 +34,9 @@ const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
 type SidebarContextProps = {
   state: "expanded" | "collapsed";
-  open: boolean;
-  setOpen: (_open: boolean) => void;
+  setOpen: (_value: boolean) => void;
   openMobile: boolean;
-  setOpenMobile: (_open: boolean) => void;
+  setOpenMobile: (_value: boolean) => void;
   isMobile: boolean;
   toggleSidebar: () => void;
 };
@@ -64,22 +63,22 @@ function SidebarProvider({
 }: React.ComponentProps<"div"> & {
   defaultOpen?: boolean;
   open?: boolean;
-  onOpenChange?: (open: boolean) => void;
+  onOpenChange?: (_open: boolean) => void;
 }) {
   const isMobile = useIsMobile();
   const [openMobile, setOpenMobile] = React.useState(false);
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
-  const [_open, _setOpen] = React.useState(defaultOpen);
-  const open = openProp ?? _open;
+  const [internalOpen, setInternalOpen] = React.useState(defaultOpen);
+  const open = openProp ?? internalOpen;
   const setOpen = React.useCallback(
-    (value: boolean | ((value: boolean) => boolean)) => {
-      const openState = typeof value === "function" ? value(open) : value;
+    (_openValue: boolean | ((_openValue: boolean) => boolean)) => {
+      const openState = typeof _openValue === "function" ? _openValue(open) : _openValue;
       if (setOpenProp) {
         setOpenProp(openState);
       } else {
-        _setOpen(openState);
+        setInternalOpen(openState);
       }
 
       // This sets the cookie to keep the sidebar state.
@@ -116,14 +115,13 @@ function SidebarProvider({
   const contextValue = React.useMemo<SidebarContextProps>(
     () => ({
       state,
-      open,
       setOpen,
       isMobile,
       openMobile,
       setOpenMobile,
       toggleSidebar,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar],
+    [state, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar],
   );
 
   return (

@@ -1,25 +1,16 @@
 "use client";
 
 import * as React from "react";
-import * as RechartsPrimitive from "recharts";
 
-import { cn } from "./utils";
-
-export type ChartConfig = {
-  [_k in string]: {
+export type ChartConfig = Record<string, {
     label?: React.ReactNode;
     icon?: React.ComponentType;
   } & (
     | { color?: string; theme?: never }
     | { color?: never; theme: Record<string, string> }
-  );
-};
+  )>;
 
-type ChartContextProps = {
-  config: ChartConfig;
-};
-
-const ChartContext = React.createContext<ChartContextProps | null>(null);
+// const ChartContext = React.createContext<ChartContextProps | null>(null);
 
 // function useChart() {
 //   const context = React.useContext(ChartContext);
@@ -66,38 +57,38 @@ const ChartContext = React.createContext<ChartContextProps | null>(null);
 //   );
 // }
 
-const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  const colorConfig = Object.entries(config).filter(
-          ([, config]) => config.theme ?? config.color,
-  );
+// const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
+//   const colorConfig = Object.entries(config).filter(
+//           ([, config]) => config.theme ?? config.color,
+//   );
 
-  if (!colorConfig.length) {
-    return null;
-  }
+//   if (!colorConfig.length) {
+//     return null;
+//   }
 
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(config)
-          .map(
-            ([_key, _itemConfig]) => `
-[data-chart=${id}] {
-${colorConfig
-  .map(([_key, itemConfig]) => {
-    const color =
-              itemConfig.theme?.[_key as keyof typeof itemConfig.theme] ??
-      itemConfig.color;
-    return color ? `  --color-${_key}: ${color};` : null;
-  })
-  .join("\n")}
-}
-`,
-          )
-          .join("\n"),
-      }}
-    />
-  );
-};
+//   return (
+//     <style
+//       dangerouslySetInnerHTML={{
+//         __html: Object.entries(config)
+//           .map(
+//             ([_unusedKey, _unusedItemConfig]) => `
+// [data-chart=${id}] {
+// ${colorConfig
+//   .map(([_unusedKey, itemConfig]) => {
+//     const color =
+//               itemConfig.theme?.[_unusedKey as keyof typeof itemConfig.theme] ??
+//       itemConfig.color;
+//     return color ? `  --color-${_unusedKey}: ${color};` : null;
+//   })
+//   .join("\n")}
+// }
+// `,
+//           )
+//           .join("\n"),
+//       }}
+//     />
+//   );
+// };
 
 // Temporarily disabled due to Recharts v3 compatibility issues
 // const ChartTooltip = RechartsPrimitive.Tooltip;

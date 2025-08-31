@@ -81,8 +81,8 @@ export const quotationRouter = createTRPCRouter({
       }
     }),
 
-  getAll: publicProcedure.query(async () => {
-    return await db.quotation.findMany({
+  getAll: publicProcedure.query(() => {
+    return db.quotation.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
         // Include related data to display in the list
@@ -128,7 +128,7 @@ export const quotationRouter = createTRPCRouter({
       }
 
       // Update the quotation in the database
-      return await db.quotation.update({
+      return db.quotation.update({
         where: {
           id: quotationId,
         },
@@ -143,9 +143,9 @@ export const quotationRouter = createTRPCRouter({
 
   getById: publicProcedure
     .input(z.object({ id: z.string() }))
-    .query(async ({ input }) => {
+    .query(({ input }) => {
       try {
-        return await db.quotation.findUnique({
+        return db.quotation.findUnique({
           where: { id: input.id },
           include: {
             enquiry: {
