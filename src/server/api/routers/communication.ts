@@ -9,9 +9,8 @@ const CreateCommunicationSchema = z.object({
   customerId: z.string(),
   subject: z.string(),
   enquiryRelated: z.string().optional(),
-  generalDescription: z.string().optional(),
-  briefDescription: z.string(),
-  communicationType: z.enum(['TELEPHONIC', 'VIRTUAL_MEETING', 'EMAIL', 'PLANT_VISIT', 'OFFICE_VISIT']),
+  description: z.string(),
+  type: z.enum(['TELEPHONIC', 'VIRTUAL_MEETING', 'EMAIL', 'PLANT_VISIT', 'OFFICE_VISIT']),
   nextCommunicationDate: z.string().optional(),
   proposedNextAction: z.string().optional(),
   contactId: z.string().optional(), // Made optional for backward compatibility
@@ -149,8 +148,9 @@ export const communicationRouter = createTRPCRouter({
         const communication = await db.communication.create({
           data: {
             subject: input.subject,
-            description: input.briefDescription,
-            type: input.communicationType,
+            description: input.description,
+            type: input.type,
+            enquiryRelated: input.enquiryRelated,
             nextCommunicationDate: input.nextCommunicationDate ? new Date(input.nextCommunicationDate) : null,
             proposedNextAction: input.proposedNextAction,
             customerId: input.customerId,
@@ -226,8 +226,9 @@ export const communicationRouter = createTRPCRouter({
           where: { id },
           data: {
             subject: updateData.subject,
-            description: updateData.briefDescription,
-            type: updateData.communicationType,
+            description: updateData.description,
+            type: updateData.type,
+            enquiryRelated: updateData.enquiryRelated,
             nextCommunicationDate: updateData.nextCommunicationDate ? new Date(updateData.nextCommunicationDate) : null,
             proposedNextAction: updateData.proposedNextAction,
             customerId: updateData.customerId,

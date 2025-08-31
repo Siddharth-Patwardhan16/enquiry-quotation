@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { api } from '@/trpc/client';
 import { Calendar, Building, Phone, Mail, Video, MapPin } from 'lucide-react';
+import type { Communication } from '@/types/communication';
 
 // Validation schema for communication form
 const CommunicationSchema = z.object({
@@ -13,54 +14,14 @@ const CommunicationSchema = z.object({
   customerId: z.string().min(1, 'Customer is required'),
   contactId: z.string().optional(),
   subject: z.string().min(1, 'Subject is required'),
-  enquiryRelated: z.string().optional(),
-  generalDescription: z.string().optional(),
-  briefDescription: z.string().min(1, 'Brief description is required'),
-  communicationType: z.enum(['TELEPHONIC', 'VIRTUAL_MEETING', 'EMAIL', 'PLANT_VISIT', 'OFFICE_VISIT']),
+  description: z.string().min(1, 'Description is required'),
+  enquiryRelated: z.string().optional(), // Link to enquiry for tracking
+  type: z.enum(['TELEPHONIC', 'VIRTUAL_MEETING', 'EMAIL', 'PLANT_VISIT', 'OFFICE_VISIT']),
   nextCommunicationDate: z.string().optional(),
   proposedNextAction: z.string().optional(),
 });
 
 type FormData = z.infer<typeof CommunicationSchema>;
-
-// Define the communication type based on what's returned from the API
-type Communication = {
-  id: string;
-  subject: string;
-  briefDescription: string;
-  communicationType: 'TELEPHONIC' | 'VIRTUAL_MEETING' | 'EMAIL' | 'PLANT_VISIT' | 'OFFICE_VISIT';
-  enquiryRelated?: string | null;
-  generalDescription?: string | null;
-  nextCommunicationDate?: string | null;
-  proposedNextAction?: string | null;
-  customerId: string;
-  contactId?: string | null;
-  employeeId: string;
-  createdAt: string;
-  updatedAt: string;
-  customer: {
-    id: string;
-    name: string;
-    officeAddress?: string;
-    officeCity?: string;
-    officeState?: string;
-    officeCountry?: string;
-    officeReceptionNumber?: string;
-  };
-  contact?: {
-    id: string;
-    name: string;
-    designation?: string;
-    officialCellNumber?: string;
-    personalCellNumber?: string;
-    locationType?: string;
-  } | null;
-  employee: {
-    id: string;
-    name: string;
-    role: string;
-  };
-};
 
 // Define customer type
 type Customer = {
@@ -100,15 +61,14 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
     resolver: zodResolver(CommunicationSchema),
     defaultValues: {
       date: new Date().toISOString().split('T')[0],
-      communicationType: 'TELEPHONIC',
+      type: 'TELEPHONIC',
       ...(initialData ? {
         customerId: initialData.customerId,
         subject: initialData.subject,
-        briefDescription: initialData.briefDescription,
-        communicationType: initialData.communicationType,
+                description: initialData.description,
+        type: initialData.type,
         enquiryRelated: initialData.enquiryRelated || undefined,
-        generalDescription: initialData.generalDescription || undefined,
-        nextCommunicationDate: initialData.nextCommunicationDate || undefined,
+        nextCommunicationDate: initialData.nextCommunicationDate?.toISOString().split('T')[0] || undefined,
         proposedNextAction: initialData.proposedNextAction || undefined,
       } : {}),
     },
@@ -133,8 +93,8 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
   // Update selected communication type when form value changes
   useEffect(() => {
     const subscription = watch((value, { name }) => {
-      if (name === 'communicationType' && value.communicationType) {
-        setSelectedCommunicationType(value.communicationType);
+      if (name === 'type' && value.type) {
+        setSelectedCommunicationType(value.type);
       }
     });
     return () => subscription.unsubscribe();
@@ -142,8 +102,8 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
 
   // Set initial communication type when editing
   useEffect(() => {
-    if (initialData?.communicationType) {
-      setSelectedCommunicationType(initialData.communicationType);
+    if (initialData?.type) {
+      setSelectedCommunicationType(initialData.type);
     }
   }, [initialData]);
 
@@ -253,7 +213,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
                   disabled={loadingCustomers}
                 >
                   <option value="">{loadingCustomers ? "Loading..." : "Select Customer"}</option>
-                  {customers?.map(customer => (
+                  {customers?.map((customer: { id: string; name: string }) => (
                     <option key={customer.id} value={customer.id}>
                       {customer.name}
                     </option>
@@ -318,7 +278,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
                 disabled={!watchedCustomerId}
               >
                 <option value="">Select Enquiry (Optional)</option>
-                {filteredEnquiries.map(enquiry => (
+                {filteredEnquiries.map((enquiry: { id: number; subject: string }) => (
                   <option key={enquiry.id} value={enquiry.id}>
                     {enquiry.subject}
                   </option>
@@ -328,11 +288,11 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                3.2 General Description
+                3.2 Enquiry Notes
               </label>
               <textarea
-                {...register('generalDescription')}
-                placeholder="Technical Presentation, Courtesy Visit, Call etc. Only Preorder communication will be recorded here"
+                {...register('enquiryRelated')}
+                placeholder="Additional enquiry details or notes for tracking purposes"
                 rows={3}
                 className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
@@ -341,15 +301,15 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              3.3 Brief Description of Communication <span className="text-red-500">*</span>
+              3.3 Description of Communication <span className="text-red-500">*</span>
             </label>
             <textarea
-              {...register('briefDescription')}
-              placeholder="Provide a brief description of the communication"
+              {...register('description')}
+              placeholder="Provide a description of the communication"
               rows={4}
               className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
-            {errors.briefDescription && <p className="text-red-500 text-sm mt-1">{errors.briefDescription.message}</p>}
+            {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>}
           </div>
         </div>
 
@@ -367,11 +327,11 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
                 <input
                   type="radio"
                   value={type}
-                  {...register('communicationType')}
+                  {...register('type')}
                   className="sr-only"
                   onChange={(e) => {
                     setSelectedCommunicationType(e.target.value);
-                    setValue('communicationType', e.target.value as 'TELEPHONIC' | 'VIRTUAL_MEETING' | 'EMAIL' | 'PLANT_VISIT' | 'OFFICE_VISIT');
+                    setValue('type', e.target.value as 'TELEPHONIC' | 'VIRTUAL_MEETING' | 'EMAIL' | 'PLANT_VISIT' | 'OFFICE_VISIT');
                   }}
                 />
                 <div className="flex items-center space-x-3 w-full">
@@ -398,11 +358,11 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
               </label>
             ))}
           </div>
-          {errors.communicationType && (
+          {errors.type && (
             <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-red-600 text-sm flex items-center gap-2">
                 <span className="w-2 h-2 bg-red-600 rounded-full"></span>
-                {errors.communicationType.message}
+                {errors.type.message}
               </p>
             </div>
           )}

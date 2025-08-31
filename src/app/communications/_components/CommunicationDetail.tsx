@@ -12,45 +12,7 @@ import {
   ArrowLeft,
   Edit
 } from 'lucide-react';
-
-// Define the communication type based on what's returned from the API
-type Communication = {
-  id: string;
-  subject: string;
-  description: string;
-  type: string;
-  enquiryRelated?: string | null;
-  generalDescription?: string | null;
-  nextCommunicationDate?: string | Date | null;
-  proposedNextAction?: string | null;
-  customerId: string;
-  contactId?: string | null;
-  employeeId?: string | null;
-  createdAt: string | Date;
-  updatedAt?: string;
-  customer: {
-    id: string;
-    name: string;
-    officeAddress?: string | null;
-    officeCity?: string | null;
-    officeState?: string | null;
-    officeCountry?: string | null;
-    officeReceptionNumber?: string | null;
-  };
-  contact?: {
-    id: string;
-    name: string;
-    designation?: string | null;
-    officialCellNumber?: string | null;
-    personalCellNumber?: string | null;
-    locationType?: string | null;
-  } | null;
-  employee?: {
-    id: string;
-    name: string;
-    role: string;
-  } | null;
-};
+import type { Communication } from '@/types/communication';
 
 interface CommunicationDetailProps {
   communication: Communication;
@@ -244,25 +206,7 @@ export function CommunicationDetail({ communication, onBack, onEdit }: Communica
 
         {/* Additional Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Enquiry Related */}
-          {communication.enquiryRelated && (
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">Related Enquiry</h4>
-              <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                <p className="text-sm text-blue-800">{communication.enquiryRelated}</p>
-              </div>
-            </div>
-          )}
-
-          {/* General Description */}
-          {communication.generalDescription && (
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">General Description</h4>
-              <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-                <p className="text-sm text-yellow-800">{communication.generalDescription}</p>
-              </div>
-            </div>
-          )}
+          {/* Additional fields can be added here when needed */}
         </div>
 
         {/* Next Communication */}

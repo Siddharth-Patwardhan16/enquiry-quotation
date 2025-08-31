@@ -16,45 +16,7 @@ import {
   Plus,
   Eye
 } from 'lucide-react';
-
-// Define the communication type based on what's returned from the API
-type Communication = {
-  id: string;
-  subject: string;
-  description: string;
-  type: string;
-  enquiryRelated?: string | null;
-  generalDescription?: string | null;
-  nextCommunicationDate?: string | Date | null;
-  proposedNextAction?: string | null;
-  customerId: string;
-  contactId?: string | null;
-  employeeId?: string | null;
-  createdAt: string | Date;
-  updatedAt?: string;
-  customer: {
-    id: string;
-    name: string;
-    officeAddress?: string | null;
-    officeCity?: string | null;
-    officeState?: string | null;
-    officeCountry?: string | null;
-    officeReceptionNumber?: string | null;
-  };
-  contact?: {
-    id: string;
-    name: string;
-    designation?: string | null;
-    officialCellNumber?: string | null;
-    personalCellNumber?: string | null;
-    locationType?: string | null;
-  } | null;
-  employee?: {
-    id: string;
-    name: string;
-    role: string;
-  } | null;
-};
+import type { Communication } from '@/types/communication';
 
 interface CommunicationListProps {
   onEdit?: (_communication: Communication) => void;
