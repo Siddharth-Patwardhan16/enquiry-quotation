@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { api } from '@/trpc/client';
-import { Calendar, User, Building, Phone, Mail, Video, MapPin } from 'lucide-react';
+import { Calendar, Building, Phone, Mail, Video, MapPin } from 'lucide-react';
 
 // Validation schema for communication form
 const CommunicationSchema = z.object({
@@ -101,27 +101,32 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
     defaultValues: {
       date: new Date().toISOString().split('T')[0],
       communicationType: 'TELEPHONIC',
-      ...(initialData ? (() => {
-        const { contactId, ...rest } = initialData;
-        return rest;
-      })() : {}) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      ...(initialData ? {
+        customerId: initialData.customerId,
+        subject: initialData.subject,
+        briefDescription: initialData.briefDescription,
+        communicationType: initialData.communicationType,
+        enquiryRelated: initialData.enquiryRelated || undefined,
+        generalDescription: initialData.generalDescription || undefined,
+        nextCommunicationDate: initialData.nextCommunicationDate || undefined,
+        proposedNextAction: initialData.proposedNextAction || undefined,
+      } : {}),
     },
   });
 
   const watchedCustomerId = watch('customerId');
 
-  // Filter contacts based on selected customer
-  const filteredContacts = contacts?.filter((contact: { customerId: string }) => contact.customerId === watchedCustomerId) || [];
-
+    // Filter contacts based on selected customer (unused for now)
+  // const filteredContacts = contacts?.filter((contact: { customerId: string }) => contact.customerId === watchedCustomerId) || [];
+  
   // Filter enquiries based on selected customer
-  const filteredEnquiries = enquiries?.filter((enquiry: { customerId: string }) => enquiry.customerId === watchedCustomerId) || [];
+  const filteredEnquiries = enquiries?.filter((enquiry: { customerId: string; id: number; subject: string }) => enquiry.customerId === watchedCustomerId) || [];
 
   // Update customer info when selection changes
   useEffect(() => {
     if (watchedCustomerId) {
-      const customer = customers?.find(c => c.id === watchedCustomerId);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setSelectedCustomer(customer as any || null);
+      const customer = customers?.find((c: { id: string }) => c.id === watchedCustomerId);
+      setSelectedCustomer(customer || null);
     }
   }, [watchedCustomerId, customers]);
 
@@ -212,8 +217,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
         </h2>
       </div>
 
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        <form onSubmit={handleSubmit(onSubmit as any)} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
         {/* 1. Date */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>

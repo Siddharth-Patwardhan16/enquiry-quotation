@@ -12,39 +12,39 @@ type ViewMode = 'list' | 'form' | 'detail';
 type Communication = {
   id: string;
   subject: string;
-  description: string;
-  type: string;
+  briefDescription: string;
+  communicationType: 'TELEPHONIC' | 'VIRTUAL_MEETING' | 'EMAIL' | 'PLANT_VISIT' | 'OFFICE_VISIT';
   enquiryRelated?: string | null;
   generalDescription?: string | null;
-  nextCommunicationDate?: string | Date | null;
+  nextCommunicationDate?: string | null;
   proposedNextAction?: string | null;
   customerId: string;
   contactId?: string | null;
-  employeeId?: string | null;
-  createdAt: string | Date;
-  updatedAt?: string;
+  employeeId: string;
+  createdAt: string;
+  updatedAt: string;
   customer: {
     id: string;
     name: string;
-    officeAddress?: string | null;
-    officeCity?: string | null;
-    officeState?: string | null;
-    officeCountry?: string | null;
-    officeReceptionNumber?: string | null;
+    officeAddress?: string;
+    officeCity?: string;
+    officeState?: string;
+    officeCountry?: string;
+    officeReceptionNumber?: string;
   };
   contact?: {
     id: string;
     name: string;
-    designation?: string | null;
-    officialCellNumber?: string | null;
-    personalCellNumber?: string | null;
-    locationType?: string | null;
+    designation?: string;
+    officialCellNumber?: string;
+    personalCellNumber?: string;
+    locationType?: string;
   } | null;
-  employee?: {
+  employee: {
     id: string;
     name: string;
     role: string;
-  } | null;
+  };
 };
 
 export default function CommunicationsPage() {
@@ -147,7 +147,7 @@ export default function CommunicationsPage() {
         {viewMode === 'form' && (
           <CommunicationForm
             mode={editingCommunication ? 'edit' : 'create'}
-            initialData={editingCommunication as any || undefined}
+            initialData={editingCommunication || undefined}
             onSuccess={handleFormSuccess}
           />
         )}

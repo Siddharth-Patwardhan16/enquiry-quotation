@@ -57,8 +57,8 @@ type Communication = {
 };
 
 interface CommunicationListProps {
-  onEdit?: (communication: Communication) => void;
-  onView?: (communication: Communication) => void;
+  onEdit?: (_communication: Communication) => void;
+  onView?: (_communication: Communication) => void;
   onCreateNew?: () => void;
 }
 

@@ -9,7 +9,9 @@ import { Save, X, Building, Factory, Package, Info } from 'lucide-react';
 import { useEffect } from 'react';
 import { useToast } from '@/components/ui/toast';
 
-type FormData = z.infer<typeof CreateCustomerSchema>;
+type FormData = z.infer<typeof CreateCustomerSchema> & {
+  isNew: boolean;
+};
 
 interface Customer {
   id: string;
@@ -69,7 +71,7 @@ export function EditCustomerForm({ customer, onCancel, onSuccess }: EditCustomer
     watch,
     formState: { errors, isValid },
   } = useForm<FormData>({
-    resolver: zodResolver(CreateCustomerSchema) as any,
+    resolver: zodResolver(CreateCustomerSchema),
     defaultValues: {
       name: customer.name,
       isNew: customer.isNew,

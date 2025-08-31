@@ -49,7 +49,6 @@ export default function EnquiriesPage() {
   };
 
   const [editingEnquiry, setEditingEnquiry] = useState<number | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [editData, setEditData] = useState<EditEnquiryData>({
     subject: '',
     description: '',
@@ -122,7 +121,7 @@ export default function EnquiriesPage() {
     }
   };
 
-  const handleDeleteEnquiry = async (enquiryId: number) => {
+  const handleDeleteEnquiry = async (_enquiryId: number) => {
     if (confirm('Are you sure you want to delete this enquiry? This action cannot be undone.')) {
       try {
         // For now, just show a success message since the API expects different types

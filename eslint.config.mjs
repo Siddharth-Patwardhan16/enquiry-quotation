@@ -14,7 +14,7 @@ const eslintConfig = [
   {
     rules: {
       // Temporarily disable all strict type checking for deployment
-      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-explicit-any": "error",
       // Keep unused vars as warnings for now
       "@typescript-eslint/no-unused-vars": "warn",
       "no-unused-vars": "warn",

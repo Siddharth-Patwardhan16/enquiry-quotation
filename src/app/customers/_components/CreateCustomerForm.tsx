@@ -10,7 +10,9 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/toast';
 
-type FormData = z.infer<typeof CreateCustomerSchema>;
+type FormData = z.infer<typeof CreateCustomerSchema> & {
+  isNew: boolean;
+};
 
 interface CreateCustomerFormProps {
   onSuccess?: () => void;
@@ -48,7 +50,7 @@ export function CreateCustomerForm({ onSuccess }: CreateCustomerFormProps) {
 
     formState: { errors, isValid },
   } = useForm<FormData>({
-    resolver: zodResolver(CreateCustomerSchema) as any,
+    resolver: zodResolver(CreateCustomerSchema),
     defaultValues: {
       name: '',
       isNew: true,
