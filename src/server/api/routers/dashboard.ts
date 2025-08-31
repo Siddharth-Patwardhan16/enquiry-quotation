@@ -42,9 +42,9 @@ export const dashboardRouter = createTRPCRouter({
     // Format the data to be easily used by a charting library
     // Filter out any null values and ensure type safety
     return lostReasons
-      .filter(reason => reason.lostReason !== null)
-      .map(reason => ({
-        name: reason.lostReason as string,
+      .filter((reason) => reason.lostReason !== null)
+      .map((reason) => ({
+        name: reason.lostReason!,
         count: reason._count.lostReason,
       }));
   }),
