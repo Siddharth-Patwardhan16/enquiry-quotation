@@ -3,6 +3,19 @@
 import { api } from '@/trpc/client';
 import { QuotationStatusUpdater } from './_components/QuotationStatusUpdater';
 
+// Define the quotation type based on what we actually use
+interface Quotation {
+  id: string;
+  status: string;
+  totalValue?: unknown; // Using unknown for Decimal type compatibility
+  enquiry?: {
+    customer?: {
+      name?: string;
+    };
+  };
+  items?: unknown[];
+}
+
 export default function QuotationStatusPage() {
   const { data: quotations, isLoading, error } = api.quotation.getAll.useQuery();
 
@@ -27,16 +40,16 @@ export default function QuotationStatusPage() {
   // Calculate stats
   const stats = {
     total: quotations?.length || 0,
-    draft: quotations?.filter(q => q.status === 'DRAFT').length || 0,
-    live: quotations?.filter(q => ['LIVE', 'SUBMITTED'].includes(q.status)).length || 0,
-    won: quotations?.filter(q => q.status === 'WON').length || 0,
-    lost: quotations?.filter(q => q.status === 'LOST').length || 0,
-    received: quotations?.filter(q => q.status === 'RECEIVED').length || 0
+    draft: quotations?.filter((q: Quotation) => q.status === 'DRAFT').length || 0,
+    live: quotations?.filter((q: Quotation) => ['LIVE', 'SUBMITTED'].includes(q.status)).length || 0,
+    won: quotations?.filter((q: Quotation) => q.status === 'WON').length || 0,
+    lost: quotations?.filter((q: Quotation) => q.status === 'LOST').length || 0,
+    received: quotations?.filter((q: Quotation) => q.status === 'RECEIVED').length || 0
   };
 
   const totalValue = quotations
-    ?.filter(q => ['LIVE', 'SUBMITTED', 'WON', 'RECEIVED'].includes(q.status))
-    .reduce((sum, q) => sum + (Number(q.totalValue) || 0), 0) || 0;
+    ?.filter((q: Quotation) => ['LIVE', 'SUBMITTED', 'WON', 'RECEIVED'].includes(q.status))
+    .reduce((sum: number, q: Quotation) => sum + (Number(q.totalValue) || 0), 0) || 0;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
