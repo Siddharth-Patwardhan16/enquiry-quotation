@@ -86,7 +86,7 @@ export function CommunicationList({
   };
 
   // Filter communications based on search and filters
-  const filteredCommunications = communications?.filter(comm => {
+  const filteredCommunications = communications?.filter((comm: Communication) => {
     const matchesSearch = 
       comm.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
       comm.customer?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
