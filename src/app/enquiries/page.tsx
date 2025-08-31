@@ -590,7 +590,7 @@ export default function EnquiriesPage() {
                   </button>
                 </div>
                 {(() => {
-                  const enquiry = enquiries?.find(e => e.id === viewingEnquiry);
+                  const enquiry = enquiries?.find((e: Enquiry) => e.id === viewingEnquiry);
                   if (!enquiry) return <div>Enquiry not found</div>;
                   
                   return (
