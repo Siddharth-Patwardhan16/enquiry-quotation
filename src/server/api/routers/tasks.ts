@@ -3,6 +3,23 @@ import { createTRPCRouter, publicProcedure } from '../trpc';
 import { db } from '../../db';
 import { z } from 'zod';
 
+// Define the task type for better type safety
+type Task = {
+  id: string;
+  title: string;
+  type: 'enquiry' | 'quotation' | 'communication';
+  dueDate: Date;
+  priority: 'high' | 'medium' | 'low';
+  status: 'pending' | 'in-progress' | 'completed';
+  customerName: string;
+  description: string;
+  assignedTo: string;
+  sourceId: number;
+  sourceType: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export const tasksRouter = createTRPCRouter({
   // Get all upcoming tasks with filtering options
   getAll: publicProcedure
@@ -75,7 +92,7 @@ export const tasksRouter = createTRPCRouter({
       });
 
       // Convert to unified task format
-      const allTasks = [
+      const allTasks: Task[] = [
         ...enquiryTasks.map((enquiry: any) => ({
           id: `enquiry-${enquiry.id}`,
           title: `Follow up on ${enquiry.subject}`,
@@ -145,9 +162,9 @@ export const tasksRouter = createTRPCRouter({
       }
 
       // Sort by priority and due date
-      const priorityOrder = { high: 3, medium: 2, low: 1 };
+      const priorityOrder: Record<Task['priority'], number> = { high: 3, medium: 2, low: 1 };
       
-      return filteredTasks.sort((a, b) => {
+      return filteredTasks.sort((a: Task, b: Task) => {
         const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
         if (priorityDiff !== 0) return priorityDiff;
         return a.dueDate.getTime() - b.dueDate.getTime();
