@@ -99,8 +99,8 @@ export default function CustomersPage() {
 
   // Calculate stats
   const totalCustomers = customers?.length || 0;
-  const newCustomers = customers?.filter(c => c.isNew).length || 0;
-  const activeRegions = new Set(customers?.map(c => c.officeCountry).filter(Boolean)).size;
+  const newCustomers = customers?.filter((c: Customer) => c.isNew).length || 0;
+  const activeRegions = new Set(customers?.map((c: Customer) => c.officeCountry).filter(Boolean)).size;
 
   // Handle view customer
   const handleViewCustomer = (customer: Customer) => {
@@ -263,7 +263,7 @@ export default function CustomersPage() {
                       </td>
                     </tr>
                   ) : filteredCustomers.length > 0 ? (
-                    filteredCustomers.map((customer) => (
+                    filteredCustomers.map((customer: Customer) => (
                       <tr key={customer.id} className="hover:bg-gray-50 data-[state=selected]:bg-muted border-b transition-colors">
                         <td className="p-4 align-middle whitespace-nowrap">
                           <div>
