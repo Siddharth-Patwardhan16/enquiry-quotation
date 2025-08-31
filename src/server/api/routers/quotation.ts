@@ -31,7 +31,7 @@ export const quotationRouter = createTRPCRouter({
       // Prisma Transaction: This ensures that both the quotation and all its items are created successfully.
       // If any part fails, the entire transaction is rolled back, preventing partial data.
       try {
-        return await db.$transaction(async (prisma) => {
+        const result = await db.$transaction(async (prisma) => {
           // 1. Create the main Quotation record
           const newQuotation = await prisma.quotation.create({
             data: {
@@ -60,6 +60,9 @@ export const quotationRouter = createTRPCRouter({
 
           return newQuotation;
         });
+        
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return result;
       } catch (error) {
         console.error(error);
         
