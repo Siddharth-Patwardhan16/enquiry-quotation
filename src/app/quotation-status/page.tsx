@@ -2,19 +2,11 @@
 
 import { api } from '@/trpc/client';
 import { QuotationStatusUpdater } from './_components/QuotationStatusUpdater';
+import type { AppRouter } from '@/server/api/root';
+import type { inferRouterOutputs } from '@trpc/server';
 
-// Define the quotation type based on what we actually use
-interface Quotation {
-  id: string;
-  status: string;
-  totalValue?: unknown; // Using unknown for Decimal type compatibility
-  enquiry?: {
-    customer?: {
-      name?: string;
-    };
-  };
-  items?: unknown[];
-}
+// Use the same type as the QuotationStatusUpdater component
+type Quotation = inferRouterOutputs<AppRouter>['quotation']['getAll'][0];
 
 export default function QuotationStatusPage() {
   const { data: quotations, isLoading, error } = api.quotation.getAll.useQuery();
@@ -237,7 +229,7 @@ export default function QuotationStatusPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {quotations?.map((quotation) => (
+                {quotations?.map((quotation: Quotation) => (
                   <tr key={quotation.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{quotation.quotationNumber}</div>
