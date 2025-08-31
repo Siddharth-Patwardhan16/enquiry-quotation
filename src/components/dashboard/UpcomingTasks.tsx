@@ -3,20 +3,11 @@ import { Calendar, Clock, AlertCircle, CheckCircle, FileText, Building, User, Ch
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/trpc/client';
+import type { AppRouter } from '@/server/api/root';
+import type { inferRouterOutputs } from '@trpc/server';
 
-interface Task {
-  id: string;
-  title: string;
-  type: 'enquiry' | 'quotation' | 'communication' | 'followup';
-  dueDate: Date;
-  priority: 'high' | 'medium' | 'low';
-  status: 'pending' | 'in-progress' | 'completed';
-  customerName?: string;
-  description?: string;
-  assignedTo?: string;
-  sourceId?: string | number;
-  sourceType?: string;
-}
+// Use the same type as the API response
+type Task = inferRouterOutputs<AppRouter>['dashboard']['getUpcomingTasks'][0];
 
 interface UpcomingTasksProps {
   tasks?: Task[];
@@ -118,8 +109,8 @@ export function UpcomingTasks({ tasks, isLoading }: UpcomingTasksProps) {
 
   const sortedTasks = displayTasks.sort((a, b) => {
     // Sort by priority first (high > medium > low)
-    const priorityOrder: Record<Task['priority'], number> = { high: 3, medium: 2, low: 1 };
-    const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
+    const priorityOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
+    const priorityDiff = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
     
     if (priorityDiff !== 0) return priorityDiff;
     
