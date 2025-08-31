@@ -204,7 +204,7 @@ export const dashboardRouter = createTRPCRouter({
     });
 
     // Convert enquiries to tasks
-    const enquiryTaskList = (enquiryTasks as unknown[]).map((enquiry) => {
+    const enquiryTaskList = (enquiryTasks as unknown[]).map((enquiry: any) => {
       const e = enquiry as {
         id: number;
         subject: string;
@@ -231,7 +231,7 @@ export const dashboardRouter = createTRPCRouter({
     });
 
     // Convert quotations to tasks
-    const quotationTaskList = (quotationTasks as unknown[]).map((quotation) => {
+    const quotationTaskList = (quotationTasks as unknown[]).map((quotation: any) => {
       const q = quotation as {
         id: number;
         quotationNumber: string;
@@ -255,7 +255,7 @@ export const dashboardRouter = createTRPCRouter({
     });
 
     // Convert communications to tasks
-    const communicationTaskList = (communicationTasks as unknown[]).map((communication) => {
+    const communicationTaskList = (communicationTasks as unknown[]).map((communication: any) => {
       const c = communication as {
         id: number;
         subject: string;
