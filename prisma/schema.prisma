@@ -111,7 +111,7 @@ model Quotation {
   paymentTerms        String?
   deliverySchedule    String?
   specialInstructions String?
-  currency            String          @default("USD")
+  currency            String          @default("INR")
   subtotal            Decimal?
   tax                 Decimal?
   totalValue          Decimal?

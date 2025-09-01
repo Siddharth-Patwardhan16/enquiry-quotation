@@ -46,7 +46,7 @@ export default function NewQuotationPage() {
     resolver: zodResolver(CreateQuotationSchema),
     defaultValues: {
       quotationNumber: generateQuotationNumber(),
-      currency: 'USD',
+      currency: 'INR',
       revisionNumber: 0,
       transportCosts: 0,
       insuranceCosts: 0,
@@ -57,7 +57,7 @@ export default function NewQuotationPage() {
 
   // Watch the items to calculate totals in real-time
       const watchedItems = watch('items') ?? [];
-    const currency = watch('currency') ?? 'USD';
+    const currency = watch('currency') ?? 'INR';
   const watchedPaymentTerms = watch('paymentTerms');
   
   // Check for duplicate quotation numbers
@@ -86,7 +86,8 @@ export default function NewQuotationPage() {
   const grandTotal = totalBasicPrice + transportCosts + insuranceCosts + gst;
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    const locale = currency === 'INR' ? 'en-IN' : 'en-US';
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: currency,
       minimumFractionDigits: 2,

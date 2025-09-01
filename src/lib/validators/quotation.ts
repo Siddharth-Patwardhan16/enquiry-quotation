@@ -18,7 +18,7 @@ export const CreateQuotationSchema = z.object({
   paymentTerms: z.string().optional(),
   deliverySchedule: z.string().optional(),
   specialInstructions: z.string().optional(),
-  currency: z.string().default('USD'),
+  currency: z.string().default('INR'),
   // Commercial Terms - using proper decimal fields
   transportCosts: z.coerce.number().min(0, 'Transport costs cannot be negative').default(0),
   insuranceCosts: z.coerce.number().min(0, 'Insurance costs cannot be negative').default(0),
