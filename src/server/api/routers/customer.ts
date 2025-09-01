@@ -39,6 +39,36 @@ export const customerRouter = createTRPCRouter({
     }
   }),
 
+  // Real-time uniqueness check for officeName and plantName
+  checkUnique: publicProcedure
+    .input(z.object({
+      field: z.enum(['officeName', 'plantName']),
+      value: z.string().min(1, 'Value is required'),
+      excludeId: z.string().uuid().optional(),
+    }))
+    .query(async ({ input }) => {
+      try {
+        const trimmed = input.value.trim();
+
+        const where = input.field === 'officeName'
+          ? {
+              officeName: { equals: trimmed, mode: 'insensitive' as const },
+              ...(input.excludeId ? { id: { not: input.excludeId } } : {}),
+            }
+          : {
+              plantName: { equals: trimmed, mode: 'insensitive' as const },
+              ...(input.excludeId ? { id: { not: input.excludeId } } : {}),
+            };
+
+        const existing = await db.customer.findFirst({ where });
+        return { exists: Boolean(existing) };
+      } catch (error) {
+        console.error('Error checking uniqueness:', error);
+        // Fail-safe: do not block typing if check fails; treat as not existing
+        return { exists: false };
+      }
+    }),
+
   // Procedure to search customers by office name or plant name
   searchByOfficeOrPlant: publicProcedure
     .input(z.object({
@@ -135,7 +165,7 @@ export const customerRouter = createTRPCRouter({
         // Check for existing customers with the same office name or plant name
         if (input.officeName) {
           const existingOffice = await db.customer.findFirst({
-            where: { officeName: input.officeName }
+            where: { officeName: { equals: input.officeName.trim(), mode: 'insensitive' } },
           });
           if (existingOffice) {
             throw new Error(`An office with the name "${input.officeName}" already exists. Please use a different office name.`);
@@ -144,7 +174,7 @@ export const customerRouter = createTRPCRouter({
 
         if (input.plantName) {
           const existingPlant = await db.customer.findFirst({
-            where: { plantName: input.plantName }
+            where: { plantName: { equals: input.plantName.trim(), mode: 'insensitive' } },
           });
           if (existingPlant) {
             throw new Error(`A plant with the name "${input.plantName}" already exists. Please use a different plant name.`);

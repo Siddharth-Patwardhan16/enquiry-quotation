@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { api } from '@/trpc/client';
 import { Save, Building, Factory, Package, Info } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/toast';
 
@@ -69,6 +69,8 @@ export function CreateCustomerForm({ onSuccess }: CreateCustomerFormProps) {
     handleSubmit,
     reset,
     watch,
+    setError,
+    clearErrors,
 
     formState: { errors, isValid },
   } = useForm<FormData>({
@@ -91,6 +93,62 @@ export function CreateCustomerForm({ onSuccess }: CreateCustomerFormProps) {
 
   const watchedOfficeCountry = watch('officeCountry');
   const watchedPlantCountry = watch('plantCountry');
+  const watchedOfficeName = watch('officeName');
+  const watchedPlantName = watch('plantName');
+
+  // Debounced values for uniqueness checks
+  const [debouncedOfficeName, setDebouncedOfficeName] = useState('');
+  const [debouncedPlantName, setDebouncedPlantName] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedOfficeName((watchedOfficeName || '').trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [watchedOfficeName]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedPlantName((watchedPlantName || '').trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [watchedPlantName]);
+
+  // Queries for uniqueness
+  const officeUnique = api.customer.checkUnique.useQuery(
+    { field: 'officeName', value: debouncedOfficeName },
+    { enabled: debouncedOfficeName.length > 0 }
+  );
+
+  const plantUnique = api.customer.checkUnique.useQuery(
+    { field: 'plantName', value: debouncedPlantName },
+    { enabled: debouncedPlantName.length > 0 }
+  );
+
+  // Sync query results to form errors in real-time
+  useEffect(() => {
+    if (!debouncedOfficeName) {
+      clearErrors('officeName');
+      return;
+    }
+    if (officeUnique.data?.exists) {
+      setError('officeName', { type: 'validate', message: 'Office name already exists' });
+    } else if (!officeUnique.isFetching) {
+      clearErrors('officeName');
+    }
+  }, [debouncedOfficeName, officeUnique.data, officeUnique.isFetching, setError, clearErrors]);
+
+  useEffect(() => {
+    if (!debouncedPlantName) {
+      clearErrors('plantName');
+      return;
+    }
+    if (plantUnique.data?.exists) {
+      setError('plantName', { type: 'validate', message: 'Plant name already exists' });
+    } else if (!plantUnique.isFetching) {
+      clearErrors('plantName');
+    }
+  }, [debouncedPlantName, plantUnique.data, plantUnique.isFetching, setError, clearErrors]);
 
 
 
@@ -204,10 +262,18 @@ export function CreateCustomerForm({ onSuccess }: CreateCustomerFormProps) {
             <input 
               id="officeName" 
               {...register('officeName')} 
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black ${
+                errors.officeName ? 'border-red-300' : 'border-gray-300'
+              }`}
               placeholder="Enter office name (e.g., Head Office, Regional Office)"
             />
-            <p className="text-xs text-blue-600">This will be used as a unique identifier for searching. Office names must be unique across all customers.</p>
+            {errors.officeName ? (
+              <p className="text-sm text-red-500">{errors.officeName.message as string}</p>
+            ) : debouncedOfficeName && officeUnique.data && !officeUnique.data.exists ? (
+              <p className="text-xs text-green-600">Office name is available</p>
+            ) : (
+              <p className="text-xs text-blue-600">This will be used as a unique identifier for searching. Office names must be unique across all customers.</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -309,10 +375,18 @@ export function CreateCustomerForm({ onSuccess }: CreateCustomerFormProps) {
             <input 
               id="plantName" 
               {...register('plantName')} 
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black ${
+                errors.plantName ? 'border-red-300' : 'border-gray-300'
+              }`}
               placeholder="Enter plant name (e.g., Manufacturing Plant, Production Unit)"
             />
-            <p className="text-xs text-green-600">This will be used as a unique identifier for searching. Plant names must be unique across all customers.</p>
+            {errors.plantName ? (
+              <p className="text-sm text-red-500">{errors.plantName.message as string}</p>
+            ) : debouncedPlantName && plantUnique.data && !plantUnique.data.exists ? (
+              <p className="text-xs text-green-600">Plant name is available</p>
+            ) : (
+              <p className="text-xs text-green-600">This will be used as a unique identifier for searching. Plant names must be unique across all customers.</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
