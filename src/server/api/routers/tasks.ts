@@ -1,28 +1,89 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
-import { createTRPCRouter, publicProcedure } from '../trpc';
+import { createTRPCRouter, protectedProcedure, publicProcedure } from '../trpc';
 import { db } from '../../db';
 import { z } from 'zod';
 
-// Define the task type for better type safety
-type Task = {
-  id: string;
-  title: string;
-  type: 'enquiry' | 'quotation' | 'communication';
+// Define the unified task type for the upcoming tasks
+type UnifiedTask = {
+  type: 'QUOTATION' | 'COMMUNICATION';
   dueDate: Date;
-  priority: 'high' | 'medium' | 'low';
-  status: 'pending' | 'in-progress' | 'completed';
   customerName: string;
-  description: string;
-  assignedTo: string;
-  sourceId: number;
-  sourceType: string;
-  createdAt: Date;
-  updatedAt: Date;
+  taskDescription: string;
+  status: string;
+  link: string;
+  id: string;
+  priority: 'high' | 'medium' | 'low';
 };
 
 export const tasksRouter = createTRPCRouter({
-  // Get all upcoming tasks with filtering options
-  getAll: publicProcedure
+  // This procedure fetches all actionable tasks
+  getUpcoming: publicProcedure.query(async () => {
+    const today = new Date();
+
+    // 1. Fetch all quotations that are still active (not WON or LOST)
+    const activeQuotations = await db.quotation.findMany({
+      where: {
+        NOT: {
+          status: { in: ['WON', 'LOST', 'RECEIVED'] },
+        },
+      },
+      include: {
+        enquiry: {
+          include: {
+            customer: {
+              select: { name: true, id: true },
+            },
+          },
+        },
+      },
+    });
+
+    // 2. Fetch all communications that are due for a follow-up
+    const dueCommunications = await db.communication.findMany({
+      where: {
+        nextCommunicationDate: {
+          lte: today, // Less than or equal to today (due or overdue)
+        },
+      },
+      include: {
+        customer: {
+          select: { name: true, id: true },
+        },
+      },
+    });
+
+    // 3. Transform both data sets into a unified "Task" format
+    const quotationTasks: UnifiedTask[] = activeQuotations.map(q => ({
+      type: 'QUOTATION' as const,
+      dueDate: q.createdAt, // Using createdAt as the reference date
+      customerName: q.enquiry.customer.name,
+      taskDescription: `Quotation #${q.quotationNumber}`,
+      status: q.status,
+      link: `/quotations/${q.id}`,
+      id: q.id,
+      priority: 'medium' as const,
+    }));
+
+    const communicationTasks: UnifiedTask[] = dueCommunications.map(c => ({
+      type: 'COMMUNICATION' as const,
+      dueDate: c.nextCommunicationDate!, // We know this exists due to the query
+      customerName: c.customer.name,
+      taskDescription: c.proposedNextAction || 'Follow up required',
+      status: 'DUE',
+      link: `/customers/${c.customerId}`,
+      id: c.id,
+      priority: 'high' as const,
+    }));
+
+    // 4. Merge and sort the tasks by due date
+    const allTasks = [...quotationTasks, ...communicationTasks];
+    allTasks.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+
+    return allTasks;
+  }),
+
+  // Keep existing endpoints for backward compatibility
+  getAll: protectedProcedure
     .input(z.object({
       status: z.enum(['pending', 'in-progress', 'completed']).optional(),
       priority: z.enum(['high', 'medium', 'low']).optional(),
@@ -92,7 +153,7 @@ export const tasksRouter = createTRPCRouter({
       });
 
       // Convert to unified task format
-      const allTasks: Task[] = [
+      const allTasks: any[] = [
         ...enquiryTasks.map((enquiry: any) => ({
           id: `enquiry-${enquiry.id}`,
           title: `Follow up on ${enquiry.subject}`,
@@ -162,9 +223,9 @@ export const tasksRouter = createTRPCRouter({
       }
 
       // Sort by priority and due date
-      const priorityOrder: Record<Task['priority'], number> = { high: 3, medium: 2, low: 1 };
+      const priorityOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
       
-      return filteredTasks.sort((a: Task, b: Task) => {
+      return filteredTasks.sort((a: any, b: any) => {
         const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
         if (priorityDiff !== 0) return priorityDiff;
         return a.dueDate.getTime() - b.dueDate.getTime();
@@ -172,7 +233,7 @@ export const tasksRouter = createTRPCRouter({
     }),
 
   // Get task statistics
-  getStats: publicProcedure.query(async () => {
+  getStats: protectedProcedure.query(async () => {
     const now = new Date();
     const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
@@ -224,7 +285,7 @@ export const tasksRouter = createTRPCRouter({
   }),
 
   // Mark task as completed (this would update the source record)
-  markCompleted: publicProcedure
+  markCompleted: protectedProcedure
     .input(z.object({
       taskId: z.string(),
       notes: z.string().optional()

@@ -1,5 +1,5 @@
 import { createTRPCRouter, publicProcedure } from '../trpc';
-import { CreateCustomerSchema } from '@/lib/validators/customer';
+import { CreateCustomerSchema, CreateCustomerWithLocationsSchema } from '@/lib/validators/customer';
 import { db } from '@/server/db';
 import { z } from 'zod';
 
@@ -12,6 +12,11 @@ export const customerRouter = createTRPCRouter({
       
       const customers = await db.customer.findMany({
         orderBy: { createdAt: 'desc' }, // Show newest first
+        include: {
+          locations: {
+            orderBy: { createdAt: 'asc' },
+          },
+        },
       });
       
       return customers;
@@ -26,6 +31,11 @@ export const customerRouter = createTRPCRouter({
           
           const customers = await db.customer.findMany({
             orderBy: { createdAt: 'desc' },
+            include: {
+              locations: {
+                orderBy: { createdAt: 'asc' },
+              },
+            },
           });
           
           return customers;
@@ -36,6 +46,25 @@ export const customerRouter = createTRPCRouter({
       }
       
       throw new Error('Failed to fetch customers');
+    }
+  }),
+
+  // Procedure to get all customers with locations (new structure)
+  getAllWithLocations: publicProcedure.query(async () => {
+    try {
+      const customers = await db.customer.findMany({
+        orderBy: { createdAt: 'desc' },
+        include: {
+          locations: {
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+      });
+      
+      return customers;
+    } catch (error) {
+      console.error('Error fetching customers with locations:', error);
+      throw new Error('Failed to fetch customers with locations');
     }
   }),
 
@@ -225,6 +254,66 @@ export const customerRouter = createTRPCRouter({
       }
     }),
 
+  // New mutation for creating customers with multiple locations
+  createWithLocations: publicProcedure
+    .input(CreateCustomerWithLocationsSchema)
+    .mutation(async ({ input }) => {
+      try {
+        const { name, offices, plants = [], ...otherData } = input;
+        
+        return await db.$transaction(async (prisma) => {
+          // 1. Create the parent Customer
+          const newCustomer = await prisma.customer.create({
+            data: {
+              name,
+              isNew: otherData.isNew,
+              poRuptureDiscs: otherData.poRuptureDiscs ? 1 : 0,
+              poThermowells: otherData.poThermowells ? 1 : 0,
+              poHeatExchanger: otherData.poHeatExchanger ? 1 : 0,
+              poMiscellaneous: otherData.poMiscellaneous ? 1 : 0,
+              poWaterJetSteamJet: otherData.poWaterJetSteamJet ? 1 : 0,
+              existingGraphiteSuppliers: otherData.existingGraphiteSuppliers,
+              problemsFaced: otherData.problemsFaced,
+            },
+          });
+
+          // 2. Prepare all office and plant locations
+          const locationsToCreate = [
+            ...offices.map(office => ({ 
+              ...office, 
+              type: 'OFFICE' as const, 
+              customerId: newCustomer.id 
+            })),
+            ...plants.map(plant => ({ 
+              ...plant, 
+              type: 'PLANT' as const, 
+              customerId: newCustomer.id 
+            }))
+          ];
+
+          // 3. Create all Locations in a single database call
+          if (locationsToCreate.length > 0) {
+            await prisma.location.createMany({
+              data: locationsToCreate,
+            });
+          }
+
+          return newCustomer;
+        });
+      } catch (error) {
+        console.error('Error creating customer with locations:', error);
+        
+        // Handle Prisma unique constraint errors
+        if (error && typeof error === 'object' && 'code' in error) {
+          if (error.code === 'P2002') {
+            throw new Error('A location with this name already exists for this customer. Please use different names.');
+          }
+        }
+        
+        throw new Error('Failed to create customer with locations');
+      }
+    }),
+
   // Procedure to update an existing customer
   update: publicProcedure
     .input(z.object({
@@ -286,6 +375,54 @@ export const customerRouter = createTRPCRouter({
       } catch (error) {
         console.error('Error deleting customer:', error);
         throw new Error('Failed to delete customer');
+      }
+    }),
+
+  // Procedure to add a new location to an existing customer
+  addLocation: publicProcedure
+    .input(z.object({
+      customerId: z.string().uuid(),
+      name: z.string().min(2, 'Location name is required'),
+      type: z.enum(['OFFICE', 'PLANT']),
+      address: z.string().optional(),
+      city: z.string().optional(),
+      state: z.string().optional(),
+      country: z.string().optional(),
+      receptionNumber: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        // Check if location name already exists for this customer and type
+        const existingLocation = await db.location.findFirst({
+          where: {
+            customerId: input.customerId,
+            name: input.name,
+            type: input.type,
+          },
+        });
+
+        if (existingLocation) {
+          throw new Error(`A ${input.type.toLowerCase()} with the name "${input.name}" already exists for this customer.`);
+        }
+
+        // Create the new location
+        const newLocation = await db.location.create({
+          data: {
+            customerId: input.customerId,
+            name: input.name,
+            type: input.type,
+            address: input.address,
+            city: input.city,
+            state: input.state,
+            country: input.country,
+            receptionNumber: input.receptionNumber,
+          },
+        });
+
+        return newLocation;
+      } catch (error) {
+        console.error('Error adding location:', error);
+        throw new Error('Failed to add location');
       }
     }),
 });

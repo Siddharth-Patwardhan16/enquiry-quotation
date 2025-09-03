@@ -71,7 +71,6 @@ export function CreateCustomerForm({ onSuccess }: CreateCustomerFormProps) {
     watch,
     setError,
     clearErrors,
-
     formState: { errors, isValid },
   } = useForm<FormData>({
     resolver: zodResolver(FormValidationSchema),
@@ -87,6 +86,16 @@ export function CreateCustomerForm({ onSuccess }: CreateCustomerFormProps) {
       poHeatExchanger: false,
       poMiscellaneous: false,
       poWaterJetSteamJet: false,
+      officeAddress: '',
+      officeCity: '',
+      officeState: '',
+      officeReceptionNumber: '',
+      plantAddress: '',
+      plantCity: '',
+      plantState: '',
+      plantReceptionNumber: '',
+      existingGraphiteSuppliers: '',
+      problemsFaced: '',
     },
     mode: 'onChange',
   });
@@ -102,14 +111,14 @@ export function CreateCustomerForm({ onSuccess }: CreateCustomerFormProps) {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedOfficeName((watchedOfficeName || '').trim());
+      setDebouncedOfficeName((watchedOfficeName ?? '').trim());
     }, 300);
     return () => clearTimeout(timer);
   }, [watchedOfficeName]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedPlantName((watchedPlantName || '').trim());
+      setDebouncedPlantName((watchedPlantName ?? '').trim());
     }, 300);
     return () => clearTimeout(timer);
   }, [watchedPlantName]);

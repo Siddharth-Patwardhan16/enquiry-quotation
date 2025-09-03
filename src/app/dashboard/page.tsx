@@ -8,8 +8,7 @@ import {
   MonthlyTrendsChart, 
   LostReasonsChart, 
   RecentEnquiries, 
-  RecentQuotations,
-  UpcomingTasks
+  RecentQuotations
 } from '../../components/dashboard';
 
 export default function DashboardPage() {
@@ -85,9 +84,6 @@ export default function DashboardPage() {
           isLoadingQuotations={isLoadingQuotations} 
         />
       </div>
-
-      {/* Upcoming Tasks Section */}
-      <UpcomingTasks />
 
       {/* Admin Access Section */}
       {user?.role === 'ADMINISTRATOR' && (

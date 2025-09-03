@@ -1,10 +1,11 @@
 'use client';
 
 import { api } from '@/trpc/client';
-import { CreateCustomerForm } from './_components/CreateCustomerForm';
+import { CreateCustomerFormWithLocations } from './_components/CreateCustomerFormWithLocations';
 import { CustomerDetailView } from './_components/CustomerDetailView';
 import { EditCustomerForm } from './_components/EditCustomerForm';
 import { DeleteConfirmationDialog } from './_components/DeleteConfirmationDialog';
+import { AddLocationModal } from './_components/AddLocationModal';
 import { ToastContainer, useToast } from '@/components/ui/toast';
 import { useState, useEffect } from 'react';
 import { 
@@ -37,11 +38,21 @@ interface Customer {
   plantReceptionNumber?: string | null;
   createdAt: Date;
   updatedAt: Date;
+  locations?: Array<{
+    id: string;
+    name: string;
+    type: 'OFFICE' | 'PLANT';
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    country?: string | null;
+    receptionNumber?: string | null;
+  }>;
 }
 
 export default function CustomersPage() {
   // Fetch the list of customers using our new tRPC hook
-  const { data: customers, isLoading, error } = api.customer.getAll.useQuery();
+  const { data: customers, isLoading, error } = api.customer.getAllWithLocations.useQuery();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState<'all' | 'office' | 'plant'>('all');
   const [showForm, setShowForm] = useState(false);
@@ -65,6 +76,10 @@ export default function CustomersPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
 
+  // State for AddLocationModal
+  const [showAddLocationModal, setShowAddLocationModal] = useState(false);
+  const [customerForLocation, setCustomerForLocation] = useState<Customer | null>(null);
+
   // Toast notifications
   const { toasts, success, error: showError, removeToast } = useToast();
 
@@ -75,7 +90,7 @@ export default function CustomersPage() {
   const deleteCustomer = api.customer.delete.useMutation({
     onSuccess: () => {
       // Invalidate and refetch customers
-      utils.customer.getAll.invalidate();
+      utils.customer.getAllWithLocations.invalidate();
       // Close delete dialog
       setShowDeleteDialog(false);
       setCustomerToDelete(null);
@@ -119,6 +134,12 @@ export default function CustomersPage() {
     setShowDeleteDialog(true);
   };
 
+  // Handle add location
+  const handleAddLocation = (customer: Customer) => {
+    setCustomerForLocation(customer);
+    setShowAddLocationModal(true);
+  };
+
   // Confirm delete
   const confirmDelete = (customerId: string) => {
     if (customerToDelete) {
@@ -134,7 +155,7 @@ export default function CustomersPage() {
           <h1 className="text-3xl text-gray-900 font-bold">New Customer</h1>
           <p className="text-gray-600 mt-1">Add a new customer to your database</p>
         </div>
-        <CreateCustomerForm />
+        <CreateCustomerFormWithLocations onSuccess={() => setShowForm(false)} />
       </div>
     );
   }
@@ -268,11 +289,35 @@ export default function CustomersPage() {
                         <td className="p-4 align-middle whitespace-nowrap">
                           <div>
                             <div className="text-sm text-gray-900 font-medium">{customer.name}</div>
-                            {customer.officeName && (
-                              <div className="text-xs text-blue-600 font-medium">🏢 {customer.officeName}</div>
-                            )}
-                            {customer.plantName && (
-                              <div className="text-xs text-green-600 font-medium">🏭 {customer.plantName}</div>
+                            {/* Show locations from the new Location model */}
+                            {customer.locations && customer.locations.length > 0 ? (
+                              customer.locations.map((location) => (
+                                <div 
+                                  key={location.id} 
+                                  className={`text-xs font-medium ${
+                                    location.type === 'OFFICE' 
+                                      ? 'text-blue-600' 
+                                      : 'text-green-600'
+                                  }`}
+                                >
+                                  {location.type === 'OFFICE' ? '🏢' : '🏭'} {location.name}
+                                  {location.city && location.state && (
+                                    <span className="text-gray-500 ml-1">
+                                      ({location.city}, {location.state})
+                                    </span>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              // Fallback to old single office/plant display
+                              <>
+                                {customer.officeName && (
+                                  <div className="text-xs text-blue-600 font-medium">🏢 {customer.officeName}</div>
+                                )}
+                                {customer.plantName && (
+                                  <div className="text-xs text-green-600 font-medium">🏭 {customer.plantName}</div>
+                                )}
+                              </>
                             )}
                           </div>
                         </td>
@@ -295,6 +340,15 @@ export default function CustomersPage() {
                         </td>
                         <td className="p-4 align-middle whitespace-nowrap">
                           <div className="flex items-center space-x-2">
+                            {/* Add Location Button */}
+                            <button 
+                              onClick={() => handleAddLocation(customer)}
+                              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all hover:bg-green-100 h-8 w-8 rounded-md text-green-600 hover:text-green-700"
+                              title="Add Office or Plant"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </button>
+                            
                             {/* View Button */}
                             <button 
                               onClick={() => handleViewCustomer(customer)}
@@ -419,6 +473,23 @@ export default function CustomersPage() {
           }}
           onConfirm={() => confirmDelete(customerToDelete.id)}
           isDeleting={deleteCustomer.isPending}
+        />
+      )}
+
+      {/* Add Location Modal */}
+      {customerForLocation && (
+        <AddLocationModal
+          isOpen={showAddLocationModal}
+          onClose={() => {
+            setShowAddLocationModal(false);
+            setCustomerForLocation(null);
+          }}
+          customerId={customerForLocation.id}
+          customerName={customerForLocation.name}
+          onSuccess={() => {
+            // Refresh the customer data
+            utils.customer.getAllWithLocations.invalidate();
+          }}
         />
       )}
 

@@ -13,7 +13,8 @@ import {
   LogOut,
   User,
   Building2,
-  BarChart3
+  BarChart3,
+  Calendar
 } from 'lucide-react';
 
 interface NavigationLayoutProps {
@@ -28,6 +29,7 @@ export function NavigationLayout({ children }: NavigationLayoutProps) {
 
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+    { id: 'tasks', label: 'Tasks', icon: Calendar, path: '/tasks' },
     { id: 'customers', label: 'Customers', icon: Users, path: '/customers' },
     { id: 'enquiries', label: 'Enquiries', icon: FileText, path: '/enquiries' },
     { id: 'quotations', label: 'Quotations', icon: Calculator, path: '/quotations' },
