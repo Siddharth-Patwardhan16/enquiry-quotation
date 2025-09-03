@@ -1,10 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { api } from '@/trpc/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, AlertCircle, CheckCircle, FileText, MessageSquare, TrendingUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, Clock, AlertCircle, CheckCircle, FileText, MessageSquare, TrendingUp, Settings, Video, Phone, Mail, Building, MapPin } from 'lucide-react';
+import { MeetingManagementModal } from './_components/MeetingManagementModal';
+import { QuotationStatusModal } from './_components/QuotationStatusModal';
 
 // Define the task type based on the API response
 type Task = {
@@ -19,6 +23,17 @@ type Task = {
 };
 
 export default function TasksPage() {
+  // State for modals
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [showQuotationModal, setShowQuotationModal] = useState(false);
+  const [selectedCommunicationId, setSelectedCommunicationId] = useState<string>('');
+  const [selectedQuotationId, setSelectedQuotationId] = useState<string>('');
+
+  // State for filtering
+  const [filterType, setFilterType] = useState<'all' | 'QUOTATION' | 'COMMUNICATION'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'overdue' | 'today' | 'upcoming'>('all');
+  const [filterPriority, setFilterPriority] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
   const queryResult: any = api.tasks.getUpcoming.useQuery();
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
@@ -50,8 +65,20 @@ export default function TasksPage() {
         return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'SUBMITTED':
         return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'WON':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'LOST':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'RECEIVED':
+        return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+      case 'OVERDUE':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'DUE_TODAY':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'DUE':
         return 'bg-red-100 text-red-800 border-red-200';
+      case 'SCHEDULED':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -101,17 +128,137 @@ export default function TasksPage() {
     return date < new Date();
   };
 
-  // Safely filter tasks with proper type checking
-  const overdueTasks: Task[] = tasks ? tasks.filter((task: Task) => isOverdue(task.dueDate)) : [];
-  const upcomingTasks: Task[] = tasks ? tasks.filter((task: Task) => !isOverdue(task.dueDate)) : [];
+  // Handler functions for modals
+  const handleManageMeeting = (communicationId: string) => {
+    setSelectedCommunicationId(communicationId);
+    setShowMeetingModal(true);
+  };
+
+  const handleUpdateQuotationStatus = (quotationId: string) => {
+    setSelectedQuotationId(quotationId);
+    setShowQuotationModal(true);
+  };
+
+  const handleModalClose = () => {
+    setShowMeetingModal(false);
+    setShowQuotationModal(false);
+    setSelectedCommunicationId('');
+    setSelectedQuotationId('');
+  };
+
+  const handleModalSuccess = () => {
+    // Refetch tasks when modal operations are successful
+    queryResult.refetch();
+  };
+
+  // Filter tasks based on current filters
+  const filteredTasks: Task[] = tasks ? tasks.filter((task: Task) => {
+    // Filter by type
+    if (filterType !== 'all' && task.type !== filterType) return false;
+    
+    // Filter by priority
+    if (filterPriority !== 'all' && task.priority !== filterPriority) return false;
+    
+    // Filter by status
+    if (filterStatus !== 'all') {
+      const today = new Date();
+      const taskDate = new Date(task.dueDate);
+      const isOverdue = taskDate < today;
+      const isToday = taskDate.toDateString() === today.toDateString();
+      
+      switch (filterStatus) {
+        case 'overdue':
+          return isOverdue;
+        case 'today':
+          return isToday;
+        case 'upcoming':
+          return !isOverdue && !isToday;
+        default:
+          return true;
+      }
+    }
+    
+    return true;
+  }) : [];
+
+  // Calculate stats for filtered tasks
+  const overdueTasks: Task[] = filteredTasks.filter((task: Task) => isOverdue(task.dueDate));
+  const todayTasks: Task[] = filteredTasks.filter((task: Task) => {
+    const today = new Date();
+    return new Date(task.dueDate).toDateString() === today.toDateString();
+  });
+  const upcomingTasks: Task[] = filteredTasks.filter((task: Task) => !isOverdue(task.dueDate));
 
   return (
     <main className="p-4 md:p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Upcoming Tasks</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Task Management</h1>
         <p className="text-muted-foreground mt-2">
-          Your centralized to-do list for all active communications and quotations.
+          Manage your active quotations and communications in one place.
         </p>
+      </div>
+
+      {/* Filter Controls */}
+      <div className="mb-6 bg-white rounded-lg border p-4">
+        <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex items-center space-x-2">
+            <label className="text-sm font-medium text-gray-700">Type:</label>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value as any)}
+              className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Types</option>
+              <option value="QUOTATION">Quotations</option>
+              <option value="COMMUNICATION">Communications</option>
+            </select>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <label className="text-sm font-medium text-gray-700">Status:</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as any)}
+              className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Status</option>
+              <option value="overdue">Overdue</option>
+              <option value="today">Due Today</option>
+              <option value="upcoming">Upcoming</option>
+
+            </select>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <label className="text-sm font-medium text-gray-700">Priority:</label>
+            <select
+              value={filterPriority}
+              onChange={(e) => setFilterPriority(e.target.value as any)}
+              className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Priorities</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => {
+                setFilterType('all');
+                setFilterStatus('all');
+                setFilterPriority('all');
+              }}
+              className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              Clear Filters
+            </button>
+            <div className="text-sm text-gray-600">
+              Showing {filteredTasks.length} of {tasks?.length || 0} tasks
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Task Summary Cards */}
@@ -124,7 +271,7 @@ export default function TasksPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-blue-700">Total Tasks</p>
-                <p className="text-2xl font-bold text-blue-900">{tasks?.length ?? 0}</p>
+                <p className="text-2xl font-bold text-blue-900">{filteredTasks.length}</p>
               </div>
             </div>
           </CardContent>
@@ -144,19 +291,21 @@ export default function TasksPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
           <CardContent className="p-6">
             <div className="flex items-center space-x-3">
-              <div className="p-3 bg-emerald-500 rounded-lg shadow-lg">
-                <TrendingUp className="w-6 h-6 text-white" />
+              <div className="p-3 bg-orange-500 rounded-lg shadow-lg">
+                <Clock className="w-6 h-6 text-white" />
               </div>
               <div>
-                <p className="text-sm font-medium text-emerald-700">Upcoming</p>
-                <p className="text-2xl font-bold text-emerald-900">{upcomingTasks.length}</p>
+                <p className="text-sm font-medium text-orange-700">Due Today</p>
+                <p className="text-2xl font-bold text-orange-900">{todayTasks.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
+
+
       </div>
 
       {/* Tasks Table */}
@@ -178,13 +327,13 @@ export default function TasksPage() {
                 </div>
               ))}
             </div>
-          ) : (tasks?.length ?? 0) === 0 ? (
+          ) : filteredTasks.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-gradient-to-r from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">All Caught Up!</h3>
-              <p className="text-gray-500 text-sm">No upcoming tasks at the moment</p>
+              <p className="text-gray-500 text-sm">No tasks match your current filters</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -197,10 +346,11 @@ export default function TasksPage() {
                     <th className="p-4 font-semibold text-gray-900">Task Description</th>
                     <th className="p-4 font-semibold text-gray-900">Status</th>
                     <th className="p-4 font-semibold text-gray-900">Priority</th>
+                    <th className="p-4 font-semibold text-gray-900">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {tasks?.map((task: Task) => (
+                  {filteredTasks.map((task: Task) => (
                     <tr 
                       key={`${task.type}-${task.id}`} 
                       className="border-b border-gray-100 last:border-none hover:bg-gray-50 transition-all duration-200 bg-white"
@@ -261,6 +411,40 @@ export default function TasksPage() {
                           {task.priority}
                         </Badge>
                       </td>
+                      <td className="p-4">
+                        <div className="flex items-center space-x-2">
+                          {task.type === 'COMMUNICATION' ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleManageMeeting(task.id)}
+                              className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                            >
+                              <Settings className="h-3 w-3 mr-1" />
+                              Manage
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleUpdateQuotationStatus(task.id)}
+                              className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                            >
+                              <Settings className="h-3 w-3 mr-1" />
+                              Update Status
+                            </Button>
+                          )}
+                          <Link href={task.link}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-gray-600 border-gray-300 hover:bg-gray-50"
+                            >
+                              View
+                            </Button>
+                          </Link>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -269,6 +453,22 @@ export default function TasksPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Meeting Management Modal */}
+      <MeetingManagementModal
+        isOpen={showMeetingModal}
+        onClose={handleModalClose}
+        communicationId={selectedCommunicationId}
+        onSuccess={handleModalSuccess}
+      />
+
+      {/* Quotation Status Modal */}
+      <QuotationStatusModal
+        isOpen={showQuotationModal}
+        onClose={handleModalClose}
+        quotationId={selectedQuotationId}
+        onSuccess={handleModalSuccess}
+      />
     </main>
   );
 }

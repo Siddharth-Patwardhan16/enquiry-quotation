@@ -20,11 +20,11 @@ export const tasksRouter = createTRPCRouter({
   getUpcoming: publicProcedure.query(async () => {
     const today = new Date();
 
-    // 1. Fetch all quotations that are still active (not WON or LOST)
+    // 1. Fetch active quotations (excluding completed ones)
     const activeQuotations = await db.quotation.findMany({
       where: {
         NOT: {
-          status: { in: ['WON', 'LOST', 'RECEIVED'] },
+          status: { in: ['WON', 'LOST'] },
         },
       },
       include: {
@@ -36,44 +36,85 @@ export const tasksRouter = createTRPCRouter({
           },
         },
       },
+      orderBy: { createdAt: 'desc' },
     });
 
-    // 2. Fetch all communications that are due for a follow-up
-    const dueCommunications = await db.communication.findMany({
+    // 2. Fetch all communications (including future ones for management)
+    const allCommunications = await db.communication.findMany({
       where: {
         nextCommunicationDate: {
-          lte: today, // Less than or equal to today (due or overdue)
+          not: null, // Only communications with scheduled dates
         },
       },
       include: {
         customer: {
           select: { name: true, id: true },
         },
+        contact: {
+          select: { name: true, designation: true },
+        },
       },
+      orderBy: { nextCommunicationDate: 'asc' },
     });
 
     // 3. Transform both data sets into a unified "Task" format
-    const quotationTasks: UnifiedTask[] = activeQuotations.map(q => ({
-      type: 'QUOTATION' as const,
-      dueDate: q.createdAt, // Using createdAt as the reference date
-      customerName: q.enquiry.customer.name,
-      taskDescription: `Quotation #${q.quotationNumber}`,
-      status: q.status,
-      link: `/quotations/${q.id}`,
-      id: q.id,
-      priority: 'medium' as const,
-    }));
+    const quotationTasks: UnifiedTask[] = activeQuotations.map(q => {
+      // Determine priority based on status and age
+      let priority: 'high' | 'medium' | 'low' = 'medium';
+      if (q.status === 'DRAFT') priority = 'high';
+      else if (q.status === 'RECEIVED') priority = 'low';
+      
+      // Use validity period or creation date as due date
+      const dueDate = q.validityPeriod || q.createdAt;
+      
+      return {
+        type: 'QUOTATION' as const,
+        dueDate,
+        customerName: q.enquiry.customer.name,
+        taskDescription: `Quotation #${q.quotationNumber}`,
+        status: q.status,
+        link: `/quotations/${q.id}`,
+        id: q.id,
+        priority,
+      };
+    });
 
-    const communicationTasks: UnifiedTask[] = dueCommunications.map(c => ({
-      type: 'COMMUNICATION' as const,
-      dueDate: c.nextCommunicationDate!, // We know this exists due to the query
-      customerName: c.customer.name,
-      taskDescription: c.proposedNextAction || 'Follow up required',
-      status: 'DUE',
-      link: `/customers/${c.customerId}`,
-      id: c.id,
-      priority: 'high' as const,
-    }));
+    const communicationTasks: UnifiedTask[] = allCommunications.map(c => {
+      const meetingType = c.type === 'VIRTUAL_MEETING' ? 'Video Call' :
+                         c.type === 'TELEPHONIC' ? 'Phone Call' :
+                         c.type === 'EMAIL' ? 'Email' :
+                         c.type === 'PLANT_VISIT' ? 'Plant Visit' :
+                         c.type === 'OFFICE_VISIT' ? 'Office Visit' : c.type;
+      
+      const contactInfo = c.contact ? ` with ${c.contact.name}` : '';
+      const taskDescription = `${meetingType}${contactInfo} - ${c.proposedNextAction || c.subject || 'Follow up required'}`;
+      
+      // Determine priority and status based on due date
+      const dueDate = c.nextCommunicationDate!;
+      const isOverdue = dueDate < today;
+      const isToday = dueDate.toDateString() === today.toDateString();
+      
+      let priority: 'high' | 'medium' | 'low' = 'medium';
+      if (isOverdue) priority = 'high';
+      else if (isToday) priority = 'high';
+      else if (dueDate.getTime() - today.getTime() <= 7 * 24 * 60 * 60 * 1000) priority = 'medium';
+      else priority = 'low';
+      
+      let status = 'SCHEDULED';
+      if (isOverdue) status = 'OVERDUE';
+      else if (isToday) status = 'DUE_TODAY';
+      
+      return {
+        type: 'COMMUNICATION' as const,
+        dueDate,
+        customerName: c.customer.name,
+        taskDescription,
+        status,
+        link: `/communications`,
+        id: c.id,
+        priority,
+      };
+    });
 
     // 4. Merge and sort the tasks by due date
     const allTasks = [...quotationTasks, ...communicationTasks];
@@ -322,5 +363,127 @@ export const tasksRouter = createTRPCRouter({
       }
 
       return { success: true, message: 'Task marked as completed' };
+    }),
+
+  // Update quotation status
+  updateQuotationStatus: publicProcedure
+    .input(z.object({
+      quotationId: z.string(),
+      status: z.enum(['DRAFT', 'LIVE', 'SUBMITTED', 'WON', 'LOST', 'RECEIVED']),
+      lostReason: z.string().optional(),
+      purchaseOrderNumber: z.string().optional()
+    }))
+    .mutation(async ({ input }) => {
+      const updateData: any = { status: input.status };
+      
+      if (input.status === 'LOST' && input.lostReason) {
+        updateData.lostReason = input.lostReason;
+      }
+      
+      if (input.status === 'RECEIVED' && input.purchaseOrderNumber) {
+        updateData.purchaseOrderNumber = input.purchaseOrderNumber;
+      }
+
+      await db.quotation.update({
+        where: { id: input.quotationId },
+        data: updateData
+      });
+
+      return { success: true, message: 'Quotation status updated successfully' };
+    }),
+
+  // Reschedule communication/meeting
+  rescheduleCommunication: publicProcedure
+    .input(z.object({
+      communicationId: z.string(),
+      newDate: z.string(), // ISO date string
+      newTime: z.string().optional(), // Time string if needed
+      reason: z.string().optional()
+    }))
+    .mutation(async ({ input }) => {
+      const newDateTime = new Date(input.newDate);
+      if (input.newTime) {
+        const [hours, minutes] = input.newTime.split(':');
+        newDateTime.setHours(parseInt(hours), parseInt(minutes));
+      }
+
+      await db.communication.update({
+        where: { id: input.communicationId },
+        data: { 
+          nextCommunicationDate: newDateTime,
+          description: input.reason 
+            ? `${input.reason}\n\nRescheduled to ${newDateTime.toLocaleString()}`
+            : undefined
+        }
+      });
+
+      return { success: true, message: 'Communication rescheduled successfully' };
+    }),
+
+  // Get detailed communication info for meeting management
+  getCommunicationDetails: publicProcedure
+    .input(z.object({
+      communicationId: z.string()
+    }))
+    .query(async ({ input }) => {
+      const communication = await db.communication.findUnique({
+        where: { id: input.communicationId },
+        include: {
+          customer: {
+            select: {
+              id: true,
+              name: true,
+              officeAddress: true,
+              officeCity: true,
+              officeState: true,
+              officeCountry: true,
+              officeReceptionNumber: true
+            }
+          },
+          contact: {
+            select: {
+              id: true,
+              name: true,
+              designation: true,
+              officialCellNumber: true,
+              personalCellNumber: true
+            }
+          },
+          employee: {
+            select: {
+              id: true,
+              name: true,
+              role: true
+            }
+          }
+        }
+      });
+
+      return communication;
+    }),
+
+  // Get quotation details for status updates
+  getQuotationDetails: publicProcedure
+    .input(z.object({
+      quotationId: z.string()
+    }))
+    .query(async ({ input }) => {
+      const quotation = await db.quotation.findUnique({
+        where: { id: input.quotationId },
+        include: {
+          enquiry: {
+            include: {
+              customer: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      return quotation;
     })
 });
