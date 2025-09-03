@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
+
 import { createTRPCRouter, protectedProcedure, publicProcedure } from '../trpc';
 import { db } from '../../db';
 import { z } from 'zod';
@@ -65,7 +65,7 @@ export const tasksRouter = createTRPCRouter({
       else if (q.status === 'RECEIVED') priority = 'low';
       
       // Use validity period or creation date as due date
-      const dueDate = q.validityPeriod || q.createdAt;
+      const dueDate = q.validityPeriod ?? q.createdAt;
       
       return {
         type: 'QUOTATION' as const,
@@ -87,7 +87,7 @@ export const tasksRouter = createTRPCRouter({
                          c.type === 'OFFICE_VISIT' ? 'Office Visit' : c.type;
       
       const contactInfo = c.contact ? ` with ${c.contact.name}` : '';
-      const taskDescription = `${meetingType}${contactInfo} - ${c.proposedNextAction || c.subject || 'Follow up required'}`;
+      const taskDescription = `${meetingType}${contactInfo} - ${c.proposedNextAction ?? c.subject ?? 'Follow up required'}`;
       
       // Determine priority and status based on due date
       const dueDate = c.nextCommunicationDate!;
@@ -194,8 +194,8 @@ export const tasksRouter = createTRPCRouter({
       });
 
       // Convert to unified task format
-      const allTasks: any[] = [
-        ...enquiryTasks.map((enquiry: any) => ({
+      const allTasks = [
+        ...enquiryTasks.map((enquiry) => ({
           id: `enquiry-${enquiry.id}`,
           title: `Follow up on ${enquiry.subject}`,
           type: 'enquiry' as const,
@@ -210,7 +210,7 @@ export const tasksRouter = createTRPCRouter({
           createdAt: enquiry.createdAt,
           updatedAt: enquiry.updatedAt
         })),
-        ...quotationTasks.map((quotation: any) => ({
+        ...quotationTasks.map((quotation) => ({
           id: `quotation-${quotation.id}`,
           title: `Complete quotation ${quotation.quotationNumber}`,
           type: 'quotation' as const,
@@ -225,7 +225,7 @@ export const tasksRouter = createTRPCRouter({
           createdAt: quotation.createdAt,
           updatedAt: quotation.updatedAt
         })),
-        ...communicationTasks.map((communication: any) => ({
+        ...communicationTasks.map((communication) => ({
           id: `communication-${communication.id}`,
           title: `Follow up: ${communication.subject}`,
           type: 'communication' as const,
@@ -266,7 +266,7 @@ export const tasksRouter = createTRPCRouter({
       // Sort by priority and due date
       const priorityOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
       
-      return filteredTasks.sort((a: any, b: any) => {
+      return filteredTasks.sort((a, b) => {
         const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
         if (priorityDiff !== 0) return priorityDiff;
         return a.dueDate.getTime() - b.dueDate.getTime();
@@ -374,7 +374,11 @@ export const tasksRouter = createTRPCRouter({
       purchaseOrderNumber: z.string().optional()
     }))
     .mutation(async ({ input }) => {
-      const updateData: any = { status: input.status };
+      const updateData: { 
+        status: 'DRAFT' | 'LIVE' | 'SUBMITTED' | 'WON' | 'LOST' | 'RECEIVED'; 
+        lostReason?: string; 
+        purchaseOrderNumber?: string; 
+      } = { status: input.status };
       
       if (input.status === 'LOST' && input.lostReason) {
         updateData.lostReason = input.lostReason;

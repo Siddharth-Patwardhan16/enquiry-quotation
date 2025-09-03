@@ -92,9 +92,9 @@ export default function EnquiriesPage() {
   // Filter enquiries based on search and status
   const filteredEnquiries = enquiries?.filter((enquiry: Enquiry) => {
     const matchesSearch = 
-      enquiry.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      enquiry.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      enquiry.marketingPerson?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      (enquiry.subject ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (enquiry.customer?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (enquiry.marketingPerson?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || enquiry.status === statusFilter;
     

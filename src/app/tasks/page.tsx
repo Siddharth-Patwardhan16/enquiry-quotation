@@ -6,7 +6,7 @@ import { api } from '@/trpc/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, AlertCircle, CheckCircle, FileText, MessageSquare, TrendingUp, Settings, Video, Phone, Mail, Building, MapPin } from 'lucide-react';
+import { Calendar, Clock, AlertCircle, CheckCircle, FileText, MessageSquare, Settings } from 'lucide-react';
 import { MeetingManagementModal } from './_components/MeetingManagementModal';
 import { QuotationStatusModal } from './_components/QuotationStatusModal';
 
@@ -34,13 +34,9 @@ export default function TasksPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'overdue' | 'today' | 'upcoming'>('all');
   const [filterPriority, setFilterPriority] = useState<'all' | 'high' | 'medium' | 'low'>('all');
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-  const queryResult: any = api.tasks.getUpcoming.useQuery();
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  const queryResult = api.tasks.getUpcoming.useQuery();
   const tasks = queryResult.data as Task[] | undefined;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   const isLoading = queryResult.isLoading;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   const error = queryResult.error as { message: string } | null;
 
   if (error) {
@@ -148,7 +144,7 @@ export default function TasksPage() {
 
   const handleModalSuccess = () => {
     // Refetch tasks when modal operations are successful
-    queryResult.refetch();
+    void queryResult.refetch();
   };
 
   // Filter tasks based on current filters
@@ -187,7 +183,7 @@ export default function TasksPage() {
     const today = new Date();
     return new Date(task.dueDate).toDateString() === today.toDateString();
   });
-  const upcomingTasks: Task[] = filteredTasks.filter((task: Task) => !isOverdue(task.dueDate));
+
 
   return (
     <main className="p-4 md:p-8">
@@ -205,7 +201,7 @@ export default function TasksPage() {
             <label className="text-sm font-medium text-gray-700">Type:</label>
             <select
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value as any)}
+              onChange={(e) => setFilterType(e.target.value as 'all' | 'QUOTATION' | 'COMMUNICATION')}
               className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Types</option>
@@ -218,7 +214,7 @@ export default function TasksPage() {
             <label className="text-sm font-medium text-gray-700">Status:</label>
             <select
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as any)}
+              onChange={(e) => setFilterStatus(e.target.value as 'all' | 'overdue' | 'today' | 'upcoming')}
               className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Status</option>
@@ -233,7 +229,7 @@ export default function TasksPage() {
             <label className="text-sm font-medium text-gray-700">Priority:</label>
             <select
               value={filterPriority}
-              onChange={(e) => setFilterPriority(e.target.value as any)}
+              onChange={(e) => setFilterPriority(e.target.value as 'all' | 'high' | 'medium' | 'low')}
               className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Priorities</option>
@@ -255,7 +251,7 @@ export default function TasksPage() {
               Clear Filters
             </button>
             <div className="text-sm text-gray-600">
-              Showing {filteredTasks.length} of {tasks?.length || 0} tasks
+              Showing {filteredTasks.length} of {tasks?.length ?? 0} tasks
             </div>
           </div>
         </div>

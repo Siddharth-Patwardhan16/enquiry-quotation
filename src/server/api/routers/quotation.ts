@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
+
 import { createTRPCRouter, publicProcedure } from '../trpc';
 import { CreateQuotationSchema } from '@/lib/validators/quotation';
 import { UpdateQuotationStatusSchema } from '@/lib/validators/quotationStatus';
@@ -32,7 +32,7 @@ export const quotationRouter = createTRPCRouter({
       // Prisma Transaction: This ensures that both the quotation and all its items are created successfully.
       // If any part fails, the entire transaction is rolled back, preventing partial data.
       try {
-        return await db.$transaction(async (prisma: any) => {
+        return await db.$transaction(async (prisma) => {
           // 1. Create the main Quotation record
           const newQuotation = await prisma.quotation.create({
             data: {

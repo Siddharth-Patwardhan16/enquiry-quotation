@@ -75,7 +75,7 @@ export function QuotationStatusModal({
     setIsSubmitting(true);
     updateStatusMutation.mutate({
       quotationId,
-      status: status as any,
+      status: status as 'DRAFT' | 'LIVE' | 'SUBMITTED' | 'WON' | 'LOST' | 'RECEIVED',
       lostReason: lostReason || undefined,
       purchaseOrderNumber: purchaseOrderNumber || undefined,
     });
