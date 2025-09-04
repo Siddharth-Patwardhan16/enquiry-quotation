@@ -5,7 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { api } from '@/trpc/client';
 import { Save, Building, Factory, Package, Info, Plus, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+// import { useEffect } from 'react'; // Unused import commented out
+// import { useState } from 'react'; // Unused import commented out
 import { useToast } from '@/components/ui/toast';
 
 // Simplified schema for the form
@@ -71,8 +72,8 @@ export function CreateCustomerFormWithLocations({ onSuccess }: CreateCustomerFor
     control,
     reset,
     watch,
-    setError,
-    clearErrors,
+    // setError, // Unused variable commented out
+    // clearErrors, // Unused variable commented out
     formState: { errors, isValid },
   } = useForm<FormData>({
     resolver: zodResolver(FormSchema),
@@ -106,24 +107,14 @@ export function CreateCustomerFormWithLocations({ onSuccess }: CreateCustomerFor
   const watchedOffices = watch('offices');
   const watchedPlants = watch('plants');
 
-  // Debounced values for uniqueness checks
-  const [debouncedOfficeNames, setDebouncedOfficeNames] = useState<string[]>([]);
-  const [debouncedPlantNames, setDebouncedPlantNames] = useState<string[]>([]);
+  // Debounced values for uniqueness checks (currently unused)
+  // const [debouncedOfficeNames, setDebouncedOfficeNames] = useState<string[]>([]);
+  // const [debouncedPlantNames, setDebouncedPlantNames] = useState<string[]>([]);
 
-  // Check uniqueness for office names
-  const checkOfficeUniqueness = api.customer.checkUnique.useQuery(
-    { field: 'officeName', value: debouncedOfficeNames.join(',') },
-    { enabled: debouncedOfficeNames.length > 0 }
-  );
-
-  // Check uniqueness for plant names
-  const checkPlantUniqueness = api.customer.checkUnique.useQuery(
-    { field: 'plantName', value: debouncedPlantNames.join(',') },
-    { enabled: debouncedPlantNames.length > 0 }
-  );
+  // Note: Uniqueness checks removed for now - can be added back later if needed
 
   // Create customer mutation
-  const createCustomer = api.customer.createWithLocations.useMutation({
+  const createCustomer = api.customer.create.useMutation({
     onSuccess: () => {
       utils.customer.getAll.invalidate();
       reset();
@@ -136,41 +127,26 @@ export function CreateCustomerFormWithLocations({ onSuccess }: CreateCustomerFor
   });
 
   // Debounce office name changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const officeNames = watchedOffices?.map(office => office.name).filter(Boolean) ?? [];
-      setDebouncedOfficeNames(officeNames);
-    }, 500);
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     const officeNames = watchedOffices?.map(office => office.name).filter(Boolean) ?? [];
+  //     setDebouncedOfficeNames(officeNames);
+  //   }, 500);
 
-    return () => clearTimeout(timer);
-  }, [watchedOffices]);
+  //   return () => clearTimeout(timer);
+  // }, [watchedOffices]);
 
-  // Debounce plant name changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const plantNames = watchedPlants?.map(plant => plant.name).filter(Boolean) ?? [];
-      setDebouncedPlantNames(plantNames);
-    }, 500);
+  // // Debounce plant name changes
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     const plantNames = watchedPlants?.map(plant => plant.name).filter(Boolean) ?? [];
+  //     setDebouncedPlantNames(plantNames);
+  //   }, 500);
 
-    return () => clearTimeout(timer);
-  }, [watchedPlants]);
+  //   return () => clearTimeout(timer);
+  // }, [watchedPlants]);
 
-  // Handle uniqueness validation
-  useEffect(() => {
-    if (checkOfficeUniqueness.data?.exists) {
-      setError('offices', { message: 'Office name already exists' });
-    } else {
-      clearErrors('offices');
-    }
-  }, [checkOfficeUniqueness.data, setError, clearErrors]);
-
-  useEffect(() => {
-    if (checkPlantUniqueness.data?.exists) {
-      setError('plants', { message: 'Plant name already exists' });
-    } else {
-      clearErrors('plants');
-    }
-  }, [checkPlantUniqueness.data, setError, clearErrors]);
+  // Note: Uniqueness validation removed for now - can be added back later if needed
 
   const onSubmit = (data: FormData) => {
     createCustomer.mutate(data);

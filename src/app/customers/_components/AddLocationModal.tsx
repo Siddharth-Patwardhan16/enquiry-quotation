@@ -69,7 +69,7 @@ export function AddLocationModal({
 
   const addLocation = api.customer.addLocation.useMutation({
     onSuccess: () => {
-      utils.customer.getAllWithLocations.invalidate();
+      utils.customer.getAll.invalidate();
       reset();
       success('Location Added Successfully!', `New ${watchedType.toLowerCase()} has been added to ${customerName}.`);
       onSuccess?.();

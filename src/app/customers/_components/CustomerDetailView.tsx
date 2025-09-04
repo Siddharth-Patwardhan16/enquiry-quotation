@@ -6,11 +6,6 @@ interface Customer {
   id: string;
   name: string;
   isNew: boolean;
-  officeAddress?: string | null;
-  officeCity?: string | null;
-  officeState?: string | null;
-  officeCountry?: string | null;
-  officeReceptionNumber?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -75,19 +70,51 @@ export function CustomerDetailView({ customer, isOpen, onClose }: CustomerDetail
             </div>
           </div>
 
-          {/* Contact Information */}
+          {/* Office Information */}
           <div className="space-y-4">
-            <h4 className="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">
-              Contact Information
+            <h4 className="text-md font-medium text-gray-900 border-b border-gray-200 pb-2 flex items-center">
+              <Building className="w-4 h-4 mr-2 text-blue-600" />
+              Office Information
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-500">Office Name</label>
+                <p className="text-sm text-gray-900 mt-1">
+                  {customer.name}
+                </p>
+              </div>
               <div>
                 <label className="text-sm font-medium text-gray-500 flex items-center">
                   <Phone className="w-4 h-4 mr-2 text-gray-400" />
                   Reception Number
                 </label>
                 <p className="text-sm text-gray-900 mt-1">
-                                      {customer.officeReceptionNumber ?? 'Not provided'}
+                  Not available
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Plant Information */}
+          <div className="space-y-4">
+            <h4 className="text-md font-medium text-gray-900 border-b border-gray-200 pb-2 flex items-center">
+              <Building className="w-4 h-4 mr-2 text-green-600" />
+              Plant Information
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-500">Plant Name</label>
+                <p className="text-sm text-gray-900 mt-1">
+                  Not available
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500 flex items-center">
+                  <Phone className="w-4 h-4 mr-2 text-gray-400" />
+                  Plant Reception Number
+                </label>
+                <p className="text-sm text-gray-900 mt-1">
+                  Not available
                 </p>
               </div>
             </div>
@@ -99,36 +126,69 @@ export function CustomerDetailView({ customer, isOpen, onClose }: CustomerDetail
               Address Information
             </h4>
             <div className="space-y-3">
-              {customer.officeAddress && (
+              {false && (
                 <div>
                   <label className="text-sm font-medium text-gray-500 flex items-center">
                     <MapPin className="w-4 h-4 mr-2 text-gray-400" />
                     Office Address
                   </label>
-                  <p className="text-sm text-gray-900 mt-1">{customer.officeAddress}</p>
+                  <p className="text-sm text-gray-900 mt-1">Not available</p>
                 </div>
               )}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-500">City</label>
                   <p className="text-sm text-gray-900 mt-1">
-                    {customer.officeCity ?? 'Not provided'}
+                    Not available
                   </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">State/Province</label>
                   <p className="text-sm text-gray-900 mt-1">
-                    {customer.officeState ?? 'Not provided'}
+                    Not available
                   </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Country</label>
                   <p className="text-sm text-gray-900 mt-1">
-                    {customer.officeCountry ?? 'Not provided'}
+                    Not available
                   </p>
                 </div>
               </div>
             </div>
+            
+            {/* Plant Address Information */}
+                          {false && (
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <div>
+                  <label className="text-sm font-medium text-gray-500 flex items-center">
+                    <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+                    Plant Address
+                  </label>
+                  <p className="text-sm text-gray-900 mt-1">Not available</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Plant City</label>
+                    <p className="text-sm text-gray-900 mt-1">
+                      Not available
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Plant State/Province</label>
+                    <p className="text-sm text-gray-900 mt-1">
+                      Not available
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Plant Country</label>
+                    <p className="text-sm text-gray-900 mt-1">
+                      Not available
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Timestamps */}

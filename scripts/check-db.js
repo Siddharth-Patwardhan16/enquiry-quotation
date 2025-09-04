@@ -10,29 +10,26 @@ async function checkDatabase() {
     await prisma.$connect();
     console.log('✅ Database connection successful');
     
-    // Check if User table exists and has data
-    const userCount = await prisma.user.count();
-    console.log(`📊 Users in database: ${userCount}`);
+    // Check Employee table (current schema uses Employee, not User)
+    const employeeCount = await prisma.employee.count();
+    console.log(`📊 Employees in database: ${employeeCount}`);
     
-    if (userCount > 0) {
-      const users = await prisma.user.findMany({
+    if (employeeCount > 0) {
+      const employees = await prisma.employee.findMany({
         take: 5,
         select: {
           id: true,
           email: true,
-          supabaseId: true,
+          name: true,
+          role: true,
           createdAt: true
         }
       });
-      console.log('👥 Sample users:');
-      users.forEach(user => {
-        console.log(`  - ${user.email} (ID: ${user.id})`);
+      console.log('👥 Sample employees:');
+      employees.forEach(employee => {
+        console.log(`  - ${employee.name} (${employee.email}) - Role: ${employee.role}`);
       });
     }
-    
-    // Check Employee table
-    const employeeCount = await prisma.employee.count();
-    console.log(`📊 Employees in database: ${employeeCount}`);
     
     // Check other tables
     const customerCount = await prisma.customer.count();

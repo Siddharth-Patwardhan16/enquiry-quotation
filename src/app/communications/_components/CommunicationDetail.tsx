@@ -132,28 +132,10 @@ export function CommunicationDetail({ communication, onBack, onEdit }: Communica
                 <span className="font-medium text-gray-700">Name: </span>
                 <span className="text-gray-900">{communication.customer?.name}</span>
               </div>
-              {communication.customer?.officeAddress && (
-                <div>
-                  <span className="font-medium text-gray-700">Address: </span>
-                  <span className="text-gray-900">{communication.customer.officeAddress}</span>
-                </div>
-              )}
-              {(communication.customer?.officeCity ?? communication.customer?.officeState) && (
-                <div>
-                  <span className="font-medium text-gray-700">Location: </span>
-                  <span className="text-gray-900">
-                    {[communication.customer.officeCity, communication.customer.officeState, communication.customer.officeCountry]
-                      .filter(Boolean)
-                      .join(', ')}
-                  </span>
-                </div>
-              )}
-              {communication.customer?.officeReceptionNumber && (
-                <div>
-                  <span className="font-medium text-gray-700">Phone: </span>
-                  <span className="text-gray-900">{communication.customer.officeReceptionNumber}</span>
-                </div>
-              )}
+              <div>
+                <span className="font-medium text-gray-700">Status: </span>
+                <span className="text-gray-900">{communication.customer?.isNew ? 'New Customer' : 'Existing Customer'}</span>
+              </div>
             </div>
           </div>
 
@@ -184,12 +166,6 @@ export function CommunicationDetail({ communication, onBack, onEdit }: Communica
                 <div>
                   <span className="font-medium text-gray-700">Personal Phone: </span>
                   <span className="text-gray-900">{communication.contact.personalCellNumber}</span>
-                </div>
-              )}
-              {communication.contact?.locationType && (
-                <div>
-                  <span className="font-medium text-gray-700">Location Type: </span>
-                  <span className="text-gray-900">{communication.contact.locationType}</span>
                 </div>
               )}
             </div>

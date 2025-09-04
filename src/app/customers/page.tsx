@@ -1,9 +1,9 @@
 'use client';
 
 import { api } from '@/trpc/client';
-import { CreateCustomerFormWithLocations } from './_components/CreateCustomerFormWithLocations';
+import { CreateCustomerFormMultiLocation } from './_components/CreateCustomerFormMultiLocation';
 import { CustomerDetailView } from './_components/CustomerDetailView';
-import { EditCustomerForm } from './_components/EditCustomerForm';
+import { EditCustomerFormMultiLocation } from './_components/EditCustomerFormMultiLocation';
 import { DeleteConfirmationDialog } from './_components/DeleteConfirmationDialog';
 import { AddLocationModal } from './_components/AddLocationModal';
 import { ToastContainer, useToast } from '@/components/ui/toast';
@@ -24,20 +24,15 @@ interface Customer {
   id: string;
   name: string;
   isNew: boolean;
-  officeName?: string | null;
-  officeAddress?: string | null;
-  officeCity?: string | null;
-  officeState?: string | null;
-  officeCountry?: string | null;
-  officeReceptionNumber?: string | null;
-  plantName?: string | null;
-  plantAddress?: string | null;
-  plantCity?: string | null;
-  plantState?: string | null;
-  plantCountry?: string | null;
-  plantReceptionNumber?: string | null;
   createdAt: Date;
   updatedAt: Date;
+  poRuptureDiscs: boolean;
+  poThermowells: boolean;
+  poHeatExchanger: boolean;
+  poMiscellaneous: boolean;
+  poWaterJetSteamJet: boolean;
+  existingGraphiteSuppliers?: string | null;
+  problemsFaced?: string | null;
   locations?: Array<{
     id: string;
     name: string;
@@ -48,21 +43,30 @@ interface Customer {
     country?: string | null;
     receptionNumber?: string | null;
   }>;
+  contacts?: Array<{
+    id: string;
+    name: string;
+    designation?: string | null;
+    officialCellNumber?: string | null;
+    personalCellNumber?: string | null;
+    location?: {
+      id: string;
+      name: string;
+      type: 'OFFICE' | 'PLANT';
+    };
+  }>;
 }
 
 export default function CustomersPage() {
   // Fetch the list of customers using our new tRPC hook
-  const { data: customers, isLoading, error } = api.customer.getAllWithLocations.useQuery();
+  const { data: customers, isLoading, error } = api.customer.getAll.useQuery();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState<'all' | 'office' | 'plant'>('all');
   const [showForm, setShowForm] = useState(false);
   
-  // Advanced search using the new searchByOfficeOrPlant endpoint
-  const { data: searchResults, isLoading: isSearching } = api.customer.searchByOfficeOrPlant.useQuery(
-    {
-      searchTerm: searchTerm,
-      searchType: searchType === 'all' ? 'both' : searchType,
-    },
+  // Advanced search using the search endpoint
+  const { data: searchResults, isLoading: isSearching } = api.customer.search.useQuery(
+    { searchTerm: searchTerm },
     {
       enabled: searchTerm.length > 0,
     }
@@ -90,7 +94,7 @@ export default function CustomersPage() {
   const deleteCustomer = api.customer.delete.useMutation({
     onSuccess: () => {
       // Invalidate and refetch customers
-      utils.customer.getAllWithLocations.invalidate();
+      utils.customer.getAll.invalidate();
       // Close delete dialog
       setShowDeleteDialog(false);
       setCustomerToDelete(null);
@@ -115,7 +119,7 @@ export default function CustomersPage() {
   // Calculate stats
       const totalCustomers = customers?.length ?? 0;
     const newCustomers = customers?.filter((c: Customer) => c.isNew).length ?? 0;
-    const activeRegions = new Set(customers?.map((c: Customer) => c.officeCountry).filter(Boolean)).size;
+    const activeRegions = new Set(customers?.flatMap((c: Customer) => c.locations?.map(loc => loc.country) || []).filter(Boolean)).size;
 
   // Handle view customer
   const handleViewCustomer = (customer: Customer) => {
@@ -155,7 +159,7 @@ export default function CustomersPage() {
           <h1 className="text-3xl text-gray-900 font-bold">New Customer</h1>
           <p className="text-gray-600 mt-1">Add a new customer to your database</p>
         </div>
-        <CreateCustomerFormWithLocations onSuccess={() => setShowForm(false)} />
+        <CreateCustomerFormMultiLocation onSuccess={() => setShowForm(false)} />
       </div>
     );
   }
@@ -309,26 +313,33 @@ export default function CustomersPage() {
                                 </div>
                               ))
                             ) : (
-                              // Fallback to old single office/plant display
-                              <>
-                                {customer.officeName && (
-                                  <div className="text-xs text-blue-600 font-medium">🏢 {customer.officeName}</div>
-                                )}
-                                {customer.plantName && (
-                                  <div className="text-xs text-green-600 font-medium">🏭 {customer.plantName}</div>
-                                )}
-                              </>
+                              <div className="text-xs text-gray-500">No locations added</div>
                             )}
                           </div>
                         </td>
                         <td className="p-4 align-middle whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {customer.officeCity}, {customer.officeState}
+                            {customer.locations && customer.locations.length > 0 ? (
+                              <>
+                                {customer.locations[0].city && customer.locations[0].state && (
+                                  <>{customer.locations[0].city}, {customer.locations[0].state}</>
+                                )}
+                                {!customer.locations[0].city && !customer.locations[0].state && (
+                                  <span className="text-gray-500">No address</span>
+                                )}
+                              </>
+                            ) : (
+                              <span className="text-gray-500">No address</span>
+                            )}
                           </div>
-                          <div className="text-xs text-gray-500">{customer.officeCountry}</div>
+                          <div className="text-xs text-gray-500">
+                            {customer.locations && customer.locations.length > 0 ? customer.locations[0].country : 'No country'}
+                          </div>
                         </td>
                         <td className="p-4 align-middle whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{customer.officeReceptionNumber}</div>
+                          <div className="text-sm text-gray-900">
+                            {customer.locations && customer.locations.length > 0 ? customer.locations[0].receptionNumber || 'No number' : 'No number'}
+                          </div>
                         </td>
                         <td className="p-4 align-middle whitespace-nowrap">
                           <span className="inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 border-transparent bg-blue-100 text-blue-800">
@@ -451,7 +462,7 @@ export default function CustomersPage() {
 
       {/* Edit Customer Modal */}
       {customerToEdit && (
-        <EditCustomerForm
+        <EditCustomerFormMultiLocation
           customer={customerToEdit}
           onCancel={() => {
             setCustomerToEdit(null);
@@ -488,7 +499,7 @@ export default function CustomersPage() {
           customerName={customerForLocation.name}
           onSuccess={() => {
             // Refresh the customer data
-            utils.customer.getAllWithLocations.invalidate();
+            utils.customer.getAll.invalidate();
           }}
         />
       )}

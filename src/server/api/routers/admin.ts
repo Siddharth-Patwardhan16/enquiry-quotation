@@ -34,6 +34,7 @@ export const adminRouter = createTRPCRouter({
         // Create a new Employee record with the specified role
         const employee = await db.employee.create({
           data: {
+            id: `emp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Generate unique ID
             name: input.name,
             email: input.email,
             role: input.role,

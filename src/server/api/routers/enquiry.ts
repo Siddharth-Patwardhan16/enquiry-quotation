@@ -21,6 +21,7 @@ export const enquiryRouter = createTRPCRouter({
         data: {
           subject: input.subject,
           customerId: input.customerId,
+          locationId: input.locationId, // Link to the specific location
           description: input.description,
           requirements: input.requirements,
           expectedBudget: input.expectedBudget,
@@ -35,7 +36,7 @@ export const enquiryRouter = createTRPCRouter({
       });
     }),
 
-  // Procedure to get all enquiries with customer names
+  // Procedure to get all enquiries with customer and location names
   getAll: publicProcedure.query(async () => {
     return db.enquiry.findMany({
       orderBy: { createdAt: 'desc' },
@@ -43,6 +44,12 @@ export const enquiryRouter = createTRPCRouter({
         customer: {
           select: {
             name: true,
+          },
+        },
+        location: {
+          select: {
+            name: true,
+            type: true,
           },
         },
         marketingPerson: {
@@ -65,10 +72,17 @@ export const enquiryRouter = createTRPCRouter({
             select: {
               id: true,
               name: true,
-              officeAddress: true,
-              officeCity: true,
-              officeState: true,
-              officeCountry: true,
+            },
+          },
+          location: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              address: true,
+              city: true,
+              state: true,
+              country: true,
             },
           },
           marketingPerson: {

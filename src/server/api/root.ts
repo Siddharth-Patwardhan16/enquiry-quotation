@@ -7,6 +7,7 @@ import { quotationRouter } from './routers/quotation';
 import { dashboardRouter } from './routers/dashboard';
 import { tasksRouter } from './routers/tasks';
 import { communicationRouter } from './routers/communication';
+import { locationRouter } from './routers/location';
 import { createTRPCRouter } from './trpc';
 
 export const appRouter = createTRPCRouter({
@@ -19,6 +20,7 @@ export const appRouter = createTRPCRouter({
   dashboard: dashboardRouter,
   tasks: tasksRouter,
   communication: communicationRouter,
+  location: locationRouter,
 });
 
 export type AppRouter = typeof appRouter;

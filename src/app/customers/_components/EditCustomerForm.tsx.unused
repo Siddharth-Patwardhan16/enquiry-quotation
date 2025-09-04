@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { api } from '@/trpc/client';
 import { Save, X, Building, Factory, Package, Info } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useToast } from '@/components/ui/toast';
 
 // Local validation schema that matches the form data
@@ -39,16 +39,8 @@ interface Customer {
   id: string;
   name: string;
   isNew: boolean;
-  officeAddress?: string | null;
-  officeCity?: string | null;
-  officeState?: string | null;
-  officeCountry?: string | null;
-  officeReceptionNumber?: string | null;
-  plantAddress?: string | null;
-  plantCity?: string | null;
-  plantState?: string | null;
-  plantCountry?: string | null;
-  plantReceptionNumber?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
   poRuptureDiscs?: boolean;
   poThermowells?: boolean;
   poHeatExchanger?: boolean;
@@ -91,17 +83,21 @@ export function EditCustomerForm({ customer, onCancel, onSuccess }: EditCustomer
     handleSubmit,
     reset,
     watch,
+    setError,
+    clearErrors,
     formState: { errors, isValid },
   } = useForm<FormData>({
     resolver: zodResolver(FormValidationSchema),
     defaultValues: {
       name: customer.name,
       isNew: customer.isNew,
+      officeName: customer.officeName ?? '',
       officeAddress: customer.officeAddress ?? '',
       officeCity: customer.officeCity ?? '',
       officeState: customer.officeState ?? '',
       officeCountry: customer.officeCountry ?? 'India',
       officeReceptionNumber: customer.officeReceptionNumber ?? '',
+      plantName: customer.plantName ?? '',
       plantAddress: customer.plantAddress ?? '',
       plantCity: customer.plantCity ?? '',
       plantState: customer.plantState ?? '',
@@ -120,17 +116,75 @@ export function EditCustomerForm({ customer, onCancel, onSuccess }: EditCustomer
 
   const watchedOfficeCountry = watch('officeCountry');
   const watchedPlantCountry = watch('plantCountry');
+  const watchedOfficeName = watch('officeName');
+  const watchedPlantName = watch('plantName');
+
+  // Debounced values for uniqueness checks
+  const [debouncedOfficeName, setDebouncedOfficeName] = useState('');
+  const [debouncedPlantName, setDebouncedPlantName] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedOfficeName((watchedOfficeName ?? '').trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [watchedOfficeName]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedPlantName((watchedPlantName ?? '').trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [watchedPlantName]);
+
+  // Queries for uniqueness (excluding current customer)
+  const officeUnique = api.customer.checkUnique.useQuery(
+    { field: 'officeName', value: debouncedOfficeName },
+    { enabled: debouncedOfficeName.length > 0 && debouncedOfficeName !== customer.officeName }
+  );
+
+  const plantUnique = api.customer.checkUnique.useQuery(
+    { field: 'plantName', value: debouncedPlantName },
+    { enabled: debouncedPlantName.length > 0 && debouncedPlantName !== customer.plantName }
+  );
+
+  // Sync query results to form errors in real-time
+  useEffect(() => {
+    if (!debouncedOfficeName || debouncedOfficeName === customer.officeName) {
+      clearErrors('officeName');
+      return;
+    }
+    if (officeUnique.data?.exists) {
+      setError('officeName', { type: 'validate', message: 'Office name already exists' });
+    } else if (!officeUnique.isFetching) {
+      clearErrors('officeName');
+    }
+  }, [debouncedOfficeName, officeUnique.data, officeUnique.isFetching, setError, clearErrors, customer.officeName]);
+
+  useEffect(() => {
+    if (!debouncedPlantName || debouncedPlantName === customer.plantName) {
+      clearErrors('plantName');
+      return;
+    }
+    if (plantUnique.data?.exists) {
+      setError('plantName', { type: 'validate', message: 'Plant name already exists' });
+    } else if (!plantUnique.isFetching) {
+      clearErrors('plantName');
+    }
+  }, [debouncedPlantName, plantUnique.data, plantUnique.isFetching, setError, clearErrors, customer.plantName]);
 
   // Update form when customer changes
   useEffect(() => {
     reset({
       name: customer.name,
       isNew: customer.isNew,
+      officeName: customer.officeName ?? '',
       officeAddress: customer.officeAddress ?? '',
       officeCity: customer.officeCity ?? '',
       officeState: customer.officeState ?? '',
       officeCountry: customer.officeCountry ?? 'India',
       officeReceptionNumber: customer.officeReceptionNumber ?? '',
+      plantName: customer.plantName ?? '',
       plantAddress: customer.plantAddress ?? '',
       plantCity: customer.plantCity ?? '',
       plantState: customer.plantState ?? '',
@@ -217,6 +271,27 @@ export function EditCustomerForm({ customer, onCancel, onSuccess }: EditCustomer
               <p className="text-gray-600 text-sm">Enter office details and contacts</p>
             </div>
             <div className="px-6 pb-6 space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="officeName" className="text-sm font-medium text-gray-900">
+                  Office Name <span className="text-blue-600">*</span>
+                </label>
+                <input 
+                  id="officeName" 
+                  {...register('officeName')} 
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black ${
+                    errors.officeName ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter office name (e.g., Head Office, Regional Office)"
+                />
+                {errors.officeName ? (
+                  <p className="text-sm text-red-500">{errors.officeName.message as string}</p>
+                ) : debouncedOfficeName && officeUnique.data && !officeUnique.data.exists ? (
+                  <p className="text-xs text-green-600">Office name is available</p>
+                ) : (
+                  <p className="text-xs text-blue-600">This will be used as a unique identifier for searching. Office names must be unique across all customers.</p>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label htmlFor="officeReceptionNumber" className="text-sm font-medium text-gray-900">
@@ -309,6 +384,27 @@ export function EditCustomerForm({ customer, onCancel, onSuccess }: EditCustomer
               <p className="text-gray-600 text-sm">Enter plant details and contacts</p>
             </div>
             <div className="px-6 pb-6 space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="plantName" className="text-sm font-medium text-gray-900">
+                  Plant Name <span className="text-green-600">*</span>
+                </label>
+                <input 
+                  id="plantName" 
+                  {...register('plantName')} 
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black ${
+                    errors.plantName ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter plant name (e.g., Manufacturing Plant, Production Unit)"
+                />
+                {errors.plantName ? (
+                  <p className="text-sm text-red-500">{errors.plantName.message as string}</p>
+                ) : debouncedPlantName && plantUnique.data && !plantUnique.data.exists ? (
+                  <p className="text-xs text-green-600">Plant name is available</p>
+                ) : (
+                  <p className="text-xs text-green-600">This will be used as a unique identifier for searching. Plant names must be unique across all customers.</p>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label htmlFor="plantReceptionNumber" className="text-sm font-medium text-gray-900">

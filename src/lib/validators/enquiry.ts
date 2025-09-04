@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 export const CreateEnquirySchema = z.object({
-  customerId: z.string().uuid('You must select a customer'),
+  customerId: z.string().uuid('You must select a customer'), // Still needed for the form
+  locationId: z.string().uuid('You must select a location'),
   subject: z.string().min(5, 'Subject must be at least 5 characters'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
   requirements: z.string().optional(),

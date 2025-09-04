@@ -77,6 +77,7 @@ export const authRouter = createTRPCRouter({
         // Create a new Employee record with MARKETING role by default
         const employee = await db.employee.create({
           data: {
+            id: `emp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Generate unique ID
             name: input.name,
             email: input.email,
             role: 'MARKETING', // Default role - only admins can change this
@@ -181,12 +182,12 @@ export const authRouter = createTRPCRouter({
     }
   }),
 
-  // New procedure to sync Supabase users to Employee table
-  syncSupabaseUser: publicProcedure
+  // Simple procedure to create employee (without user table dependency)
+  createEmployee: publicProcedure
     .input(z.object({
-      supabaseUserId: z.string(),
       email: z.string().email(),
       name: z.string(),
+      role: z.enum(['MARKETING', 'MANAGER', 'ADMINISTRATOR']).default('MARKETING'),
     }))
     .mutation(async ({ input }) => {
       try {
@@ -196,48 +197,25 @@ export const authRouter = createTRPCRouter({
         });
 
         if (existingEmployee) {
-          // Update the existing employee with Supabase user ID
-          const updatedEmployee = await db.employee.update({
-            where: { id: existingEmployee.id },
-            data: {
-              user: {
-                connectOrCreate: {
-                  where: { supabaseId: input.supabaseUserId },
-                  create: {
-                    email: input.email,
-                    supabaseId: input.supabaseUserId,
-                  },
-                },
-              },
-            },
-          });
-          return { success: true, employee: updatedEmployee };
+          return { success: true, employee: existingEmployee, message: 'Employee already exists' };
         }
 
-        // Create new employee and user
+        // Create new employee
         const newEmployee = await db.employee.create({
           data: {
+            id: `emp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             name: input.name,
             email: input.email,
-            role: 'MARKETING', // Default role
-            user: {
-              create: {
-                email: input.email,
-                supabaseId: input.supabaseUserId,
-              },
-            },
-          },
-          include: {
-            user: true,
+            role: input.role,
           },
         });
 
         return { success: true, employee: newEmployee };
       } catch (error) {
-        console.error('Error syncing Supabase user:', error);
+        console.error('Error creating employee:', error);
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to sync user to database',
+          message: 'Failed to create employee',
         });
       }
     }),

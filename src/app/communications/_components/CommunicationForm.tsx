@@ -27,11 +27,9 @@ type FormData = z.infer<typeof CommunicationSchema>;
 type Customer = {
   id: string;
   name: string;
-  officeAddress: string | null;
-  officeCity: string | null;
-  officeState: string | null;
-  officeCountry: string | null;
-  officeReceptionNumber: string | null;
+  isNew: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 interface CommunicationFormProps {
@@ -229,21 +227,11 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
               <div className="p-3 bg-gray-50 rounded-md border">
                 {selectedCustomer ? (
                   <div className="text-sm text-gray-700">
-                    {selectedCustomer.officeAddress && (
-                      <div>{selectedCustomer.officeAddress}</div>
-                    )}
-                    {selectedCustomer.officeCity && selectedCustomer.officeState && (
-                      <div>{selectedCustomer.officeCity}, {selectedCustomer.officeState}</div>
-                    )}
-                    {selectedCustomer.officeCountry && (
-                      <div>{selectedCustomer.officeCountry}</div>
-                    )}
-                    {!selectedCustomer.officeAddress && !selectedCustomer.officeCity && (
-                      <span className="text-gray-500">No address information available</span>
-                    )}
+                    <div className="text-gray-500 italic">Customer: {selectedCustomer.name}</div>
+                    <div className="text-gray-500 italic">Address information is stored in locations</div>
                   </div>
                 ) : (
-                  <span className="text-gray-500">Select a customer to view address</span>
+                  <span className="text-gray-500">Select a customer to view information</span>
                 )}
               </div>
             </div>

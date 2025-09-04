@@ -6,28 +6,28 @@ import { api } from '../../trpc/client';
 
 export function UserSyncProvider({ children }: { children: React.ReactNode }) {
   const { user: supabaseUser, session } = useSupabase();
-  const syncUserMutation = api.auth.syncSupabaseUser.useMutation();
+  const createEmployeeMutation = api.auth.createEmployee.useMutation();
 
   useEffect(() => {
     if (supabaseUser && session) {
-      // Sync the Supabase user to our Prisma database
+      // Create employee record for the Supabase user
       const userMetadata = supabaseUser.user_metadata as { full_name?: string } | null;
       const fullName = userMetadata?.full_name ?? supabaseUser.email?.split('@')[0] ?? 'Unknown User';
       
-      syncUserMutation.mutate({
-        supabaseUserId: supabaseUser.id,
+      createEmployeeMutation.mutate({
         email: supabaseUser.email ?? '',
         name: fullName,
+        role: 'MARKETING', // Default role
       }, {
         onSuccess: (data) => {
-          console.log('User synced successfully:', data);
+          console.log('Employee created successfully:', data);
         },
         onError: (error) => {
-          console.error('Failed to sync user:', error);
+          console.error('Failed to create employee:', error);
         }
       });
     }
-  }, [supabaseUser, session, syncUserMutation]);
+  }, [supabaseUser, session, createEmployeeMutation]);
 
   return <>{children}</>;
 }

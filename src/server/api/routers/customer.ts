@@ -1,20 +1,70 @@
 import { createTRPCRouter, publicProcedure } from '../trpc';
-import { CreateCustomerSchema, CreateCustomerWithLocationsSchema } from '@/lib/validators/customer';
 import { db } from '@/server/db';
 import { z } from 'zod';
 
+// Schema for creating a customer with multiple locations
+const CreateCustomerWithLocationsSchema = z.object({
+  name: z.string().min(2, 'Customer name is required'),
+  isNew: z.boolean().default(true),
+  offices: z.array(z.object({
+    name: z.string().min(2, 'Office name is required'),
+    address: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    country: z.string().optional(),
+    receptionNumber: z.string().optional(),
+  })).min(1, 'At least one office is required'),
+  plants: z.array(z.object({
+    name: z.string().min(2, 'Plant name is required'),
+    address: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    country: z.string().optional(),
+    receptionNumber: z.string().optional(),
+  })).default([]),
+  // PO Information
+  poRuptureDiscs: z.boolean().default(false),
+  poThermowells: z.boolean().default(false),
+  poHeatExchanger: z.boolean().default(false),
+  poMiscellaneous: z.boolean().default(false),
+  poWaterJetSteamJet: z.boolean().default(false),
+  // Supplier Information
+  existingGraphiteSuppliers: z.string().optional(),
+  problemsFaced: z.string().optional(),
+});
+
+// Schema for updating a customer
+const UpdateCustomerSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(2, 'Customer name is required'),
+  isNew: z.boolean(),
+  // PO Information
+  poRuptureDiscs: z.boolean().optional(),
+  poThermowells: z.boolean().optional(),
+  poHeatExchanger: z.boolean().optional(),
+  poMiscellaneous: z.boolean().optional(),
+  poWaterJetSteamJet: z.boolean().optional(),
+  // Supplier Information
+  existingGraphiteSuppliers: z.string().optional(),
+  problemsFaced: z.string().optional(),
+});
+
 export const customerRouter = createTRPCRouter({
-  // Procedure to get all customers
+  // Procedure to get all customers with their locations
   getAll: publicProcedure.query(async () => {
     try {
-      // Test database connection first
       await db.$connect();
       
       const customers = await db.customer.findMany({
-        orderBy: { createdAt: 'desc' }, // Show newest first
+        orderBy: { createdAt: 'desc' },
         include: {
           locations: {
-            orderBy: { createdAt: 'asc' },
+            orderBy: { name: 'asc' },
+          },
+          contacts: {
+            include: {
+              location: true,
+            },
           },
         },
       });
@@ -22,258 +72,67 @@ export const customerRouter = createTRPCRouter({
       return customers;
     } catch (error) {
       console.error('Error fetching customers:', error);
-      
-      // If it's a connection error, try to reconnect
-      if (error instanceof Error && error.message.includes('prepared statement')) {
-        try {
-          await db.$disconnect();
-          await db.$connect();
-          
-          const customers = await db.customer.findMany({
-            orderBy: { createdAt: 'desc' },
-            include: {
-              locations: {
-                orderBy: { createdAt: 'asc' },
-              },
-            },
-          });
-          
-          return customers;
-        } catch (retryError) {
-          console.error('Retry failed:', retryError);
-          throw new Error('Database connection failed');
-        }
-      }
-      
       throw new Error('Failed to fetch customers');
     }
   }),
-
-  // Procedure to get all customers with locations (new structure)
-  getAllWithLocations: publicProcedure.query(async () => {
-    try {
-      const customers = await db.customer.findMany({
-        orderBy: { createdAt: 'desc' },
-        include: {
-          locations: {
-            orderBy: { createdAt: 'asc' },
-          },
-        },
-      });
-      
-      return customers;
-    } catch (error) {
-      console.error('Error fetching customers with locations:', error);
-      throw new Error('Failed to fetch customers with locations');
-    }
-  }),
-
-  // Real-time uniqueness check for officeName and plantName
-  checkUnique: publicProcedure
-    .input(z.object({
-      field: z.enum(['officeName', 'plantName']),
-      value: z.string().min(1, 'Value is required'),
-      excludeId: z.string().uuid().optional(),
-    }))
-    .query(async ({ input }) => {
-      try {
-        const trimmed = input.value.trim();
-
-        const where = input.field === 'officeName'
-          ? {
-              officeName: { equals: trimmed, mode: 'insensitive' as const },
-              ...(input.excludeId ? { id: { not: input.excludeId } } : {}),
-            }
-          : {
-              plantName: { equals: trimmed, mode: 'insensitive' as const },
-              ...(input.excludeId ? { id: { not: input.excludeId } } : {}),
-            };
-
-        const existing = await db.customer.findFirst({ where });
-        return { exists: Boolean(existing) };
-      } catch (error) {
-        console.error('Error checking uniqueness:', error);
-        // Fail-safe: do not block typing if check fails; treat as not existing
-        return { exists: false };
-      }
-    }),
-
-  // Procedure to search customers by office name or plant name
-  searchByOfficeOrPlant: publicProcedure
-    .input(z.object({
-      searchTerm: z.string().min(1, 'Search term is required'),
-      searchType: z.enum(['office', 'plant', 'both']).default('both'),
-    }))
-    .query(async ({ input }) => {
-      try {
-        const { searchTerm, searchType } = input;
-        
-        let whereClause = {};
-        
-        if (searchType === 'office') {
-          whereClause = {
-            officeName: {
-              contains: searchTerm,
-              mode: 'insensitive', // Case-insensitive search
-            },
-          };
-        } else if (searchType === 'plant') {
-          whereClause = {
-            plantName: {
-              contains: searchTerm,
-              mode: 'insensitive', // Case-insensitive search
-            },
-          };
-        } else {
-          // Search both office and plant names
-          whereClause = {
-            OR: [
-              {
-                officeName: {
-                  contains: searchTerm,
-                  mode: 'insensitive',
-                },
-              },
-              {
-                plantName: {
-                  contains: searchTerm,
-                  mode: 'insensitive',
-                },
-              },
-            ],
-          };
-        }
-        
-        const customers = await db.customer.findMany({
-          where: whereClause,
-          orderBy: { createdAt: 'desc' },
-          include: {
-            enquiries: {
-              select: {
-                id: true,
-                subject: true,
-                status: true,
-                enquiryDate: true,
-              },
-            },
-          },
-        });
-        
-        return customers;
-      } catch (error) {
-        console.error('Error searching customers:', error);
-        throw new Error('Failed to search customers');
-      }
-    }),
 
   // Procedure to get a single customer by ID
   getById: publicProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input }) => {
-      try {
-        const customer = await db.customer.findUnique({
-          where: { id: input.id },
-        });
-        
-        if (!customer) {
-          throw new Error('Customer not found');
-        }
-        
-        return customer;
-      } catch (error) {
-        console.error('Error fetching customer:', error);
-        throw new Error('Failed to fetch customer');
-      }
-    }),
-
-  // Procedure to create a new customer
-  create: publicProcedure
-    .input(CreateCustomerSchema)
-    .mutation(async ({ input }) => {
-      try {
-        // Check for existing customers with the same office name or plant name
-        if (input.officeName) {
-          const existingOffice = await db.customer.findFirst({
-            where: { officeName: { equals: input.officeName.trim(), mode: 'insensitive' } },
-          });
-          if (existingOffice) {
-            throw new Error(`An office with the name "${input.officeName}" already exists. Please use a different office name.`);
-          }
-        }
-
-        if (input.plantName) {
-          const existingPlant = await db.customer.findFirst({
-            where: { plantName: { equals: input.plantName.trim(), mode: 'insensitive' } },
-          });
-          if (existingPlant) {
-            throw new Error(`A plant with the name "${input.plantName}" already exists. Please use a different plant name.`);
-          }
-        }
-
-        return await db.customer.create({
-          data: {
-            name: input.name,
-            officeName: input.officeName ?? null,
-            officeAddress: input.officeAddress,
-            officeCity: input.officeCity,
-            officeState: input.officeState,
-            officeCountry: input.officeCountry,
-            officeReceptionNumber: input.officeReceptionNumber,
-            plantName: input.plantName ?? null,
-            plantAddress: input.plantAddress,
-            plantCity: input.plantCity,
-            plantState: input.plantState,
-            plantCountry: input.plantCountry,
-            plantReceptionNumber: input.plantReceptionNumber,
-            poRuptureDiscs: input.poRuptureDiscs ? 1 : 0,
-            poThermowells: input.poThermowells ? 1 : 0,
-            poHeatExchanger: input.poHeatExchanger ? 1 : 0,
-            poMiscellaneous: input.poMiscellaneous ? 1 : 0,
-            poWaterJetSteamJet: input.poWaterJetSteamJet ? 1 : 0,
-            existingGraphiteSuppliers: input.existingGraphiteSuppliers,
-            problemsFaced: input.problemsFaced,
-            isNew: input.isNew,
+      return db.customer.findUnique({
+        where: { id: input.id },
+        include: {
+          locations: {
+            orderBy: { name: 'asc' },
           },
-        });
-      } catch (error) {
-        console.error('Error creating customer:', error);
-        
-        // Handle Prisma unique constraint errors
-        if (error instanceof Error && error.message.includes('already exists')) {
-          throw error;
-        }
-        
-        // Handle other Prisma errors
-        if (error && typeof error === 'object' && 'code' in error) {
-          if (error.code === 'P2002') {
-            throw new Error('A customer with this office name or plant name already exists. Please use different names.');
-          }
-        }
-        
-        throw new Error('Failed to create customer');
-      }
+          contacts: {
+            include: {
+              location: true,
+            },
+          },
+          enquiries: {
+            include: {
+              location: true,
+              marketingPerson: true,
+            },
+          },
+        },
+      });
     }),
 
-  // New mutation for creating customers with multiple locations
-  createWithLocations: publicProcedure
+  // Procedure to create a customer with multiple locations
+  create: publicProcedure
     .input(CreateCustomerWithLocationsSchema)
     .mutation(async ({ input }) => {
       try {
-        const { name, offices, plants = [], ...otherData } = input;
+        const { 
+          name, 
+          isNew, 
+          offices, 
+          plants,
+          poRuptureDiscs,
+          poThermowells,
+          poHeatExchanger,
+          poMiscellaneous,
+          poWaterJetSteamJet,
+          existingGraphiteSuppliers,
+          problemsFaced
+        } = input;
         
         return await db.$transaction(async (prisma) => {
           // 1. Create the parent Customer
           const newCustomer = await prisma.customer.create({
             data: {
               name,
-              isNew: otherData.isNew,
-              poRuptureDiscs: otherData.poRuptureDiscs ? 1 : 0,
-              poThermowells: otherData.poThermowells ? 1 : 0,
-              poHeatExchanger: otherData.poHeatExchanger ? 1 : 0,
-              poMiscellaneous: otherData.poMiscellaneous ? 1 : 0,
-              poWaterJetSteamJet: otherData.poWaterJetSteamJet ? 1 : 0,
-              existingGraphiteSuppliers: otherData.existingGraphiteSuppliers,
-              problemsFaced: otherData.problemsFaced,
+              isNew,
+              poRuptureDiscs,
+              poThermowells,
+              poHeatExchanger,
+              poMiscellaneous,
+              poWaterJetSteamJet,
+              existingGraphiteSuppliers,
+              problemsFaced,
             },
           });
 
@@ -298,7 +157,13 @@ export const customerRouter = createTRPCRouter({
             });
           }
 
-          return newCustomer;
+          // 4. Return the customer with locations
+          return prisma.customer.findUnique({
+            where: { id: newCustomer.id },
+            include: {
+              locations: true,
+            },
+          });
         });
       } catch (error) {
         console.error('Error creating customer with locations:', error);
@@ -306,57 +171,27 @@ export const customerRouter = createTRPCRouter({
         // Handle Prisma unique constraint errors
         if (error && typeof error === 'object' && 'code' in error) {
           if (error.code === 'P2002') {
-            throw new Error('A location with this name already exists for this customer. Please use different names.');
+            throw new Error('A customer with this name already exists. Please use a different name.');
           }
         }
         
-        throw new Error('Failed to create customer with locations');
+        throw new Error('Failed to create customer');
       }
     }),
 
-  // Procedure to update an existing customer
+  // Procedure to update a customer
   update: publicProcedure
-    .input(z.object({
-      id: z.string().uuid(),
-      name: z.string().min(2, 'Customer name is required'),
-      officeName: z.string().optional(),
-      officeAddress: z.string().optional(),
-      officeCity: z.string().optional(),
-      officeState: z.string().optional(),
-      officeCountry: z.string().optional(),
-      officeReceptionNumber: z.string().optional(),
-      plantName: z.string().optional(),
-      plantAddress: z.string().optional(),
-      plantCity: z.string().optional(),
-      plantState: z.string().optional(),
-      plantCountry: z.string().optional(),
-      plantReceptionNumber: z.string().optional(),
-      poRuptureDiscs: z.boolean().optional(),
-      poThermowells: z.boolean().optional(),
-      poHeatExchanger: z.boolean().optional(),
-      poMiscellaneous: z.boolean().optional(),
-      poWaterJetSteamJet: z.boolean().optional(),
-      existingGraphiteSuppliers: z.string().optional(),
-      problemsFaced: z.string().optional(),
-      isNew: z.boolean(),
-    }))
+    .input(UpdateCustomerSchema)
     .mutation(async ({ input }) => {
       try {
         const { id, ...updateData } = input;
         
-        // Convert boolean PO fields to numbers for database storage
-        const processedData = {
-          ...updateData,
-          poRuptureDiscs: updateData.poRuptureDiscs !== undefined ? (updateData.poRuptureDiscs ? 1 : 0) : undefined,
-          poThermowells: updateData.poThermowells !== undefined ? (updateData.poThermowells ? 1 : 0) : undefined,
-          poHeatExchanger: updateData.poHeatExchanger !== undefined ? (updateData.poHeatExchanger ? 1 : 0) : undefined,
-          poMiscellaneous: updateData.poMiscellaneous !== undefined ? (updateData.poMiscellaneous ? 1 : 0) : undefined,
-          poWaterJetSteamJet: updateData.poWaterJetSteamJet !== undefined ? (updateData.poWaterJetSteamJet ? 1 : 0) : undefined,
-        };
-        
         return await db.customer.update({
           where: { id },
-          data: processedData,
+          data: updateData,
+          include: {
+            locations: true,
+          },
         });
       } catch (error) {
         console.error('Error updating customer:', error);
@@ -392,37 +227,33 @@ export const customerRouter = createTRPCRouter({
     }))
     .mutation(async ({ input }) => {
       try {
-        // Check if location name already exists for this customer and type
-        const existingLocation = await db.location.findFirst({
-          where: {
-            customerId: input.customerId,
-            name: input.name,
-            type: input.type,
-          },
+        return await db.location.create({
+          data: input,
         });
-
-        if (existingLocation) {
-          throw new Error(`A ${input.type.toLowerCase()} with the name "${input.name}" already exists for this customer.`);
-        }
-
-        // Create the new location
-        const newLocation = await db.location.create({
-          data: {
-            customerId: input.customerId,
-            name: input.name,
-            type: input.type,
-            address: input.address,
-            city: input.city,
-            state: input.state,
-            country: input.country,
-            receptionNumber: input.receptionNumber,
-          },
-        });
-
-        return newLocation;
       } catch (error) {
         console.error('Error adding location:', error);
         throw new Error('Failed to add location');
       }
+    }),
+
+  // Procedure to search customers by name
+  search: publicProcedure
+    .input(z.object({ searchTerm: z.string() }))
+    .query(async ({ input }) => {
+      if (!input.searchTerm.trim()) return [];
+      
+      return db.customer.findMany({
+        where: {
+          name: {
+            contains: input.searchTerm,
+            mode: 'insensitive',
+          },
+        },
+        include: {
+          locations: true,
+        },
+        orderBy: { name: 'asc' },
+        take: 10, // Limit results
+      });
     }),
 });

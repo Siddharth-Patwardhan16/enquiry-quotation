@@ -18,15 +18,9 @@ export type Communication = {
   customer: {
     id: string;
     name: string;
-    officeAddress: string | null;
-    officeCity: string | null;
-    officeName: string | null;
-    plantName: string | null;
-    plantAddress: string | null;
-    plantCity: string | null;
-    officeState: string | null;
-    officeCountry: string | null;
-    officeReceptionNumber: string | null;
+    isNew: boolean;
+    createdAt: Date;
+    updatedAt: Date;
   };
   contact: {
     id: string;
@@ -34,7 +28,6 @@ export type Communication = {
     designation: string | null;
     officialCellNumber: string | null;
     personalCellNumber: string | null;
-    locationType: string | null;
   } | null;
   employee: {
     id: string;

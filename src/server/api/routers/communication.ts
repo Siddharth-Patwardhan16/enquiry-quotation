@@ -31,15 +31,9 @@ export const communicationRouter = createTRPCRouter({
             select: {
               id: true,
               name: true,
-              officeAddress: true,
-              officeCity: true,
-              officeName: true,
-              plantName: true,
-              plantAddress: true,
-              plantCity: true,
-              officeState: true,
-              officeCountry: true,
-              officeReceptionNumber: true,
+              isNew: true,
+              createdAt: true,
+              updatedAt: true,
             },
           },
           contact: {
@@ -49,7 +43,6 @@ export const communicationRouter = createTRPCRouter({
               designation: true,
               officialCellNumber: true,
               personalCellNumber: true,
-              locationType: true,
             },
           },
           employee: {
@@ -82,11 +75,9 @@ export const communicationRouter = createTRPCRouter({
               select: {
                 id: true,
                 name: true,
-                officeAddress: true,
-                officeCity: true,
-                officeState: true,
-                officeCountry: true,
-                officeReceptionNumber: true,
+                isNew: true,
+                createdAt: true,
+                updatedAt: true,
               },
             },
             contact: {
@@ -96,7 +87,6 @@ export const communicationRouter = createTRPCRouter({
                 designation: true,
                 officialCellNumber: true,
                 personalCellNumber: true,
-                locationType: true,
               },
             },
             employee: {
@@ -162,11 +152,9 @@ export const communicationRouter = createTRPCRouter({
               select: {
                 id: true,
                 name: true,
-                officeAddress: true,
-                officeCity: true,
-                officeState: true,
-                officeCountry: true,
-                officeReceptionNumber: true,
+                isNew: true,
+                createdAt: true,
+                updatedAt: true,
               },
             },
             contact: {
@@ -176,7 +164,6 @@ export const communicationRouter = createTRPCRouter({
                 designation: true,
                 officialCellNumber: true,
                 personalCellNumber: true,
-                locationType: true,
               },
             },
             employee: {
@@ -239,11 +226,9 @@ export const communicationRouter = createTRPCRouter({
               select: {
                 id: true,
                 name: true,
-                officeAddress: true,
-                officeCity: true,
-                officeState: true,
-                officeCountry: true,
-                officeReceptionNumber: true,
+                isNew: true,
+                createdAt: true,
+                updatedAt: true,
               },
             },
             contact: {
@@ -253,7 +238,6 @@ export const communicationRouter = createTRPCRouter({
                 designation: true,
                 officialCellNumber: true,
                 personalCellNumber: true,
-                locationType: true,
               },
             },
             employee: {
@@ -308,11 +292,9 @@ export const communicationRouter = createTRPCRouter({
               select: {
                 id: true,
                 name: true,
-                officeAddress: true,
-                officeCity: true,
-                officeState: true,
-                officeCountry: true,
-                officeReceptionNumber: true,
+                isNew: true,
+                createdAt: true,
+                updatedAt: true,
               },
             },
             contact: {
@@ -322,7 +304,6 @@ export const communicationRouter = createTRPCRouter({
                 designation: true,
                 officialCellNumber: true,
                 personalCellNumber: true,
-                locationType: true,
               },
             },
             employee: {
@@ -358,11 +339,9 @@ export const communicationRouter = createTRPCRouter({
               select: {
                 id: true,
                 name: true,
-                officeAddress: true,
-                officeCity: true,
-                officeState: true,
-                officeCountry: true,
-                officeReceptionNumber: true,
+                isNew: true,
+                createdAt: true,
+                updatedAt: true,
               },
             },
             contact: {
@@ -372,7 +351,6 @@ export const communicationRouter = createTRPCRouter({
                 designation: true,
                 officialCellNumber: true,
                 personalCellNumber: true,
-                locationType: true,
               },
             },
             employee: {
@@ -411,11 +389,9 @@ export const communicationRouter = createTRPCRouter({
             select: {
               id: true,
               name: true,
-              officeAddress: true,
-              officeCity: true,
-              officeState: true,
-              officeCountry: true,
-              officeReceptionNumber: true,
+              isNew: true,
+              createdAt: true,
+              updatedAt: true,
             },
           },
           contact: {
@@ -425,7 +401,6 @@ export const communicationRouter = createTRPCRouter({
               designation: true,
               officialCellNumber: true,
               personalCellNumber: true,
-              locationType: true,
             },
           },
           employee: {

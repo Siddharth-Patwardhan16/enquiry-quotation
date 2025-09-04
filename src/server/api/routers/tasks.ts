@@ -437,11 +437,9 @@ export const tasksRouter = createTRPCRouter({
             select: {
               id: true,
               name: true,
-              officeAddress: true,
-              officeCity: true,
-              officeState: true,
-              officeCountry: true,
-              officeReceptionNumber: true
+              isNew: true,
+              createdAt: true,
+              updatedAt: true
             }
           },
           contact: {

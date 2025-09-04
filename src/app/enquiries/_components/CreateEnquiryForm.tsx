@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CreateEnquirySchema } from '@/lib/validators/enquiry';
 import type { z } from 'zod';
@@ -34,8 +34,8 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isValid },
-
   } = useForm<FormData>({
     resolver: zodResolver(CreateEnquirySchema),
     defaultValues: {
@@ -45,6 +45,15 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
     },
     mode: 'onChange',
   });
+
+  // Watch for changes in the customer dropdown
+  const selectedCustomerId = useWatch({ control, name: 'customerId' });
+
+  // Fetch locations for the selected customer
+  const { data: locations, isLoading: isLoadingLocations } = api.location.getByCustomerId.useQuery(
+    { customerId: selectedCustomerId! },
+    { enabled: !!selectedCustomerId } // Only run this query if selectedCustomerId is not null
+  );
 
   const createEnquiry = api.enquiry.create.useMutation({
     onSuccess: () => {
@@ -148,6 +157,39 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                 </select>
                 {errors.customerId && (
                   <p className="mt-2 text-sm text-red-600">{errors.customerId.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="locationId" className="block text-sm font-medium text-gray-900">
+                  Location (Office/Plant) <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="locationId"
+                  {...register('locationId')}
+                  className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md text-black bg-white ${
+                    errors.locationId ? 'border-red-300' : ''
+                  }`}
+                  disabled={!selectedCustomerId || isLoadingLocations}
+                >
+                  <option value="" className="text-black bg-white">
+                    {isLoadingLocations ? 'Loading locations...' : 
+                     !selectedCustomerId ? 'Select a customer first' : 
+                     'Select a location'}
+                  </option>
+                  {locations?.map((location: { id: string; name: string; type: string }) => (
+                    <option key={location.id} value={location.id} className="text-black bg-white">
+                      {location.name} ({location.type})
+                    </option>
+                  ))}
+                </select>
+                {errors.locationId && (
+                  <p className="mt-2 text-sm text-red-600">{errors.locationId.message}</p>
+                )}
+                {selectedCustomerId && locations && locations.length === 0 && (
+                  <p className="mt-2 text-sm text-yellow-600">
+                    No locations found for this customer. Please add locations to the customer first.
+                  </p>
                 )}
               </div>
             </div>

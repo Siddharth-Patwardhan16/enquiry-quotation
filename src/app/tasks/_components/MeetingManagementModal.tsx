@@ -191,28 +191,11 @@ export function MeetingManagementModal({
                   </div>
                 )}
 
-                {communication.customer.officeReceptionNumber && (
-                  <div>
-                    <span className="text-sm font-medium text-gray-700">Office Contact:</span>
-                    <p className="text-sm text-gray-900 mt-1">
-                      📞 {communication.customer.officeReceptionNumber}
-                    </p>
-                  </div>
-                )}
+                {/* Office contact information removed - now stored in locations */}
               </div>
             </div>
 
-            {communication.customer.officeAddress && (
-              <div className="mt-4">
-                <span className="text-sm font-medium text-gray-700">Address:</span>
-                <p className="text-sm text-gray-900 mt-1">
-                  {communication.customer.officeAddress}
-                  {communication.customer.officeCity && `, ${communication.customer.officeCity}`}
-                  {communication.customer.officeState && `, ${communication.customer.officeState}`}
-                  {communication.customer.officeCountry && `, ${communication.customer.officeCountry}`}
-                </p>
-              </div>
-            )}
+            {/* Office address information removed - now stored in locations */}
           </div>
 
           {/* Reschedule Section */}

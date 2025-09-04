@@ -19,6 +19,7 @@ const eslintConfig = [
       },
     },
     rules: {
+
       // Apply strict rules for production quality
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],

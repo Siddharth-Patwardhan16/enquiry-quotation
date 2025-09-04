@@ -8,92 +8,87 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model User {
-  id         String    @id @default(uuid())
-  email      String    @unique
-  supabaseId String?   @unique
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  employee   Employee?
+// Simplified Employee model - this is your user
+model Employee {
+  id        String @id @unique // Directly maps to Supabase auth.users.id
+  name      String
+  email     String @unique
+  role      Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  enquiries      Enquiry[]
+  communications Communication[]
 }
 
+// Cleaned-up Customer model - no address fields
 model Customer {
-  id                        String          @id @default(uuid())
-  name                      String
-  isNew                     Boolean         @default(true)
-  officeAddress             String?
-  officeCity                String?
-  officeState               String?
-  officeCountry             String?
-  officeReceptionNumber     String?
-  createdAt                 DateTime        @default(now())
-  updatedAt                 DateTime        @updatedAt
+  id        String     @id @default(uuid())
+  name      String     @unique
+  isNew     Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // PO Information
+  poRuptureDiscs     Boolean @default(false)
+  poThermowells      Boolean @default(false)
+  poHeatExchanger    Boolean @default(false)
+  poMiscellaneous    Boolean @default(false)
+  poWaterJetSteamJet Boolean @default(false)
+  
+  // Supplier Information
   existingGraphiteSuppliers String?
-  plantAddress              String?
-  plantCity                 String?
-  plantCountry              String?
-  plantReceptionNumber      String?
-  plantState                String?
-  poHeatExchanger           Int             @default(0)
-  poMiscellaneous           Int             @default(0)
-  poRuptureDiscs            Int             @default(0)
-  poThermowells             Int             @default(0)
-  poWaterJetSteamJet        Int             @default(0)
   problemsFaced             String?
-  officeName                String?         @unique
-  plantName                 String?         @unique
-  communications            Communication[]
-  contacts                  Contact[]
-  enquiries                 Enquiry[]
-  locations                 Location[]       // New relationship for multiple locations
+
+  // A customer can have many locations and contacts
+  locations Location[]
+  contacts  Contact[]
+  enquiries Enquiry[]
+  communications Communication[]
 }
 
-// New Location model for multiple offices and plants
+// The central model for offices and plants
 model Location {
-  id                 String       @id @default(uuid())
-  name               String       // e.g., "Pune Plant", "Mumbai Head Office"
-  type               LocationType // OFFICE or PLANT
-  address            String?
-  city               String?
-  state              String?
-  country            String?
-  receptionNumber    String?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  customerId         String
-  customer           Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
+  id        String       @id @default(uuid())
+  name      String       // e.g., "Pune Plant", "Mumbai Head Office"
+  type      LocationType // OFFICE or PLANT
+  address   String?
+  city      String?
+  state     String?
+  country   String?
+  receptionNumber String?
+
+  // Relation back to the parent Customer
+  customerId String
+  customer   Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  // A location has many contacts and enquiries
+  contacts   Contact[]
+  enquiries  Enquiry[]
+
   @@unique([customerId, name, type]) // Prevent duplicate names within same customer and type
 }
 
+// Contact is now linked to a specific Location
 model Contact {
-  id                 String          @id @default(uuid())
+  id                 String   @id @default(uuid())
   name               String
   designation        String?
   officialCellNumber String?
   personalCellNumber String?
-  locationType       LocationType
-  locationAddress    String?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // A contact belongs to one location and one parent customer
+  locationId         String
+  location           Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
   customerId         String
-  communications     Communication[]
-  customer           Customer        @relation(fields: [customerId], references: [id])
-}
+  customer           Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
-model Employee {
-  id             String          @id @default(uuid())
-  name           String
-  email          String          @unique
-  role           Role
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  userId         String?         @unique
   communications Communication[]
-  user           User?           @relation(fields: [userId], references: [id])
-  enquiries      Enquiry[]
 }
 
+// Enquiry is now linked to a specific Location
 model Enquiry {
   id                Int           @id @default(autoincrement())
   subject           String
@@ -109,11 +104,20 @@ model Enquiry {
   regretReason      String?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
-  customerId        String
+
+  // An enquiry originates from one location
+  locationId        String
+  location          Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  // It is created by one employee
   marketingPersonId String
+  marketingPerson   Employee @relation(fields: [marketingPersonId], references: [id])
+
+  // Keep the customer relation for easier querying
+  customerId        String
+  customer          Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
   documents         Document[]
-  customer          Customer      @relation(fields: [customerId], references: [id])
-  marketingPerson   Employee      @relation(fields: [marketingPersonId], references: [id])
   quotations        Quotation[]
 }
 

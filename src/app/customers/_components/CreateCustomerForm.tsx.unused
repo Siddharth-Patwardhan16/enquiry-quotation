@@ -9,27 +9,33 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/toast';
 
-// Local validation schema that matches the form data
+// Local validation schema that matches the new multi-location format
 const FormValidationSchema = z.object({
   name: z.string().min(2, 'Customer name is required'),
-  isNew: z.boolean(),
-  officeCountry: z.string(),
-  plantCountry: z.string(),
-  officeName: z.string().optional(),
-  plantName: z.string().optional(),
-  poRuptureDiscs: z.boolean(),
-  poThermowells: z.boolean(),
-  poHeatExchanger: z.boolean(),
-  poMiscellaneous: z.boolean(),
-  poWaterJetSteamJet: z.boolean(),
-  officeAddress: z.string().optional(),
-  officeCity: z.string().optional(),
-  officeState: z.string().optional(),
-  officeReceptionNumber: z.string().optional(),
-  plantAddress: z.string().optional(),
-  plantCity: z.string().optional(),
-  plantState: z.string().optional(),
-  plantReceptionNumber: z.string().optional(),
+  isNew: z.boolean().default(true),
+  offices: z.array(z.object({
+    name: z.string().min(2, 'Office name is required'),
+    address: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    country: z.string().optional(),
+    receptionNumber: z.string().optional(),
+  })).min(1, 'At least one office is required'),
+  plants: z.array(z.object({
+    name: z.string().min(2, 'Plant name is required'),
+    address: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    country: z.string().optional(),
+    receptionNumber: z.string().optional(),
+  })).default([]),
+  // PO Information
+  poRuptureDiscs: z.boolean().default(false),
+  poThermowells: z.boolean().default(false),
+  poHeatExchanger: z.boolean().default(false),
+  poMiscellaneous: z.boolean().default(false),
+  poWaterJetSteamJet: z.boolean().default(false),
+  // Supplier Information
   existingGraphiteSuppliers: z.string().optional(),
   problemsFaced: z.string().optional(),
 });
@@ -77,23 +83,13 @@ export function CreateCustomerForm({ onSuccess }: CreateCustomerFormProps) {
     defaultValues: {
       name: '',
       isNew: true,
-      officeCountry: 'India',
-      plantCountry: 'India',
-      officeName: '',
-      plantName: '',
+      offices: [{ name: '', address: '', city: '', state: '', country: 'India', receptionNumber: '' }],
+      plants: [],
       poRuptureDiscs: false,
       poThermowells: false,
       poHeatExchanger: false,
       poMiscellaneous: false,
       poWaterJetSteamJet: false,
-      officeAddress: '',
-      officeCity: '',
-      officeState: '',
-      officeReceptionNumber: '',
-      plantAddress: '',
-      plantCity: '',
-      plantState: '',
-      plantReceptionNumber: '',
       existingGraphiteSuppliers: '',
       problemsFaced: '',
     },
@@ -123,48 +119,48 @@ export function CreateCustomerForm({ onSuccess }: CreateCustomerFormProps) {
     return () => clearTimeout(timer);
   }, [watchedPlantName]);
 
-  // Queries for uniqueness
-  const officeUnique = api.customer.checkUnique.useQuery(
-    { field: 'officeName', value: debouncedOfficeName },
-    { enabled: debouncedOfficeName.length > 0 }
-  );
+  // Queries for uniqueness (disabled - office/plant fields removed from Customer model)
+  // const officeUnique = api.customer.checkUnique.useQuery(
+  //   { field: 'officeName', value: debouncedOfficeName },
+  //   { enabled: debouncedOfficeName.length > 0 }
+  // );
 
-  const plantUnique = api.customer.checkUnique.useQuery(
-    { field: 'plantName', value: debouncedPlantName },
-    { enabled: debouncedPlantName.length > 0 }
-  );
+  // const plantUnique = api.customer.checkUnique.useQuery(
+  //   { field: 'plantName', value: debouncedPlantName },
+  //   { enabled: debouncedPlantName.length > 0 }
+  // );
 
-  // Sync query results to form errors in real-time
-  useEffect(() => {
-    if (!debouncedOfficeName) {
-      clearErrors('officeName');
-      return;
-    }
-    if (officeUnique.data?.exists) {
-      setError('officeName', { type: 'validate', message: 'Office name already exists' });
-    } else if (!officeUnique.isFetching) {
-      clearErrors('officeName');
-    }
-  }, [debouncedOfficeName, officeUnique.data, officeUnique.isFetching, setError, clearErrors]);
+  // Sync query results to form errors in real-time (disabled - office/plant fields removed)
+  // useEffect(() => {
+  //   if (!debouncedOfficeName) {
+  //     clearErrors('officeName');
+  //     return;
+  //   }
+  //   if (officeUnique.data?.exists) {
+  //     setError('officeName', { type: 'validate', message: 'Office name already exists' });
+  //   } else if (!officeUnique.isFetching) {
+  //     clearErrors('officeName');
+  //   }
+  // }, [debouncedOfficeName, officeUnique.data, officeUnique.isFetching, setError, clearErrors]);
 
-  useEffect(() => {
-    if (!debouncedPlantName) {
-      clearErrors('plantName');
-      return;
-    }
-    if (plantUnique.data?.exists) {
-      setError('plantName', { type: 'validate', message: 'Plant name already exists' });
-    } else if (!plantUnique.isFetching) {
-      clearErrors('plantName');
-    }
-  }, [debouncedPlantName, plantUnique.data, plantUnique.isFetching, setError, clearErrors]);
+  // useEffect(() => {
+  //   if (!debouncedPlantName) {
+  //     clearErrors('plantName');
+  //     return;
+  //   }
+  //   if (plantUnique.data?.exists) {
+  //     setError('plantName', { type: 'validate', message: 'Plant name already exists' });
+  //   } else if (!plantUnique.isFetching) {
+  //     clearErrors('plantName');
+  //   }
+  // }, [debouncedPlantName, plantUnique.data, plantUnique.isFetching, setError, clearErrors]);
 
 
 
   const createCustomer = api.customer.create.useMutation({
     onSuccess: (data) => {
       utils.customer.getAll.invalidate();
-      success('Customer Created Successfully!', `Customer "${data.name}" has been added to your database.`);
+      success('Customer Created Successfully!', `Customer "${data?.name ?? 'Unknown'}" has been added to your database.`);
       
       // Reset form and redirect after a short delay to show the success message
       setTimeout(() => {
