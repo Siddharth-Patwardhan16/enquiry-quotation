@@ -7,6 +7,7 @@ import {
   StatCard, 
   MonthlyTrendsChart, 
   LostReasonsChart, 
+  QuotationValueVsLiveChart,
   RecentEnquiries, 
   RecentQuotations
 } from '../../components/dashboard';
@@ -21,6 +22,7 @@ export default function DashboardPage() {
   const { data: recentEnquiries, isLoading: isLoadingEnquiries } = api.dashboard.getRecentEnquiries.useQuery();
   const { data: recentQuotations, isLoading: isLoadingQuotations } = api.dashboard.getRecentQuotations.useQuery();
   const { data: monthlyTrends, isLoading: isLoadingTrends } = api.dashboard.getMonthlyEnquiryTrends.useQuery();
+  const { data: quotationValueData, isLoading: isLoadingQuotationValue } = api.dashboard.getQuotationValueVsLive.useQuery();
 
   return (
     <div className="p-6 space-y-6">
@@ -70,6 +72,14 @@ export default function DashboardPage() {
         <LostReasonsChart 
           lostReasons={lostReasons} 
           isLoadingReasons={isLoadingReasons} 
+        />
+      </div>
+
+      {/* Quotation Portfolio Analysis */}
+      <div className="grid grid-cols-1 gap-6">
+        <QuotationValueVsLiveChart 
+          quotationData={quotationValueData} 
+          isLoading={isLoadingQuotationValue} 
         />
       </div>
 

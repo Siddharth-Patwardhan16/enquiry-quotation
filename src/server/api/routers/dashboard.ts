@@ -129,6 +129,44 @@ export const dashboardRouter = createTRPCRouter({
     }));
   }),
 
+  // Procedure to get quotation value vs live quotations data
+  getQuotationValueVsLive: publicProcedure.query(async () => {
+    // Get all quotations with their total values and status
+    const quotations = await db.quotation.findMany({
+      select: {
+        totalValue: true,
+        status: true,
+        quotationDate: true,
+      },
+      where: {
+        totalValue: {
+          not: null,
+        },
+      },
+    });
+
+    // Group by status and calculate totals
+    const statusGroups = quotations.reduce((acc, quotation) => {
+      const status = quotation.status;
+      if (!acc[status]) {
+        acc[status] = {
+          count: 0,
+          totalValue: 0,
+        };
+      }
+      acc[status].count += 1;
+      acc[status].totalValue += Number(quotation.totalValue ?? 0);
+      return acc;
+    }, {} as Record<string, { count: number; totalValue: number }>);
+
+    // Convert to array format for charts
+    return Object.entries(statusGroups).map(([status, data]) => ({
+      status,
+      count: data.count,
+      totalValue: data.totalValue,
+    }));
+  }),
+
   // Procedure to get upcoming tasks from various sources
   getUpcomingTasks: publicProcedure.query(async () => {
     const now = new Date();
