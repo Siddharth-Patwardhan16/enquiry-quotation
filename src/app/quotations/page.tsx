@@ -2,15 +2,35 @@
 
 import Link from 'next/link';
 import { api } from '@/trpc/client';
-import { Calculator, TrendingUp, Clock, CheckCircle, Eye, Plus } from 'lucide-react';
+import { Calculator, TrendingUp, Clock, CheckCircle, Eye, Plus, Edit, Trash2 } from 'lucide-react';
 import type { AppRouter } from '@/server/api/root';
 import type { inferRouterOutputs } from '@trpc/server';
+import { useState } from 'react';
 
 // Use the same type as other quotation components
 type Quotation = inferRouterOutputs<AppRouter>['quotation']['getAll'][0];
 
 export default function QuotationsPage() {
-  const { data: quotations, isLoading, error } = api.quotation.getAll.useQuery();
+  const { data: quotations, isLoading, error, refetch } = api.quotation.getAll.useQuery();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const deleteQuotationMutation = api.quotation.delete.useMutation({
+    onSuccess: () => {
+      refetch();
+      setDeletingId(null);
+    },
+    onError: (error) => {
+      alert(`Failed to delete quotation: ${error.message}`);
+      setDeletingId(null);
+    },
+  });
+
+  const handleDelete = (id: string) => {
+    if (confirm('Are you sure you want to delete this quotation? This action cannot be undone.')) {
+      setDeletingId(id);
+      deleteQuotationMutation.mutate({ id });
+    }
+  };
 
   if (error) return <div>Error: {error.message}</div>;
 
@@ -194,6 +214,21 @@ export default function QuotationsPage() {
                           >
                             <Eye className="h-4 w-4" />
                           </Link>
+                          <Link
+                            href={`/quotations/${q.id}/edit`}
+                            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all hover:bg-green-100 h-8 w-8 rounded-md text-green-600 hover:text-green-700"
+                            title="Edit Quotation"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(q.id)}
+                            disabled={deletingId === q.id}
+                            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all hover:bg-red-100 h-8 w-8 rounded-md text-red-600 hover:text-red-700 disabled:opacity-50"
+                            title="Delete Quotation"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
                       </td>
                     </tr>

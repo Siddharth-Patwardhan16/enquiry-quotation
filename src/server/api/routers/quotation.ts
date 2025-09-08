@@ -167,4 +167,97 @@ export const quotationRouter = createTRPCRouter({
         });
       }
     }),
+
+  update: publicProcedure
+    .input(CreateQuotationSchema.extend({ id: z.string() }))
+    .mutation(async ({ input }) => {
+      const { id, enquiryId, quotationNumber, items, quotationDate, validityPeriod, ...rest } = input;
+
+      // Check for duplicate quotation number (excluding current quotation)
+      const existingQuotation = await db.quotation.findFirst({
+        where: { 
+          quotationNumber,
+          NOT: { id }
+        },
+      });
+
+      if (existingQuotation) {
+        throw new TRPCError({
+          code: 'CONFLICT',
+          message: `Quotation number "${quotationNumber}" already exists. Please use a different quotation number.`,
+        });
+      }
+
+      // Calculate totals
+      const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.pricePerUnit), 0);
+      const tax = subtotal * 0.1; // 10% tax
+      const totalValue = subtotal + tax;
+
+      try {
+        return await db.$transaction(async (prisma) => {
+          // 1. Update the main Quotation record
+          const updatedQuotation = await prisma.quotation.update({
+            where: { id },
+            data: {
+              enquiryId,
+              quotationNumber,
+              subtotal,
+              tax,
+              totalValue,
+              quotationDate: quotationDate ? new Date(quotationDate) : new Date(),
+              validityPeriod: validityPeriod ? new Date(validityPeriod) : null,
+              ...rest,
+            },
+          });
+
+          // 2. Delete existing items
+          await prisma.quotationItem.deleteMany({
+            where: { quotationId: id },
+          });
+
+          // 3. Create new items
+          const itemsToCreate = items.map((item) => ({
+            ...item,
+            total: item.quantity * item.pricePerUnit,
+            quotationId: id,
+          }));
+
+          await prisma.quotationItem.createMany({
+            data: itemsToCreate,
+          });
+
+          return updatedQuotation;
+        });
+      } catch (error) {
+        console.error(error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to update quotation. Please try again.',
+        });
+      }
+    }),
+
+  delete: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input }) => {
+      try {
+        return await db.$transaction(async (prisma) => {
+          // Delete quotation items first (due to foreign key constraint)
+          await prisma.quotationItem.deleteMany({
+            where: { quotationId: input.id },
+          });
+
+          // Delete the quotation
+          return prisma.quotation.delete({
+            where: { id: input.id },
+          });
+        });
+      } catch (error) {
+        console.error(error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to delete quotation. Please try again.',
+        });
+      }
+    }),
 });

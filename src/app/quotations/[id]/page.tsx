@@ -2,10 +2,11 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/trpc/client';
-import { ArrowLeft, Building, Download, Upload, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Download, Upload, AlertTriangle, Edit } from 'lucide-react';
 import { useState } from 'react';
 import type { AppRouter } from '@/server/api/root';
 import type { inferRouterOutputs } from '@trpc/server';
+import jsPDF from 'jspdf';
 
 // Use the same type as other quotation components
 type Quotation = NonNullable<inferRouterOutputs<AppRouter>['quotation']['getById']>;
@@ -71,6 +72,148 @@ export default function QuotationDetailPage() {
     await updateQuotationStatus('LOST', lostReason);
   };
 
+  const handleExportPDF = () => {
+    if (!quotation) return;
+
+    try {
+      // Create a new PDF document
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = 210;
+      const pageHeight = 295;
+      let yPosition = 20;
+
+      // Helper function to add text with word wrapping
+      const addText = (text: string, x: number, y: number, maxWidth: number, fontSize: number = 10) => {
+        pdf.setFontSize(fontSize);
+        const lines = pdf.splitTextToSize(text, maxWidth) as string[];
+        pdf.text(lines, x, y);
+        return y + (lines.length * fontSize * 0.4);
+      };
+
+      // Helper function to check if we need a new page
+      const checkNewPage = (requiredHeight: number) => {
+        if (yPosition + requiredHeight > pageHeight - 20) {
+          pdf.addPage();
+          yPosition = 20;
+          return true;
+        }
+        return false;
+      };
+
+      // Company Header
+      pdf.setFontSize(20);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('QUOTATION', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 15;
+
+      // Quotation Details
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'normal');
+      
+      // Left column
+      const leftX = 20;
+      const rightX = 120;
+      
+      yPosition = addText(`Quotation Number: ${quotation.quotationNumber}`, leftX, yPosition, 80);
+      yPosition = addText(`Date: ${new Date(quotation.quotationDate || quotation.createdAt).toLocaleDateString()}`, leftX, yPosition, 80);
+      yPosition = addText(`Valid Until: ${quotation.validityPeriod ? new Date(quotation.validityPeriod).toLocaleDateString() : 'Not specified'}`, leftX, yPosition, 80);
+      
+      // Right column
+      let rightY = 35;
+      rightY = addText(`Customer: ${quotation.enquiry.customer.name}`, rightX, rightY, 80);
+      rightY = addText(`Currency: ${quotation.currency || 'INR'}`, rightX, rightY, 80);
+      rightY = addText(`Status: ${quotation.status}`, rightX, rightY, 80);
+
+      yPosition = Math.max(yPosition, rightY) + 10;
+
+      // Payment Terms and Delivery Schedule
+      if (quotation.paymentTerms) {
+        checkNewPage(15);
+        yPosition = addText(`Payment Terms: ${quotation.paymentTerms}`, leftX, yPosition, pageWidth - 40);
+      }
+
+      if (quotation.deliverySchedule) {
+        checkNewPage(15);
+        yPosition = addText(`Delivery Schedule: ${quotation.deliverySchedule}`, leftX, yPosition, pageWidth - 40);
+      }
+
+      if (quotation.specialInstructions) {
+        checkNewPage(20);
+        yPosition = addText(`Special Instructions:`, leftX, yPosition, pageWidth - 40, 12);
+        yPosition = addText(quotation.specialInstructions, leftX, yPosition + 5, pageWidth - 40);
+      }
+
+      yPosition += 10;
+
+      // Line Items Table Header
+      checkNewPage(20);
+      pdf.setFont('helvetica', 'bold');
+      yPosition = addText('Line Items', leftX, yPosition, pageWidth - 40, 14);
+      yPosition += 5;
+
+      // Table headers
+      pdf.setFontSize(10);
+      pdf.text('Description', leftX, yPosition);
+      pdf.text('Qty', leftX + 80, yPosition);
+      pdf.text('Unit Price', leftX + 100, yPosition);
+      pdf.text('Total', leftX + 140, yPosition);
+      
+      // Draw line under headers
+      pdf.line(leftX, yPosition + 2, pageWidth - 20, yPosition + 2);
+      yPosition += 8;
+
+      // Line Items
+      pdf.setFont('helvetica', 'normal');
+      let subtotal = 0;
+
+      quotation.items?.forEach((item) => {
+        checkNewPage(15);
+        
+        const quantity = Number(item.quantity);
+        const pricePerUnit = Number(item.pricePerUnit);
+        const itemTotal = quantity * pricePerUnit;
+        subtotal += itemTotal;
+
+        // Description (with wrapping)
+        const descLines = pdf.splitTextToSize(item.materialDescription, 70) as string[];
+        pdf.text(descLines, leftX, yPosition);
+        
+        // Quantity, Unit Price, Total
+        pdf.text(quantity.toString(), leftX + 80, yPosition);
+        pdf.text(formatCurrency(pricePerUnit), leftX + 100, yPosition);
+        pdf.text(formatCurrency(itemTotal), leftX + 140, yPosition);
+        
+        yPosition += Math.max(descLines.length * 4, 8);
+      });
+
+      yPosition += 10;
+
+      // Totals
+      checkNewPage(25);
+      const tax = subtotal * 0.1;
+      const total = subtotal + tax;
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.text('Subtotal:', leftX + 100, yPosition);
+      pdf.text(formatCurrency(subtotal), leftX + 140, yPosition);
+      yPosition += 6;
+
+      pdf.text('Tax (10%):', leftX + 100, yPosition);
+      pdf.text(formatCurrency(tax), leftX + 140, yPosition);
+      yPosition += 6;
+
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Total:', leftX + 100, yPosition);
+      pdf.text(formatCurrency(total), leftX + 140, yPosition);
+
+      // Save the PDF
+      pdf.save(`quotation-${quotation.quotationNumber}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       'DRAFT': { color: 'bg-gray-100 text-gray-800', label: 'Draft' },
@@ -122,13 +265,19 @@ export default function QuotationDetailPage() {
           </div>
         </div>
         <div className="flex space-x-3">
-          <button className="inline-flex items-center gap-2 rounded-md bg-gray-100 px-4 py-2 text-gray-700 hover:bg-gray-200">
+          <button 
+            onClick={() => router.push(`/quotations/${quotationId}/edit`)}
+            className="inline-flex items-center gap-2 rounded-md bg-green-100 px-4 py-2 text-green-700 hover:bg-green-200"
+          >
+            <Edit className="h-4 w-4" />
+            Edit Quotation
+          </button>
+          <button 
+            onClick={handleExportPDF}
+            className="inline-flex items-center gap-2 rounded-md bg-gray-100 px-4 py-2 text-gray-700 hover:bg-gray-200"
+          >
             <Download className="h-4 w-4" />
             Export PDF
-          </button>
-          <button className="inline-flex items-center gap-2 rounded-md bg-blue-100 px-4 py-2 text-blue-700 hover:bg-blue-200">
-            <Building className="h-4 w-4" />
-            View Customer
           </button>
         </div>
       </div>
