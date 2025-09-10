@@ -19,6 +19,7 @@ model Employee {
 
   enquiries      Enquiry[]
   communications Communication[]
+  createdCustomers Customer[] @relation("CustomerCreatedBy")
 }
 
 // Cleaned-up Customer model - no address fields
@@ -28,6 +29,10 @@ model Customer {
   isNew     Boolean    @default(true)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+
+  // Track who created this customer
+  createdById String?
+  createdBy   Employee? @relation("CustomerCreatedBy", fields: [createdById], references: [id])
 
   // PO Information
   poRuptureDiscs     Boolean @default(false)

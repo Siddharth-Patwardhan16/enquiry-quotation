@@ -26,6 +26,12 @@ interface Customer {
   isNew: boolean;
   createdAt: Date;
   updatedAt: Date;
+  createdBy?: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+  } | null;
   poRuptureDiscs: boolean;
   poThermowells: boolean;
   poHeatExchanger: boolean;
@@ -119,7 +125,7 @@ export default function CustomersPage() {
   // Calculate stats
       const totalCustomers = customers?.length ?? 0;
     const newCustomers = customers?.filter((c: Customer) => c.isNew).length ?? 0;
-    const activeRegions = new Set(customers?.flatMap((c: Customer) => c.locations?.map(loc => loc.country) || []).filter(Boolean)).size;
+    const activeRegions = new Set(customers?.flatMap((c: Customer) => c.locations?.map(loc => loc.country) ?? []).filter(Boolean)).size;
 
   // Handle view customer
   const handleViewCustomer = (customer: Customer) => {
@@ -273,7 +279,7 @@ export default function CustomersPage() {
                     <th className="text-background h-10 px-4 text-left align-middle font-medium bg-white">Office Location</th>
                     <th className="text-background h-10 px-4 text-left align-middle font-medium bg-white">Contact</th>
                     <th className="text-background h-10 px-4 text-left align-middle font-medium bg-white">Status</th>
-                    <th className="text-background h-10 px-4 text-left align-middle font-medium bg-white">Created</th>
+                    <th className="text-background h-10 px-4 text-left align-middle font-medium bg-white">Created By</th>
                     <th className="text-background h-10 px-4 text-left align-middle font-medium bg-white">Actions</th>
                   </tr>
                 </thead>
@@ -338,7 +344,7 @@ export default function CustomersPage() {
                         </td>
                         <td className="p-4 align-middle whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {customer.locations && customer.locations.length > 0 ? customer.locations[0].receptionNumber || 'No number' : 'No number'}
+                            {customer.locations && customer.locations.length > 0 ? customer.locations[0].receptionNumber ?? 'No number' : 'No number'}
                           </div>
                         </td>
                         <td className="p-4 align-middle whitespace-nowrap">
@@ -346,8 +352,15 @@ export default function CustomersPage() {
                             {customer.isNew ? 'New' : 'Existing'}
                           </span>
                         </td>
-                        <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-500">
-                          {new Date(customer.createdAt).toLocaleDateString()}
+                        <td className="p-4 align-middle whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {new Date(customer.createdAt).toLocaleDateString()}
+                          </div>
+                          {customer.createdBy && (
+                            <div className="text-xs text-gray-500">
+                              by {customer.createdBy.name}
+                            </div>
+                          )}
                         </td>
                         <td className="p-4 align-middle whitespace-nowrap">
                           <div className="flex items-center space-x-2">

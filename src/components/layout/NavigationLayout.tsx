@@ -61,26 +61,41 @@ export function NavigationLayout({ children }: NavigationLayoutProps) {
         <div className="flex flex-col h-full">
           {/* Logo/Brand */}
           <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-white" />
-                </div>
-                {!sidebarCollapsed && (
-                  <div>
-                    <h1 className="text-lg text-gray-900">CRM Portal</h1>
-                    <p className="text-xs text-gray-500">Enquiry & Quotations</p>
+            <div className="flex items-center justify-center">
+              {sidebarCollapsed ? (
+                // Show hamburger menu when collapsed
+                <button
+                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors bg-gray-50 hover:bg-gray-200"
+                  title="Expand Sidebar"
+                >
+                  <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+              ) : (
+                // Show logo and hamburger when expanded
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                      <Building2 className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h1 className="text-lg text-gray-900">CRM Portal</h1>
+                      <p className="text-xs text-gray-500">Enquiry & Quotations</p>
+                    </div>
                   </div>
-                )}
-              </div>
-              <button
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
-              >
-                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
+                  <button
+                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="Collapse Sidebar"
+                  >
+                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

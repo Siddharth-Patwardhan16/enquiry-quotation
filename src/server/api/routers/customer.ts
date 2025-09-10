@@ -58,6 +58,14 @@ export const customerRouter = createTRPCRouter({
       const customers = await db.customer.findMany({
         orderBy: { createdAt: 'desc' },
         include: {
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
           locations: {
             orderBy: { name: 'asc' },
           },
@@ -83,6 +91,14 @@ export const customerRouter = createTRPCRouter({
       return db.customer.findUnique({
         where: { id: input.id },
         include: {
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
           locations: {
             orderBy: { name: 'asc' },
           },
@@ -120,12 +136,22 @@ export const customerRouter = createTRPCRouter({
           problemsFaced
         } = input;
         
+        // Find the first available employee to assign as creator
+        const creator = await db.employee.findFirst({
+          where: { role: 'MARKETING' },
+        });
+
+        if (!creator) {
+          throw new Error('No marketing person found in the database');
+        }
+        
         return await db.$transaction(async (prisma) => {
           // 1. Create the parent Customer
           const newCustomer = await prisma.customer.create({
             data: {
               name,
               isNew,
+              createdById: creator.id,
               poRuptureDiscs,
               poThermowells,
               poHeatExchanger,

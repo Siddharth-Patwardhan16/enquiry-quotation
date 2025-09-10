@@ -8,6 +8,12 @@ interface Customer {
   isNew: boolean;
   createdAt: Date;
   updatedAt: Date;
+  createdBy?: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+  } | null;
 }
 
 interface CustomerDetailViewProps {
@@ -211,6 +217,11 @@ export function CustomerDetailView({ customer, isOpen, onClose }: CustomerDetail
                     minute: '2-digit'
                   })}
                 </p>
+                {customer.createdBy && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Created by {customer.createdBy.name} ({customer.createdBy.role})
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-500 flex items-center">
