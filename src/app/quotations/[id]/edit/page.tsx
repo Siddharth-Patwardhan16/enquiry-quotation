@@ -20,8 +20,9 @@ export default function EditQuotationPage() {
     specialInstructions: '',
     currency: 'INR',
     transportCosts: 0,
-    insuranceCosts: 0,
     gst: 0,
+    packingForwardingPercentage: 3,
+    incoterms: '',
   });
   
   const [items, setItems] = useState<Array<{
@@ -49,21 +50,22 @@ export default function EditQuotationPage() {
         revisionNumber: quotation.revisionNumber || 0,
         quotationDate: quotation.quotationDate ? new Date(quotation.quotationDate).toISOString().split('T')[0] : '',
         validityPeriod: quotation.validityPeriod ? new Date(quotation.validityPeriod).toISOString().split('T')[0] : '',
-        paymentTerms: quotation.paymentTerms || '',
-        deliverySchedule: quotation.deliverySchedule || '',
-        specialInstructions: quotation.specialInstructions || '',
-        currency: quotation.currency || 'INR',
-        transportCosts: Number(quotation.transportCosts) || 0,
-        insuranceCosts: Number(quotation.insuranceCosts) || 0,
-        gst: Number(quotation.gst) || 0,
+        paymentTerms: quotation.paymentTerms ?? '',
+        deliverySchedule: quotation.deliverySchedule ?? '',
+        specialInstructions: quotation.specialInstructions ?? '',
+        currency: quotation.currency ?? 'INR',
+        transportCosts: Number(quotation.transportCosts) ?? 0,
+        gst: Number(quotation.gst) ?? 0,
+        packingForwardingPercentage: Number(quotation.packingForwardingPercentage) ?? 3,
+        incoterms: quotation.incoterms ?? '',
       });
 
       setItems(quotation.items?.map(item => ({
         materialDescription: item.materialDescription,
-        specifications: item.specifications || '',
+        specifications: item.specifications ?? '',
         quantity: Number(item.quantity),
         pricePerUnit: Number(item.pricePerUnit),
-      })) || []);
+      })) ?? []);
     }
   }, [quotation]);
 
@@ -116,8 +118,9 @@ export default function EditQuotationPage() {
         specialInstructions: formData.specialInstructions,
         currency: formData.currency,
         transportCosts: formData.transportCosts,
-        insuranceCosts: formData.insuranceCosts,
         gst: formData.gst,
+        packingForwardingPercentage: formData.packingForwardingPercentage,
+        incoterms: formData.incoterms,
         items,
       });
     } catch {
@@ -277,6 +280,82 @@ export default function EditQuotationPage() {
               rows={3}
               placeholder="Any special instructions or terms..."
             />
+          </div>
+
+          {/* Commercial Terms */}
+          <div className="mt-6">
+            <h3 className="text-md font-semibold text-gray-900 mb-3">Commercial Terms</h3>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                   Transport Costs
+                 </label>
+                 <input
+                   type="number"
+                   step="0.01"
+                   min="0"
+                   value={formData.transportCosts}
+                   onChange={(e) => handleInputChange('transportCosts', parseFloat(e.target.value) || 0)}
+                   className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                 />
+               </div>
+               
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                   GST (%)
+                 </label>
+                 <input
+                   type="number"
+                   step="0.1"
+                   min="0"
+                   max="100"
+                   value={formData.gst}
+                   onChange={(e) => handleInputChange('gst', parseFloat(e.target.value) || 0)}
+                   className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                 />
+                 <p className="text-xs text-gray-500 mt-1">Percentage of base price</p>
+               </div>
+             </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Packing and Forwarding (%)
+                </label>
+                <select
+                  value={formData.packingForwardingPercentage}
+                  onChange={(e) => handleInputChange('packingForwardingPercentage', parseFloat(e.target.value) || 3)}
+                  className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="0">0%</option>
+                  <option value="0.5">0.5%</option>
+                  <option value="1">1%</option>
+                  <option value="1.5">1.5%</option>
+                  <option value="2">2%</option>
+                  <option value="2.5">2.5%</option>
+                  <option value="3">3%</option>
+                  <option value="3.5">3.5%</option>
+                  <option value="4">4%</option>
+                  <option value="4.5">4.5%</option>
+                  <option value="5">5%</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Percentage of base price (0-5%)</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Incoterms
+                </label>
+                <input
+                  type="text"
+                  value={formData.incoterms}
+                  onChange={(e) => handleInputChange('incoterms', e.target.value)}
+                  placeholder="e.g., FOB, CIF, EXW, etc."
+                  className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">International commercial terms</p>
+              </div>
+            </div>
           </div>
         </div>
 

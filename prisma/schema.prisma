@@ -140,6 +140,8 @@ model Quotation {
   deliverySchedule    String?
   specialInstructions String?
   currency            String          @default("INR")
+  packingForwardingPercentage Decimal? @default(3.0)
+  incoterms           String?
   subtotal            Decimal?
   tax                 Decimal?
   totalValue          Decimal?

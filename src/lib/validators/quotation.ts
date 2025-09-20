@@ -21,8 +21,9 @@ export const CreateQuotationSchema = z.object({
   currency: z.string().default('INR'),
   // Commercial Terms - using proper decimal fields
   transportCosts: z.coerce.number().min(0, 'Transport costs cannot be negative').default(0),
-  insuranceCosts: z.coerce.number().min(0, 'Insurance costs cannot be negative').default(0),
-  gst: z.coerce.number().min(0, 'GST cannot be negative').default(0),
+  gst: z.coerce.number().min(0, 'GST percentage cannot be negative').max(100, 'GST percentage cannot exceed 100%').default(0),
+  packingForwardingPercentage: z.coerce.number().min(0, 'Packing and Forwarding percentage cannot be negative').max(5, 'Packing and Forwarding percentage cannot exceed 5%').default(3),
+  incoterms: z.string().optional(),
   // The quotation must have at least one line item
   items: z.array(QuotationItemSchema).min(1, 'You must add at least one item'),
 });

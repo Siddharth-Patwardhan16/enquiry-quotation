@@ -26,8 +26,11 @@ export const quotationRouter = createTRPCRouter({
 
       // Calculate totals
       const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.pricePerUnit), 0);
-      const tax = subtotal * 0.1; // 10% tax
-      const totalValue = subtotal + tax;
+      const gstPercentage = Number(rest.gst) || 0;
+      const gstAmount = (subtotal * gstPercentage) / 100;
+      const packingForwardingPercentage = Number(rest.packingForwardingPercentage) || 3;
+      const packingForwardingAmount = (subtotal * packingForwardingPercentage) / 100;
+      const totalValue = subtotal + Number(rest.transportCosts || 0) + gstAmount + packingForwardingAmount;
 
       // Prisma Transaction: This ensures that both the quotation and all its items are created successfully.
       // If any part fails, the entire transaction is rolled back, preventing partial data.
@@ -39,7 +42,7 @@ export const quotationRouter = createTRPCRouter({
               enquiryId,
               quotationNumber,
               subtotal,
-              tax,
+              tax: gstAmount,
               totalValue,
               quotationDate: quotationDate ? new Date(quotationDate) : new Date(),
               validityPeriod: validityPeriod ? new Date(validityPeriod) : null,
@@ -190,8 +193,11 @@ export const quotationRouter = createTRPCRouter({
 
       // Calculate totals
       const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.pricePerUnit), 0);
-      const tax = subtotal * 0.1; // 10% tax
-      const totalValue = subtotal + tax;
+      const gstPercentage = Number(rest.gst) || 0;
+      const gstAmount = (subtotal * gstPercentage) / 100;
+      const packingForwardingPercentage = Number(rest.packingForwardingPercentage) || 3;
+      const packingForwardingAmount = (subtotal * packingForwardingPercentage) / 100;
+      const totalValue = subtotal + Number(rest.transportCosts || 0) + gstAmount + packingForwardingAmount;
 
       try {
         return await db.$transaction(async (prisma) => {
@@ -202,7 +208,7 @@ export const quotationRouter = createTRPCRouter({
               enquiryId,
               quotationNumber,
               subtotal,
-              tax,
+              tax: gstAmount,
               totalValue,
               quotationDate: quotationDate ? new Date(quotationDate) : new Date(),
               validityPeriod: validityPeriod ? new Date(validityPeriod) : null,

@@ -49,8 +49,9 @@ export default function NewQuotationPage() {
       currency: 'INR',
       revisionNumber: 0,
       transportCosts: 0,
-      insuranceCosts: 0,
       gst: 0,
+      packingForwardingPercentage: 3,
+      incoterms: '',
       items: [{ materialDescription: '', quantity: 1, pricePerUnit: 0 }],
     },
   });
@@ -79,11 +80,17 @@ export default function NewQuotationPage() {
   
   // Watch commercial terms for grand total calculation
   const transportCosts = Number(watch('transportCosts')) ?? 0;
-  const insuranceCosts = Number(watch('insuranceCosts')) ?? 0;
-  const gst = Number(watch('gst')) ?? 0;
+  const gstPercentage = Number(watch('gst')) ?? 0;
+  const packingForwardingPercentage = Number(watch('packingForwardingPercentage')) ?? 3;
+  
+  // Calculate packing and forwarding cost as percentage of base price
+  const packingForwardingCost = (totalBasicPrice * packingForwardingPercentage) / 100;
+  
+  // Calculate GST as percentage of base price
+  const gstAmount = (totalBasicPrice * gstPercentage) / 100;
   
   // Calculate grand total including commercial terms
-  const grandTotal = totalBasicPrice + transportCosts + insuranceCosts + gst;
+  const grandTotal = totalBasicPrice + transportCosts + gstAmount + packingForwardingCost;
 
   const formatCurrency = (amount: number) => {
     const locale = currency === 'INR' ? 'en-IN' : 'en-US';
@@ -459,7 +466,7 @@ export default function NewQuotationPage() {
           {/* Commercial Terms */}
           <div className="mt-6">
             <h3 className="text-md font-semibold text-gray-900 mb-3">Commercial Terms</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Transport Costs
@@ -476,30 +483,56 @@ export default function NewQuotationPage() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Insurance Costs
+                  GST (%)
                 </label>
                 <input 
                   type="number"
-                  step="0.01"
+                  step="0.1"
                   min="0"
-                  {...register('insuranceCosts')} 
-                  placeholder="0.00"
+                  max="100"
+                  {...register('gst')} 
+                  placeholder="0.0"
                   className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
                 />
+                <p className="text-xs text-gray-500 mt-1">Percentage of base price</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Packing and Forwarding (%)
+                </label>
+                <select 
+                  {...register('packingForwardingPercentage')} 
+                  className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="0">0%</option>
+                  <option value="0.5">0.5%</option>
+                  <option value="1">1%</option>
+                  <option value="1.5">1.5%</option>
+                  <option value="2">2%</option>
+                  <option value="2.5">2.5%</option>
+                  <option value="3" selected>3%</option>
+                  <option value="3.5">3.5%</option>
+                  <option value="4">4%</option>
+                  <option value="4.5">4.5%</option>
+                  <option value="5">5%</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Percentage of base price (0-5%)</p>
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  GST
+                  Incoterms
                 </label>
                 <input 
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  {...register('gst')} 
-                  placeholder="0.00"
+                  type="text"
+                  {...register('incoterms')} 
+                  placeholder="e.g., FOB, CIF, EXW, etc."
                   className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
                 />
+                <p className="text-xs text-gray-500 mt-1">International commercial terms</p>
               </div>
             </div>
           </div>
@@ -628,13 +661,13 @@ export default function NewQuotationPage() {
                </div>
                
                <div className="flex justify-between text-sm">
-                 <span className="text-gray-600">Insurance Costs:</span>
-                 <span className="font-medium text-gray-900">{formatCurrency(insuranceCosts)}</span>
+                 <span className="text-gray-600">GST ({gstPercentage}%):</span>
+                 <span className="font-medium text-gray-900">{formatCurrency(gstAmount)}</span>
                </div>
                
                <div className="flex justify-between text-sm">
-                 <span className="text-gray-600">GST:</span>
-                 <span className="font-medium text-gray-900">{formatCurrency(gst)}</span>
+                 <span className="text-gray-600">Packing & Forwarding ({packingForwardingPercentage}%):</span>
+                 <span className="font-medium text-gray-900">{formatCurrency(packingForwardingCost)}</span>
                </div>
                
                <div className="border-t pt-2 flex justify-between">

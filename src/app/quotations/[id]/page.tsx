@@ -12,6 +12,13 @@ import jsPDF from 'jspdf';
 type Quotation = NonNullable<inferRouterOutputs<AppRouter>['quotation']['getById']>;
 type QuotationItem = NonNullable<Quotation['items']>[0];
 
+// Extended quotation type with new fields
+type ExtendedQuotation = Quotation & {
+  gst?: number;
+  packingForwardingPercentage?: number;
+  incoterms?: string;
+};
+
 export default function QuotationDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -36,6 +43,8 @@ export default function QuotationDetailPage() {
 
   if (error) return <div>Error: {error.message}</div>;
   if (isLoading || !quotation) return <div>Loading...</div>;
+
+  const extendedQuotation = quotation as ExtendedQuotation;
 
   const handleStatusUpdate = async (newStatus: string) => {
     if (newStatus === 'LOST') {
@@ -190,16 +199,28 @@ export default function QuotationDetailPage() {
 
       // Totals
       checkNewPage(25);
-      const tax = subtotal * 0.1;
-      const total = subtotal + tax;
+      const transportCosts = Number(quotation.transportCosts) || 0;
+      const gstPercentage = Number(extendedQuotation?.gst) || 0;
+      const gstAmount = (subtotal * gstPercentage) / 100;
+      const packingForwardingPercentage = Number(extendedQuotation?.packingForwardingPercentage) || 3;
+      const packingForwardingAmount = (subtotal * packingForwardingPercentage) / 100;
+      const total = subtotal + transportCosts + gstAmount + packingForwardingAmount;
 
       pdf.setFont('helvetica', 'normal');
       pdf.text('Subtotal:', leftX + 100, yPosition);
       pdf.text(formatCurrency(subtotal), leftX + 140, yPosition);
       yPosition += 6;
 
-      pdf.text('Tax (10%):', leftX + 100, yPosition);
-      pdf.text(formatCurrency(tax), leftX + 140, yPosition);
+      pdf.text('Transport Costs:', leftX + 100, yPosition);
+      pdf.text(formatCurrency(transportCosts), leftX + 140, yPosition);
+      yPosition += 6;
+
+      pdf.text(`GST (${gstPercentage}%):`, leftX + 100, yPosition);
+      pdf.text(formatCurrency(gstAmount), leftX + 140, yPosition);
+      yPosition += 6;
+
+      pdf.text(`Packing & Forwarding (${packingForwardingPercentage}%):`, leftX + 100, yPosition);
+      pdf.text(formatCurrency(packingForwardingAmount), leftX + 140, yPosition);
       yPosition += 6;
 
       pdf.setFont('helvetica', 'bold');
@@ -329,6 +350,36 @@ export default function QuotationDetailPage() {
                 </div>
               </div>
             )}
+
+            {/* Commercial Terms */}
+            <div className="mt-6">
+              <h3 className="text-md font-semibold text-gray-900 mb-3">Commercial Terms</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">Transport Costs</p>
+                  <p className="text-gray-900">{formatCurrency(Number(quotation.transportCosts) ?? 0)}</p>
+                </div>
+                
+                <div>
+                  <p className="text-sm text-gray-500">GST</p>
+                  <p className="text-gray-900">
+                    {extendedQuotation?.gst ? `${extendedQuotation.gst}%` : 'Not specified'}
+                  </p>
+                </div>
+                
+                <div>
+                  <p className="text-sm text-gray-500">Packing & Forwarding</p>
+                  <p className="text-gray-900">
+                    {extendedQuotation?.packingForwardingPercentage ? `${extendedQuotation.packingForwardingPercentage}%` : 'Not specified'}
+                  </p>
+                </div>
+                
+                <div>
+                  <p className="text-sm text-gray-500">Incoterms</p>
+                  <p className="text-gray-900">{extendedQuotation?.incoterms ?? 'Not specified'}</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Line Items */}
@@ -384,10 +435,22 @@ export default function QuotationDetailPage() {
                     <span>{formatCurrency(Number(quotation.subtotal) ?? 0)}</span>
                   </div>
                 </div>
+                
                 <div className="flex justify-between">
-                  <span>Tax (10%):</span>
-                                      <span>{formatCurrency(Number(quotation.tax) ?? 0)}</span>
+                  <span>Transport Costs:</span>
+                  <span>{formatCurrency(Number(quotation.transportCosts) ?? 0)}</span>
                 </div>
+                
+                <div className="flex justify-between">
+                  <span>GST ({extendedQuotation?.gst ?? 0}%):</span>
+                  <span>{formatCurrency(Number(quotation.tax) ?? 0)}</span>
+                </div>
+                
+                <div className="flex justify-between">
+                  <span>Packing & Forwarding ({extendedQuotation?.packingForwardingPercentage ?? 3}%):</span>
+                  <span>{formatCurrency(((Number(quotation.subtotal) ?? 0) * (extendedQuotation?.packingForwardingPercentage ?? 3)) / 100)}</span>
+                </div>
+                
                 <div className="border-t pt-2">
                   <div className="flex justify-between text-lg font-semibold">
                     <span>Total:</span>
