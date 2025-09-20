@@ -6,6 +6,10 @@ import { z } from 'zod';
 const CreateCustomerWithLocationsSchema = z.object({
   name: z.string().min(2, 'Customer name is required'),
   isNew: z.boolean().default(true),
+  // Customer Contact Details
+  designation: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  emailId: z.string().email().optional().or(z.literal('')),
   offices: z.array(z.object({
     name: z.string().min(2, 'Office name is required'),
     address: z.string().optional(),
@@ -125,6 +129,9 @@ export const customerRouter = createTRPCRouter({
         const { 
           name, 
           isNew, 
+          designation,
+          phoneNumber,
+          emailId,
           offices, 
           plants,
           poRuptureDiscs,
@@ -141,9 +148,8 @@ export const customerRouter = createTRPCRouter({
           where: { role: 'MARKETING' },
         });
 
-        if (!creator) {
-          throw new Error('No marketing person found in the database');
-        }
+        // If no marketing person found, we'll create the customer without a creator
+        // This allows the system to work even without employees initially
         
         return await db.$transaction(async (prisma) => {
           // 1. Create the parent Customer
@@ -151,7 +157,10 @@ export const customerRouter = createTRPCRouter({
             data: {
               name,
               isNew,
-              createdById: creator.id,
+              designation,
+              phoneNumber,
+              emailId,
+              createdById: creator?.id ?? null,
               poRuptureDiscs,
               poThermowells,
               poHeatExchanger,

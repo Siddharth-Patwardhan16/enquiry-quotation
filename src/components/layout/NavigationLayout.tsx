@@ -31,6 +31,7 @@ export function NavigationLayout({ children }: NavigationLayoutProps) {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
     { id: 'tasks', label: 'Tasks', icon: Calendar, path: '/tasks' },
     { id: 'customers', label: 'Customers', icon: Users, path: '/customers' },
+    { id: 'customer-details', label: 'Customer Details', icon: Building2, path: '/customer-details' },
     { id: 'enquiries', label: 'Enquiries', icon: FileText, path: '/enquiries' },
     { id: 'quotations', label: 'Quotations', icon: Calculator, path: '/quotations' },
     { id: 'quotation-status', label: 'Quotation Status', icon: BarChart3, path: '/quotation-status' },

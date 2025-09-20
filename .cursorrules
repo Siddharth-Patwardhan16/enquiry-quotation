@@ -1,0 +1,148 @@
+# Cursor Rules for Enquiry Management System
+
+## 🚨 CRITICAL DATA PROTECTION RULES
+
+### 1. SUPABASE DATA PROTECTION
+- **NEVER** erase, delete, or modify any data in Supabase database
+- **NEVER** run destructive database operations (DROP, TRUNCATE, DELETE without WHERE)
+- **NEVER** modify production data without explicit user consent
+- If any operation might affect data integrity, **STOP IMMEDIATELY** and warn the user
+- Always use safe database operations with proper WHERE clauses and backups
+
+### 2. DATABASE SAFETY WARNINGS
+- Before any potentially destructive operation, display clear warnings:
+  ```
+  ⚠️  WARNING: This operation may affect database data
+  ⚠️  Please confirm you want to proceed
+  ⚠️  Consider backing up data first
+  ```
+- If database erasure is necessary, **STOP** and ask for explicit confirmation
+- Provide alternative solutions before suggesting destructive operations
+
+## 📦 PACKAGE MANAGEMENT
+
+### 3. PNPM USAGE
+- **ALWAYS** use `pnpm` instead of `npm` or `yarn`
+- Use `pnpm install` for installing dependencies
+- Use `pnpm add <package>` for adding new packages
+- Use `pnpm run <script>` for running scripts
+- Use `pnpm build` for building the project
+
+## 🔨 BUILD AND DEVELOPMENT WORKFLOW
+
+### 4. BUILD-FIRST APPROACH
+- **ALWAYS** attempt to build the project after resolving errors
+- Use `pnpm build` to verify changes work correctly
+- If build fails, fix the specific error before proceeding
+- Don't leave the project in a broken state
+
+### 5. DEVELOPMENT COMMANDS
+- Use `pnpm dev` for development server
+- Use `pnpm build` for production build
+- Use `pnpm lint` for code linting
+- Use `pnpm start` for production server
+
+## 🏗️ PROJECT ARCHITECTURE
+
+### 6. TECHNOLOGY STACK
+- **Frontend**: Next.js 15 with React 19
+- **Backend**: tRPC with Prisma ORM
+- **Database**: PostgreSQL (Supabase)
+- **Styling**: Tailwind CSS with Radix UI components
+- **Authentication**: Supabase Auth
+- **State Management**: TanStack Query
+
+### 7. FILE STRUCTURE CONVENTIONS
+- Follow the existing project structure in `src/`
+- Keep components in `_components` folders
+- Use TypeScript for all new files
+- Follow the established naming conventions
+
+### 8. DATABASE SCHEMA AWARENESS
+- The project uses Prisma with PostgreSQL
+- Key models: Employee, Customer, Location, Contact, Enquiry, Quotation, Communication
+- Be aware of foreign key relationships and cascade deletes
+- Never modify schema without considering data migration
+
+## 🛡️ SAFETY GUIDELINES
+
+### 9. CODE SAFETY
+- Always validate user inputs
+- Use proper error handling
+- Implement proper authentication checks
+- Follow TypeScript best practices
+- Use proper type definitions
+
+### 10. ENVIRONMENT VARIABLES
+- Never commit sensitive environment variables
+- Use `.env.local` for local development
+- Ensure proper environment configuration
+
+## 🔍 DEBUGGING AND TESTING
+
+### 11. ERROR RESOLUTION
+- Read error messages carefully
+- Check console logs and terminal output
+- Use proper debugging techniques
+- Test changes incrementally
+
+### 12. SCRIPT EXECUTION
+- Always try to build after implementing fixes
+- Use the provided scripts in `scripts/` folder when appropriate
+- Test database connections before running database operations
+
+## 📝 DOCUMENTATION
+
+### 13. CODE DOCUMENTATION
+- Add meaningful comments for complex logic
+- Update README files when adding new features
+- Document any breaking changes
+- Keep the project documentation up to date
+
+## 🚀 DEPLOYMENT CONSIDERATIONS
+
+### 14. PRODUCTION READINESS
+- Ensure all environment variables are properly configured
+- Test the build process before deployment
+- Verify database migrations are safe
+- Check for any hardcoded values that should be environment variables
+
+## ⚡ PERFORMANCE
+
+### 15. OPTIMIZATION
+- Use proper React patterns (memo, useMemo, useCallback)
+- Optimize database queries
+- Implement proper loading states
+- Use Next.js optimization features
+
+## 🔐 SECURITY
+
+### 16. SECURITY BEST PRACTICES
+- Validate all inputs
+- Use proper authentication and authorization
+- Implement proper error handling
+- Follow OWASP guidelines
+- Never expose sensitive data in client-side code
+
+---
+
+## 🎯 QUICK REFERENCE
+
+**Common Commands:**
+- `pnpm dev` - Start development server
+- `pnpm build` - Build for production
+- `pnpm lint` - Run linter
+- `pnpm install` - Install dependencies
+
+**Critical Reminders:**
+- ⚠️ Never delete Supabase data
+- ⚠️ Always use pnpm
+- ⚠️ Build after fixing errors
+- ⚠️ Warn before destructive operations
+
+**Project Structure:**
+- `src/app/` - Next.js app router pages
+- `src/components/` - Reusable components
+- `src/server/` - tRPC API routes
+- `src/lib/` - Utility functions and configurations
+- `prisma/` - Database schema and migrations

@@ -128,8 +128,8 @@ export function EditCustomerFormMultiLocation({ customer, onCancel, onSuccess }:
   const utils = api.useUtils();
 
   // Separate offices and plants from locations
-  const offices = customer.locations?.filter(loc => loc.type === 'OFFICE') || [];
-  const plants = customer.locations?.filter(loc => loc.type === 'PLANT') || [];
+  const offices = customer.locations?.filter(loc => loc.type === 'OFFICE') ?? [];
+  const plants = customer.locations?.filter(loc => loc.type === 'PLANT') ?? [];
 
   const {
     register,
@@ -165,8 +165,8 @@ export function EditCustomerFormMultiLocation({ customer, onCancel, onSuccess }:
       poHeatExchanger: customer.poHeatExchanger,
       poMiscellaneous: customer.poMiscellaneous,
       poWaterJetSteamJet: customer.poWaterJetSteamJet,
-      existingGraphiteSuppliers: customer.existingGraphiteSuppliers || '',
-      problemsFaced: customer.problemsFaced || '',
+      existingGraphiteSuppliers: customer.existingGraphiteSuppliers ?? '',
+      problemsFaced: customer.problemsFaced ?? '',
     },
     mode: 'onChange',
   });

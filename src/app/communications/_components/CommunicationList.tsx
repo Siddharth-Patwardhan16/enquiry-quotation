@@ -90,7 +90,7 @@ export function CommunicationList({
     const matchesSearch = 
       comm.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
       comm.customer?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      comm.contact?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (comm.contact?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (comm.description ?? '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesType = filterType === 'all' || comm.type === filterType;

@@ -44,6 +44,10 @@ import { useToast } from '@/components/ui/toast';
 type FormData = {
   name: string;
   isNew: boolean;
+  // Customer Contact Details
+  designation?: string;
+  phoneNumber?: string;
+  emailId?: string;
   offices: Array<{
     name: string;
     address?: string;
@@ -107,6 +111,9 @@ export function CreateCustomerFormMultiLocation({ onSuccess }: CreateCustomerFor
     defaultValues: {
       name: '',
       isNew: true,
+      designation: '',
+      phoneNumber: '',
+      emailId: '',
       offices: [{ name: '', address: '', city: '', state: '', country: 'India', receptionNumber: '' }],
       plants: [],
       poRuptureDiscs: false,
@@ -212,6 +219,46 @@ export function CreateCustomerFormMultiLocation({ onSuccess }: CreateCustomerFor
                 placeholder="Enter customer name"
               />
               {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
+            </div>
+
+            {/* Customer Contact Details */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="designation" className="text-sm font-medium text-gray-900">
+                  Designation
+                </label>
+                <input 
+                  id="designation" 
+                  {...register('designation')} 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                  placeholder="e.g., Manager, Director"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="phoneNumber" className="text-sm font-medium text-gray-900">
+                  Phone Number
+                </label>
+                <input 
+                  id="phoneNumber" 
+                  {...register('phoneNumber')} 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                  placeholder="+91 9876543210"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="emailId" className="text-sm font-medium text-gray-900">
+                  Email ID
+                </label>
+                <input 
+                  id="emailId" 
+                  type="email"
+                  {...register('emailId')} 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                  placeholder="customer@company.com"
+                />
+              </div>
             </div>
           </div>
         </div>

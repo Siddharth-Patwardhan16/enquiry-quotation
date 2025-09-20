@@ -30,6 +30,11 @@ model Customer {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
+  // Customer Contact Details
+  designation String?
+  phoneNumber String?
+  emailId     String?
+
   // Track who created this customer
   createdById String?
   createdBy   Employee? @relation("CustomerCreatedBy", fields: [createdById], references: [id])
