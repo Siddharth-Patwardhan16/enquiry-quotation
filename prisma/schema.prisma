@@ -104,7 +104,6 @@ model Enquiry {
   subject           String
   description       String?
   requirements      String?
-  expectedBudget    String?
   timeline          String?
   enquiryDate       DateTime?
   priority          String?
@@ -112,6 +111,7 @@ model Enquiry {
   notes             String?
   status            EnquiryStatus @default(NEW)
   regretReason      String?
+  quotationNumber   String?       @unique // Unique quotation number for tracking
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
@@ -120,8 +120,8 @@ model Enquiry {
   location          Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
   // It is created by one employee
-  marketingPersonId String
-  marketingPerson   Employee @relation(fields: [marketingPersonId], references: [id])
+  marketingPersonId String?
+  marketingPerson   Employee? @relation(fields: [marketingPersonId], references: [id])
 
   // Keep the customer relation for easier querying
   customerId        String
@@ -150,7 +150,7 @@ model Quotation {
   subtotal            Decimal?
   tax                 Decimal?
   totalValue          Decimal?
-  status              QuotationStatus @default(DRAFT)
+  status              QuotationStatus @default(LIVE)
   lostReason          String?
   purchaseOrderNumber String?
   createdAt           DateTime        @default(now())
@@ -174,21 +174,22 @@ model QuotationItem {
 }
 
 model Communication {
-  id                    String            @id @default(uuid())
+  id                    String                @id @default(uuid())
   subject               String
   description           String
   type                  CommunicationType
-  enquiryRelated        String?           // Link to enquiry for tracking
+  status                CommunicationStatus   @default(SCHEDULED)
+  enquiryRelated        String?               // Link to enquiry for tracking
   nextCommunicationDate DateTime?
   proposedNextAction    String?
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
   customerId            String
   contactId             String?
   employeeId            String?
-  contact               Contact?          @relation(fields: [contactId], references: [id])
-  customer              Customer          @relation(fields: [customerId], references: [id])
-  employee              Employee?         @relation(fields: [employeeId], references: [id])
+  contact               Contact?              @relation(fields: [contactId], references: [id])
+  customer              Customer              @relation(fields: [customerId], references: [id])
+  employee              Employee?             @relation(fields: [employeeId], references: [id])
 }
 
 model Document {
@@ -243,6 +244,16 @@ enum CommunicationType {
   EMAIL
   PLANT_VISIT
   OFFICE_VISIT
+}
+
+enum CommunicationStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+  FOLLOW_UP_REQUIRED
+  WON
+  LOST
 }
 
 enum DocumentType {

@@ -25,15 +25,15 @@ interface Enquiry {
   subject?: string;
   description?: string | null;
   customer?: { name?: string };
-  marketingPerson?: { name?: string };
+  marketingPerson?: { name?: string } | null;
   status: string;
   createdAt: Date;
   priority?: string | null;
   source?: string | null;
   requirements?: string | null;
-  expectedBudget?: string | null;
   timeline?: string | null;
   notes?: string | null;
+  quotationNumber?: string | null;
 }
 
 export default function EnquiriesPage() {
@@ -49,7 +49,6 @@ export default function EnquiriesPage() {
         requirements: '',
         priority: 'Medium',
         source: 'Website',
-        expectedBudget: '',
         timeline: '',
         notes: '',
       });
@@ -69,7 +68,6 @@ export default function EnquiriesPage() {
     requirements: string;
     priority: 'Low' | 'Medium' | 'High' | 'Urgent';
     source: 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media';
-    expectedBudget: string;
     timeline: string;
     notes: string;
   };
@@ -81,7 +79,6 @@ export default function EnquiriesPage() {
     requirements: '',
     priority: 'Medium',
     source: 'Website',
-    expectedBudget: '',
     timeline: '',
     notes: '',
   });
@@ -140,7 +137,6 @@ export default function EnquiriesPage() {
         requirements: enquiry.requirements ?? '',
         priority: (enquiry.priority ?? 'Medium') as 'Low' | 'Medium' | 'High' | 'Urgent',
         source: (enquiry.source ?? 'Website') as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media',
-        expectedBudget: enquiry.expectedBudget ?? '',
         timeline: enquiry.timeline ?? '',
         notes: enquiry.notes ?? '',
       });
@@ -180,7 +176,6 @@ export default function EnquiriesPage() {
       requirements: '',
       priority: 'Medium',
       source: 'Website',
-      expectedBudget: '',
       timeline: '',
       notes: '',
     });
@@ -348,6 +343,7 @@ export default function EnquiriesPage() {
                   <thead className="[&_tr]:border-b bg-gray-50">
                     <tr>
                       <th className="text-foreground h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Enquiry ID</th>
+                      <th className="text-foreground h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Quotation Number</th>
                       <th className="text-foreground h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Subject</th>
                       <th className="text-foreground h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Customer</th>
                       <th className="text-foreground h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Marketing Person</th>
@@ -359,7 +355,7 @@ export default function EnquiriesPage() {
                   <tbody className="[&_tr:last-child]:border-0">
                     {isLoading ? (
                       <tr>
-                        <td colSpan={7} className="p-8 text-center">
+                        <td colSpan={8} className="p-8 text-center">
                           <div className="animate-pulse space-y-4">
                             <div className="h-4 bg-gray-200 rounded w-1/3 mx-auto"></div>
                             <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto"></div>
@@ -371,6 +367,9 @@ export default function EnquiriesPage() {
                         <tr key={enquiry.id} className="hover:bg-gray-50 data-[state=selected]:bg-muted border-b transition-colors">
                                                      <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900">
                              #{enquiry.id.toString().slice(-8)}
+                           </td>
+                           <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900">
+                             {enquiry.quotationNumber ?? '-'}
                            </td>
                                                      <td className="p-4 align-middle">
                              <div className="text-sm text-gray-900">{enquiry.subject}</div>
@@ -419,7 +418,7 @@ export default function EnquiriesPage() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={7} className="text-center py-8">
+                        <td colSpan={8} className="text-center py-8">
                           <div className="text-gray-500">
                             {searchTerm || statusFilter !== 'all' 
                               ? 'No enquiries found matching your criteria.' 
@@ -498,18 +497,6 @@ export default function EnquiriesPage() {
                       <option value="Trade Show">Trade Show</option>
                       <option value="Social Media">Social Media</option>
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Expected Budget
-                    </label>
-                    <input
-                      type="text"
-                      value={editData.expectedBudget}
-                      onChange={(e) => setEditData({ ...editData, expectedBudget: e.target.value })}
-                      className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="e.g., ₹10,000 - ₹20,000"
-                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -603,6 +590,12 @@ export default function EnquiriesPage() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Quotation Number
+                        </label>
+                        <p className="text-gray-900">{enquiry.quotationNumber ?? 'Not assigned'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Priority
                         </label>
                         <p className="text-gray-900">{enquiry.priority ?? 'Not specified'}</p>
@@ -612,12 +605,6 @@ export default function EnquiriesPage() {
                           Source
                         </label>
                         <p className="text-gray-900">{enquiry.source ?? 'Not specified'}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Expected Budget
-                        </label>
-                        <p className="text-gray-900">{enquiry.expectedBudget ?? 'Not specified'}</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">

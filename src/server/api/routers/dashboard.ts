@@ -242,7 +242,7 @@ export const dashboardRouter = createTRPCRouter({
     });
 
     // Convert enquiries to tasks
-    const enquiryTaskList = (enquiryTasks as unknown[]).map((enquiry: any) => {
+    const enquiryTaskList = enquiryTasks.map((enquiry) => {
       const e = enquiry as {
         id: number;
         subject: string;
@@ -262,16 +262,16 @@ export const dashboardRouter = createTRPCRouter({
         status: 'pending' as const,
         customerName: e.customer.name,
         description: e.description ?? e.requirements ?? 'Follow up required',
-        assignedTo: e.marketingPerson.name,
+        assignedTo: e.marketingPerson?.name ?? 'Unassigned',
         sourceId: e.id,
         sourceType: 'enquiry'
       };
     });
 
     // Convert quotations to tasks
-    const quotationTaskList = (quotationTasks as unknown[]).map((quotation: any) => {
+    const quotationTaskList = quotationTasks.map((quotation) => {
       const q = quotation as {
-        id: number;
+        id: string;
         quotationNumber: string;
         validityPeriod?: Date;
         status: string;
@@ -293,9 +293,9 @@ export const dashboardRouter = createTRPCRouter({
     });
 
     // Convert communications to tasks
-    const communicationTaskList = (communicationTasks as unknown[]).map((communication: any) => {
+    const communicationTaskList = communicationTasks.map((communication) => {
       const c = communication as {
-        id: number;
+        id: string;
         subject: string;
         nextCommunicationDate?: Date;
         customer: { name: string };

@@ -12,10 +12,6 @@ export const enquiryRouter = createTRPCRouter({
       const marketingPerson = await db.employee.findFirst({
         where: { role: 'MARKETING' },
       });
-
-      if (!marketingPerson) {
-        throw new Error('No marketing person found in the database');
-      }
       
       return db.enquiry.create({
         data: {
@@ -24,13 +20,13 @@ export const enquiryRouter = createTRPCRouter({
           locationId: input.locationId, // Link to the specific location
           description: input.description,
           requirements: input.requirements,
-          expectedBudget: input.expectedBudget,
           timeline: input.timeline,
           enquiryDate: new Date(input.enquiryDate),
-          marketingPersonId: marketingPerson.id,
+          marketingPersonId: marketingPerson?.id ?? null,
           priority: input.priority,
           source: input.source,
           notes: input.notes,
+          quotationNumber: input.quotationNumber,
           status: 'NEW',
         },
       });

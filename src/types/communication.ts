@@ -34,6 +34,11 @@ export type Communication = {
     name: string;
     role: string;
   } | null;
+  enquiry: {
+    id: number;
+    quotationNumber: string | null;
+    subject: string;
+  } | null;
 };
 
 // Form data type for creating/editing communications

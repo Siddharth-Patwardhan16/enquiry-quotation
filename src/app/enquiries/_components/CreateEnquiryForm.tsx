@@ -17,6 +17,15 @@ import {
 
 type FormData = z.infer<typeof CreateEnquirySchema>;
 
+// Generate a unique quotation number
+const generateQuotationNumber = (): string => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const timestamp = now.getTime().toString().slice(-6);
+  return `Q${year}${month}${timestamp}`;
+};
+
 interface CreateEnquiryFormProps {
   onSuccess?: () => void;
 }
@@ -42,6 +51,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
       enquiryDate: new Date().toISOString().split('T')[0],
       priority: 'Medium' as const,
       source: 'Website' as const,
+      quotationNumber: generateQuotationNumber(),
     },
     mode: 'onChange',
   });
@@ -235,6 +245,23 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                   />
                 </div>
 
+                <div className="space-y-2">
+                  <label htmlFor="quotationNumber" className="block text-sm font-medium text-gray-900">
+                    Quotation Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="quotationNumber"
+                    {...register('quotationNumber')}
+                    className={`mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white ${
+                      errors.quotationNumber ? 'border-red-300' : ''
+                    }`}
+                    placeholder="e.g., Q202412345678"
+                  />
+                  {errors.quotationNumber && (
+                    <p className="mt-2 text-sm text-red-600">{errors.quotationNumber.message}</p>
+                  )}
+                </div>
+
 
 
                 <div className="space-y-2">
@@ -271,17 +298,6 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                   </select>
                 </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="expectedBudget" className="block text-sm font-medium text-gray-900">
-                    Expected Budget
-                  </label>
-                  <input
-                    id="expectedBudget"
-                    {...register('expectedBudget')}
-                    className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
-                    placeholder="e.g., ₹10,000 - ₹20,000"
-                  />
-                </div>
               </div>
             </div>
 

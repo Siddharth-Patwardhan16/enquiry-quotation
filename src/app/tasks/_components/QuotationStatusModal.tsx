@@ -148,184 +148,240 @@ export function QuotationStatusModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
+        <DialogHeader className="pb-4 border-b border-gray-200">
+          <DialogTitle className="flex items-center gap-3 text-xl font-bold text-gray-800">
+            <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg">
+              <FileText className="h-6 w-6 text-white" />
+            </div>
             Update Quotation Status
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Current Quotation Details */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quotation Details</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">Quotation #:</span>
-                  <span className="text-sm text-gray-900">{quotation.quotationNumber}</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">Customer:</span>
-                  <span className="text-sm text-gray-900">{quotation.enquiry.customer.name}</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">Date:</span>
-                  <span className="text-sm text-gray-900">{formatDate(quotation.quotationDate)}</span>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">Total Value:</span>
-                  <span className="text-sm text-gray-900">
-                    {quotation.totalValue ? formatCurrency(Number(quotation.totalValue)) : 'N/A'}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-700">Current Status:</span>
-                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(quotation.status)}`}>
-                    {getStatusIcon(quotation.status)}
-                    {quotation.status}
-                  </span>
-                </div>
-
-                {quotation.validityPeriod && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">Valid Until:</span>
-                    <span className="text-sm text-gray-900">{formatDate(quotation.validityPeriod)}</span>
-                  </div>
-                )}
-              </div>
+          <div className="bg-white rounded-lg border shadow-sm">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Quotation Details</h3>
             </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <FileText className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">Quotation #:</span>
+                      <p className="text-sm text-gray-900 font-medium">{quotation.quotationNumber}</p>
+                    </div>
+                  </div>
 
-            {quotation.enquiry.subject && (
-              <div className="mt-4">
-                <span className="text-sm font-medium text-gray-700">Subject:</span>
-                <p className="text-sm text-gray-900 mt-1">{quotation.enquiry.subject}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <User className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">Customer:</span>
+                      <p className="text-sm text-gray-900 font-medium">{quotation.enquiry.customer.name}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <Calendar className="h-4 w-4 text-green-600" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">Date:</span>
+                      <p className="text-sm text-gray-900 font-medium">{formatDate(quotation.quotationDate)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-yellow-100 rounded-lg">
+                      <DollarSign className="h-4 w-4 text-yellow-600" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">Total Value:</span>
+                      <p className="text-sm text-gray-900 font-medium">
+                        {quotation.totalValue ? formatCurrency(Number(quotation.totalValue)) : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-100 rounded-lg">
+                      <span className="text-sm font-medium text-gray-700">Current Status:</span>
+                    </div>
+                    <div>
+                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(quotation.status)}`}>
+                        {getStatusIcon(quotation.status)}
+                        {quotation.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {quotation.validityPeriod && (
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-red-100 rounded-lg">
+                        <Calendar className="h-4 w-4 text-red-600" />
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">Valid Until:</span>
+                        <p className="text-sm text-gray-900 font-medium">{formatDate(quotation.validityPeriod)}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
+
+              {quotation.enquiry.subject && (
+                <div className="mt-6 p-4 bg-gray-50 rounded-md">
+                  <span className="text-sm font-medium text-gray-700">Subject:</span>
+                  <p className="text-sm text-gray-900 mt-1 font-medium">{quotation.enquiry.subject}</p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Status Update Section */}
-          <div className="bg-blue-50 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Update Status</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="status">New Status *</Label>
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select new status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="DRAFT">Draft</SelectItem>
-                    <SelectItem value="LIVE">Live</SelectItem>
-                    <SelectItem value="SUBMITTED">Submitted</SelectItem>
-                    <SelectItem value="WON">Won</SelectItem>
-                    <SelectItem value="LOST">Lost</SelectItem>
-                    <SelectItem value="RECEIVED">Received (PO)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {status === 'LOST' && (
+          <div className="bg-white rounded-lg border shadow-sm">
+            <div className="px-6 py-4 border-b border-gray-200 bg-blue-50">
+              <h3 className="text-lg font-semibold text-gray-900">Update Status</h3>
+            </div>
+            <div className="p-6">
+              <div className="space-y-6">
                 <div>
-                  <Label htmlFor="lostReason">Reason for Loss *</Label>
-                  <Select value={lostReason} onValueChange={setLostReason}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select reason" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="PRICE">Price</SelectItem>
-                      <SelectItem value="DELIVERY_SCHEDULE">Delivery Schedule</SelectItem>
-                      <SelectItem value="LACK_OF_CONFIDENCE">Lack of Confidence</SelectItem>
-                      <SelectItem value="OTHER">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="status" className="text-sm font-medium text-gray-700">
+                    New Status <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="mt-2">
+                    <Select value={status} onValueChange={setStatus}>
+                      <SelectTrigger className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <SelectValue placeholder="Select new status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="DRAFT">Draft</SelectItem>
+                        <SelectItem value="LIVE">Live</SelectItem>
+                        <SelectItem value="SUBMITTED">Submitted</SelectItem>
+                        <SelectItem value="WON">Won</SelectItem>
+                        <SelectItem value="LOST">Lost</SelectItem>
+                        <SelectItem value="RECEIVED">Received (PO)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              )}
 
-              {status === 'RECEIVED' && (
+                {status === 'LOST' && (
+                  <div>
+                    <Label htmlFor="lostReason" className="text-sm font-medium text-gray-700">
+                      Reason for Loss <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="mt-2">
+                      <Select value={lostReason} onValueChange={setLostReason}>
+                        <SelectTrigger className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                          <SelectValue placeholder="Select reason" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PRICE">Price</SelectItem>
+                          <SelectItem value="DELIVERY_SCHEDULE">Delivery Schedule</SelectItem>
+                          <SelectItem value="LACK_OF_CONFIDENCE">Lack of Confidence</SelectItem>
+                          <SelectItem value="OTHER">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+
+                {status === 'RECEIVED' && (
+                  <div>
+                    <Label htmlFor="purchaseOrderNumber" className="text-sm font-medium text-gray-700">
+                      Purchase Order Number <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="mt-2">
+                      <Input
+                        id="purchaseOrderNumber"
+                        value={purchaseOrderNumber}
+                        onChange={(e) => setPurchaseOrderNumber(e.target.value)}
+                        placeholder="Enter PO number"
+                        className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div>
-                  <Label htmlFor="purchaseOrderNumber">Purchase Order Number *</Label>
-                  <Input
-                    id="purchaseOrderNumber"
-                    value={purchaseOrderNumber}
-                    onChange={(e) => setPurchaseOrderNumber(e.target.value)}
-                    placeholder="Enter PO number"
-                    className="mt-1"
-                  />
+                  <Label htmlFor="notes" className="text-sm font-medium text-gray-700">
+                    Additional Notes (Optional)
+                  </Label>
+                  <div className="mt-2">
+                    <Textarea
+                      id="notes"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Enter any additional notes..."
+                      rows={3}
+                      className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
                 </div>
-              )}
-
-              <div>
-                <Label htmlFor="notes">Additional Notes (Optional)</Label>
-                <Textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Enter any additional notes..."
-                  rows={3}
-                  className="mt-1"
-                />
               </div>
             </div>
           </div>
 
           {/* Quick Status Actions */}
-          <div className="bg-green-50 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setStatus('WON')}
-                className="w-full text-green-700 border-green-300 hover:bg-green-50"
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Mark as Won
-              </Button>
+          <div className="bg-white rounded-lg border shadow-sm">
+            <div className="px-6 py-4 border-b border-gray-200 bg-green-50">
+              <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setStatus('WON')}
+                  className="w-full h-12 text-green-700 border-green-300 hover:bg-green-50 hover:border-green-400"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Mark as Won
+                </Button>
 
-              <Button
-                variant="outline"
-                onClick={() => setStatus('LOST')}
-                className="w-full text-red-700 border-red-300 hover:bg-red-50"
-              >
-                <XCircle className="h-4 w-4 mr-2" />
-                Mark as Lost
-              </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setStatus('LOST')}
+                  className="w-full h-12 text-red-700 border-red-300 hover:bg-red-50 hover:border-red-400"
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Mark as Lost
+                </Button>
 
-              <Button
-                variant="outline"
-                onClick={() => setStatus('RECEIVED')}
-                className="w-full text-blue-700 border-blue-300 hover:bg-blue-50"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Mark as Received
-              </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setStatus('RECEIVED')}
+                  className="w-full h-12 text-blue-700 border-blue-300 hover:bg-blue-50 hover:border-blue-400"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Mark as Received
+                </Button>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 pt-6 border-t">
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+        <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+          <Button 
+            variant="outline" 
+            onClick={onClose} 
+            disabled={isSubmitting}
+            className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
             Cancel
           </Button>
           <Button 
             onClick={handleStatusUpdate} 
             disabled={isSubmitting || !status}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
           >
             {isSubmitting ? 'Updating...' : 'Update Status'}
           </Button>

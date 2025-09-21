@@ -32,6 +32,7 @@ export function CommunicationList({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterCustomer, setFilterCustomer] = useState<string>('all');
+  const [filterQuotation, setFilterQuotation] = useState<string>('all');
 
   const { data: communications, isLoading, refetch } = api.communication.getAll.useQuery();
   const { data: customers } = api.customer.getAll.useQuery();
@@ -91,12 +92,16 @@ export function CommunicationList({
       comm.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
       comm.customer?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (comm.contact?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (comm.description ?? '').toLowerCase().includes(searchTerm.toLowerCase());
+      (comm.description ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (comm.enquiry?.quotationNumber ?? '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesType = filterType === 'all' || comm.type === filterType;
     const matchesCustomer = filterCustomer === 'all' || comm.customerId === filterCustomer;
+    const matchesQuotation = filterQuotation === 'all' || 
+      (filterQuotation === 'with' && (comm.enquiry?.quotationNumber ?? false)) ||
+      (filterQuotation === 'without' && !comm.enquiry?.quotationNumber);
 
-    return matchesSearch && matchesType && matchesCustomer;
+    return matchesSearch && matchesType && matchesCustomer && matchesQuotation;
   }) ?? [];
 
   const handleDelete = (communication: Communication) => {
@@ -133,7 +138,7 @@ export function CommunicationList({
 
       {/* Filters */}
       <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -178,6 +183,19 @@ export function CommunicationList({
             </select>
           </div>
 
+          {/* Quotation Filter */}
+          <div>
+            <select
+              value={filterQuotation}
+              onChange={(e) => setFilterQuotation(e.target.value)}
+              className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="all">All Communications</option>
+              <option value="with">With Quotation #</option>
+              <option value="without">Without Quotation #</option>
+            </select>
+          </div>
+
           {/* Results Count */}
           <div className="flex items-center justify-end">
             <span className="text-sm text-gray-600">
@@ -216,7 +234,7 @@ export function CommunicationList({
                     {communication.subject}
                   </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-3">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Building className="h-4 w-4" />
                       <span>{communication.customer?.name}</span>
@@ -233,6 +251,20 @@ export function CommunicationList({
                           : 'No follow-up scheduled'
                         }
                       </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      {communication.enquiry?.quotationNumber ? (
+                        <>
+                          <span className="font-medium text-blue-600">Q#</span>
+                          <span className="font-mono text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                            {communication.enquiry.quotationNumber}
+                          </span>
+                        </>
+                      ) : communication.enquiry ? (
+                        <span className="text-gray-400 italic">No Quotation #</span>
+                      ) : (
+                        <span className="text-gray-400 italic">No Enquiry Link</span>
+                      )}
                     </div>
                   </div>
 

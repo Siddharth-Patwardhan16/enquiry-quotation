@@ -8,7 +8,7 @@ interface RecentEnquiry {
   };
   marketingPerson: {
     name: string;
-  };
+  } | null;
 }
 
 interface RecentQuotation {

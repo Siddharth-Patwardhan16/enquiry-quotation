@@ -57,6 +57,30 @@ export const tasksRouter = createTRPCRouter({
       orderBy: { nextCommunicationDate: 'asc' },
     });
 
+    // Fetch enquiry information for communications that have enquiryRelated
+    const communicationsWithEnquiry = await Promise.all(
+      allCommunications.map(async (comm) => {
+        if (comm.enquiryRelated) {
+          const enquiry = await db.enquiry.findUnique({
+            where: { id: parseInt(comm.enquiryRelated) },
+            select: {
+              id: true,
+              quotationNumber: true,
+              subject: true,
+            },
+          });
+          return {
+            ...comm,
+            enquiry: enquiry,
+          };
+        }
+        return {
+          ...comm,
+          enquiry: null,
+        };
+      })
+    );
+
     // 3. Transform both data sets into a unified "Task" format
     const quotationTasks: UnifiedTask[] = activeQuotations.map(q => {
       // Determine priority based on status and age
@@ -79,7 +103,7 @@ export const tasksRouter = createTRPCRouter({
       };
     });
 
-    const communicationTasks: UnifiedTask[] = allCommunications.map(c => {
+    const communicationTasks: UnifiedTask[] = communicationsWithEnquiry.map(c => {
       const meetingType = c.type === 'VIRTUAL_MEETING' ? 'Video Call' :
                          c.type === 'TELEPHONIC' ? 'Phone Call' :
                          c.type === 'EMAIL' ? 'Email' :
@@ -87,7 +111,8 @@ export const tasksRouter = createTRPCRouter({
                          c.type === 'OFFICE_VISIT' ? 'Office Visit' : c.type;
       
       const contactInfo = c.contact ? ` with ${c.contact.name}` : '';
-      const taskDescription = `${meetingType}${contactInfo} - ${c.proposedNextAction ?? c.subject ?? 'Follow up required'}`;
+      const quotationInfo = c.enquiry?.quotationNumber ? ` (Q#${c.enquiry.quotationNumber})` : '';
+      const taskDescription = `${meetingType}${contactInfo}${quotationInfo} - ${c.proposedNextAction ?? c.subject ?? 'Follow up required'}`;
       
       // Determine priority and status based on due date
       const dueDate = c.nextCommunicationDate!;
@@ -204,7 +229,7 @@ export const tasksRouter = createTRPCRouter({
           status: 'pending' as const,
           customerName: enquiry.customer.name,
           description: enquiry.description ?? enquiry.requirements ?? 'Follow up required',
-          assignedTo: enquiry.marketingPerson.name,
+          assignedTo: enquiry.marketingPerson?.name ?? 'Unassigned',
           sourceId: enquiry.id,
           sourceType: 'enquiry',
           createdAt: enquiry.createdAt,

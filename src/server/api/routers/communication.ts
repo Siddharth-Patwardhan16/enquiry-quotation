@@ -24,7 +24,7 @@ export const communicationRouter = createTRPCRouter({
   // Get all communications with related data
   getAll: publicProcedure.query(async () => {
     try {
-      return await db.communication.findMany({
+      const communications = await db.communication.findMany({
         orderBy: { createdAt: 'desc' },
         include: {
           customer: {
@@ -54,6 +54,32 @@ export const communicationRouter = createTRPCRouter({
           },
         },
       });
+
+      // Fetch enquiry information for communications that have enquiryRelated
+      const communicationsWithEnquiry = await Promise.all(
+        communications.map(async (comm) => {
+          if (comm.enquiryRelated) {
+            const enquiry = await db.enquiry.findUnique({
+              where: { id: parseInt(comm.enquiryRelated) },
+              select: {
+                id: true,
+                quotationNumber: true,
+                subject: true,
+              },
+            });
+            return {
+              ...comm,
+              enquiry: enquiry,
+            };
+          }
+          return {
+            ...comm,
+            enquiry: null,
+          };
+        })
+      );
+
+      return communicationsWithEnquiry;
     } catch (error) {
       console.error('Error fetching communications:', error);
       throw new TRPCError({
@@ -128,13 +154,6 @@ export const communicationRouter = createTRPCRouter({
           where: { role: 'MARKETING' },
         });
 
-        if (!employee) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'No marketing employee found in the database. Please add an employee first.',
-          });
-        }
-
         const communication = await db.communication.create({
           data: {
             subject: input.subject,
@@ -145,7 +164,7 @@ export const communicationRouter = createTRPCRouter({
             proposedNextAction: input.proposedNextAction,
             customerId: input.customerId,
             ...(input.contactId && { contactId: input.contactId }),
-            employeeId: employee.id,
+            employeeId: employee?.id ?? null,
           },
           include: {
             customer: {
@@ -420,5 +439,43 @@ export const communicationRouter = createTRPCRouter({
       });
     }
   }),
+
+  // Update communication status
+  updateStatus: publicProcedure
+    .input(z.object({
+      id: z.string(),
+      status: z.enum(['SCHEDULED', 'COMPLETED', 'CANCELLED', 'RESCHEDULED', 'FOLLOW_UP_REQUIRED', 'WON', 'LOST']),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        const updatedCommunication = await db.communication.update({
+          where: { id: input.id },
+          data: { status: input.status },
+          include: {
+            customer: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            contact: {
+              select: {
+                id: true,
+                name: true,
+                designation: true,
+              },
+            },
+          },
+        });
+
+        return updatedCommunication;
+      } catch (error) {
+        console.error('Error updating communication status:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to update communication status',
+        });
+      }
+    }),
 });
 

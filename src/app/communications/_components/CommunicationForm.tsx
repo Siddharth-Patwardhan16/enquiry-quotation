@@ -72,12 +72,13 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
   });
 
   const watchedCustomerId = watch('customerId');
+  const watchedEnquiryRelated = watch('enquiryRelated');
 
     // Filter contacts based on selected customer (unused for now)
   // const filteredContacts = contacts?.filter((contact: { customerId: string }) => contact.customerId === watchedCustomerId) || [];
   
   // Filter enquiries based on selected customer
-  const filteredEnquiries = enquiries?.filter((enquiry: { customerId: string; id: number; subject: string }) => enquiry.customerId === watchedCustomerId) ?? [];
+  const filteredEnquiries = enquiries?.filter((enquiry: { customerId: string; id: number; subject: string; quotationNumber?: string | null }) => enquiry.customerId === watchedCustomerId) ?? [];
 
   // Update customer info when selection changes
   useEffect(() => {
@@ -265,9 +266,9 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
                 disabled={!watchedCustomerId}
               >
                 <option value="">Select Enquiry (Optional)</option>
-                {filteredEnquiries.map((enquiry: { id: number; subject: string }) => (
+                {filteredEnquiries.map((enquiry: { id: number; subject: string; quotationNumber?: string | null }) => (
                   <option key={enquiry.id} value={enquiry.id}>
-                    {enquiry.subject}
+                    {enquiry.quotationNumber ? `Q#${enquiry.quotationNumber} - ${enquiry.subject}` : enquiry.subject}
                   </option>
                 ))}
               </select>
@@ -275,14 +276,29 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                3.2 Enquiry Notes
+                3.2 Selected Enquiry Details
               </label>
-              <textarea
-                {...register('enquiryRelated')}
-                placeholder="Additional enquiry details or notes for tracking purposes"
-                rows={3}
-                className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+              <div className="p-3 bg-gray-50 rounded-md border">
+                {watchedEnquiryRelated ? (
+                  (() => {
+                    const selectedEnquiry = filteredEnquiries.find((enquiry: { id: number; subject: string; quotationNumber?: string | null }) => enquiry.id === parseInt(watchedEnquiryRelated));
+                    return selectedEnquiry ? (
+                      <div className="text-sm text-gray-700">
+                        <div className="font-medium text-gray-900 mb-1">
+                          {selectedEnquiry.quotationNumber ? `Quotation #${selectedEnquiry.quotationNumber}` : 'No Quotation Number'}
+                        </div>
+                        <div className="text-gray-600">
+                          {selectedEnquiry.subject}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-gray-500">Enquiry not found</span>
+                    );
+                  })()
+                ) : (
+                  <span className="text-gray-500">Select an enquiry to view details</span>
+                )}
+              </div>
             </div>
           </div>
 

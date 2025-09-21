@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar, Clock, AlertCircle, CheckCircle, FileText, MessageSquare, Settings } from 'lucide-react';
 import { MeetingManagementModal } from './_components/MeetingManagementModal';
 import { QuotationStatusModal } from './_components/QuotationStatusModal';
+import { CommunicationStatusModal } from './_components/CommunicationStatusModal';
 
 // Define the task type based on the API response
 type Task = {
@@ -26,6 +27,7 @@ export default function TasksPage() {
   // State for modals
   const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [showQuotationModal, setShowQuotationModal] = useState(false);
+  const [showCommunicationStatusModal, setShowCommunicationStatusModal] = useState(false);
   const [selectedCommunicationId, setSelectedCommunicationId] = useState<string>('');
   const [selectedQuotationId, setSelectedQuotationId] = useState<string>('');
 
@@ -75,6 +77,14 @@ export default function TasksPage() {
         return 'bg-red-100 text-red-800 border-red-200';
       case 'SCHEDULED':
         return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'COMPLETED':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'CANCELLED':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'RESCHEDULED':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'FOLLOW_UP_REQUIRED':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -135,9 +145,15 @@ export default function TasksPage() {
     setShowQuotationModal(true);
   };
 
+  const handleUpdateCommunicationStatus = (communicationId: string) => {
+    setSelectedCommunicationId(communicationId);
+    setShowCommunicationStatusModal(true);
+  };
+
   const handleModalClose = () => {
     setShowMeetingModal(false);
     setShowQuotationModal(false);
+    setShowCommunicationStatusModal(false);
     setSelectedCommunicationId('');
     setSelectedQuotationId('');
   };
@@ -186,70 +202,79 @@ export default function TasksPage() {
 
 
   return (
-    <main className="p-4 md:p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Task Management</h1>
-        <p className="text-muted-foreground mt-2">
+    <main className="p-4 md:p-6 lg:p-8">
+      <div className="mb-6 lg:mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Task Management</h1>
+        <p className="text-muted-foreground mt-2 text-sm md:text-base">
           Manage your active quotations and communications in one place.
         </p>
       </div>
 
       {/* Filter Controls */}
       <div className="mb-6 bg-white rounded-lg border p-4">
-        <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-700">Type:</label>
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value as 'all' | 'QUOTATION' | 'COMMUNICATION')}
-              className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">All Types</option>
-              <option value="QUOTATION">Quotations</option>
-              <option value="COMMUNICATION">Communications</option>
-            </select>
+        <div className="space-y-4">
+          {/* Mobile-first responsive grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">Type</label>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value as 'all' | 'QUOTATION' | 'COMMUNICATION')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Types</option>
+                <option value="QUOTATION">Quotations</option>
+                <option value="COMMUNICATION">Communications</option>
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">Status</label>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as 'all' | 'overdue' | 'today' | 'upcoming')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Status</option>
+                <option value="overdue">Overdue</option>
+                <option value="today">Due Today</option>
+                <option value="upcoming">Upcoming</option>
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">Priority</label>
+              <select
+                value={filterPriority}
+                onChange={(e) => setFilterPriority(e.target.value as 'all' | 'high' | 'medium' | 'low')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Priorities</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">Actions</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setFilterType('all');
+                    setFilterStatus('all');
+                    setFilterPriority('all');
+                  }}
+                  className="flex-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-700">Status:</label>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as 'all' | 'overdue' | 'today' | 'upcoming')}
-              className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">All Status</option>
-              <option value="overdue">Overdue</option>
-              <option value="today">Due Today</option>
-              <option value="upcoming">Upcoming</option>
-
-            </select>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-700">Priority:</label>
-            <select
-              value={filterPriority}
-              onChange={(e) => setFilterPriority(e.target.value as 'all' | 'high' | 'medium' | 'low')}
-              className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">All Priorities</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => {
-                setFilterType('all');
-                setFilterStatus('all');
-                setFilterPriority('all');
-              }}
-              className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-            >
-              Clear Filters
-            </button>
+          {/* Results count - full width on mobile */}
+          <div className="flex justify-between items-center pt-2 border-t border-gray-200">
             <div className="text-sm text-gray-600">
               Showing {filteredTasks.length} of {tasks?.length ?? 0} tasks
             </div>
@@ -332,120 +357,252 @@ export default function TasksPage() {
               <p className="text-gray-500 text-sm">No tasks match your current filters</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="p-4 font-semibold text-gray-900">Due Date</th>
-                    <th className="p-4 font-semibold text-gray-900">Type</th>
-                    <th className="p-4 font-semibold text-gray-900">Customer</th>
-                    <th className="p-4 font-semibold text-gray-900">Task Description</th>
-                    <th className="p-4 font-semibold text-gray-900">Status</th>
-                    <th className="p-4 font-semibold text-gray-900">Priority</th>
-                    <th className="p-4 font-semibold text-gray-900">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTasks.map((task: Task) => (
-                    <tr 
-                      key={`${task.type}-${task.id}`} 
-                      className="border-b border-gray-100 last:border-none hover:bg-gray-50 transition-all duration-200 bg-white"
-                    >
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          {isOverdue(task.dueDate) ? (
-                            <div className="p-2 bg-red-100 rounded-full">
-                              <AlertCircle className="w-4 h-4 text-red-600" />
-                            </div>
-                          ) : (
-                            <div className="p-2 bg-emerald-100 rounded-full">
-                              <Clock className="w-4 h-4 text-emerald-600" />
-                            </div>
-                          )}
-                          <span className={`font-medium ${
-                            isOverdue(task.dueDate) 
-                              ? 'text-red-700' 
-                              : 'text-emerald-700'
-                          }`}>
-                            {formatDate(task.dueDate)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border shadow-sm ${getTypeColor(task.type)}`}>
-                          {getTypeIcon(task.type)}
-                          {task.type}
-                        </div>
-                      </td>
-                      <td className="p-4 font-medium text-gray-900">{task.customerName}</td>
-                      <td className="p-4">
-                        <Link 
-                          href={task.link} 
-                          className="text-primary hover:underline font-medium hover:text-primary/80 transition-colors"
-                        >
-                          {task.taskDescription}
-                        </Link>
-                      </td>
-                      <td className="p-4">
-                        <Badge 
-                          variant="outline" 
-                          className={`text-xs font-medium shadow-sm ${getStatusColor(task.status)}`}
-                        >
-                          {task.status}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        <Badge 
-                          className={`px-2 py-1 text-xs font-medium text-white border-0 shadow-sm ${
-                            task.priority === 'high' 
-                              ? 'bg-gradient-to-r from-red-500 to-red-600' 
-                              : task.priority === 'medium' 
-                              ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' 
-                              : 'bg-gradient-to-r from-green-500 to-green-600'
-                          }`}
-                        >
-                          {task.priority}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center space-x-2">
-                          {task.type === 'COMMUNICATION' ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleManageMeeting(task.id)}
-                              className="text-blue-600 border-blue-300 hover:bg-blue-50"
-                            >
-                              <Settings className="h-3 w-3 mr-1" />
-                              Manage
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleUpdateQuotationStatus(task.id)}
-                              className="text-purple-600 border-purple-300 hover:bg-purple-50"
-                            >
-                              <Settings className="h-3 w-3 mr-1" />
-                              Update Status
-                            </Button>
-                          )}
-                          <Link href={task.link}>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-gray-600 border-gray-300 hover:bg-gray-50"
-                            >
-                              View
-                            </Button>
-                          </Link>
-                        </div>
-                      </td>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="p-4 font-semibold text-gray-900">Due Date</th>
+                      <th className="p-4 font-semibold text-gray-900">Type</th>
+                      <th className="p-4 font-semibold text-gray-900">Customer</th>
+                      <th className="p-4 font-semibold text-gray-900">Task Description</th>
+                      <th className="p-4 font-semibold text-gray-900">Status</th>
+                      <th className="p-4 font-semibold text-gray-900">Priority</th>
+                      <th className="p-4 font-semibold text-gray-900">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {filteredTasks.map((task: Task) => (
+                      <tr 
+                        key={`${task.type}-${task.id}`} 
+                        className="border-b border-gray-100 last:border-none hover:bg-gray-50 transition-all duration-200 bg-white"
+                      >
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            {isOverdue(task.dueDate) ? (
+                              <div className="p-2 bg-red-100 rounded-full">
+                                <AlertCircle className="w-4 h-4 text-red-600" />
+                              </div>
+                            ) : (
+                              <div className="p-2 bg-emerald-100 rounded-full">
+                                <Clock className="w-4 h-4 text-emerald-600" />
+                              </div>
+                            )}
+                            <span className={`font-medium ${
+                              isOverdue(task.dueDate) 
+                                ? 'text-red-700' 
+                                : 'text-emerald-700'
+                            }`}>
+                              {formatDate(task.dueDate)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border shadow-sm ${getTypeColor(task.type)}`}>
+                            {getTypeIcon(task.type)}
+                            {task.type}
+                          </div>
+                        </td>
+                        <td className="p-4 font-medium text-gray-900">{task.customerName}</td>
+                        <td className="p-4">
+                          <Link 
+                            href={task.link} 
+                            className="text-primary hover:underline font-medium hover:text-primary/80 transition-colors"
+                          >
+                            {task.taskDescription}
+                          </Link>
+                        </td>
+                        <td className="p-4">
+                          <Badge 
+                            variant="outline" 
+                            className={`text-xs font-medium shadow-sm ${getStatusColor(task.status)}`}
+                          >
+                            {task.status}
+                          </Badge>
+                        </td>
+                        <td className="p-4">
+                          <Badge 
+                            className={`px-2 py-1 text-xs font-medium text-white border-0 shadow-sm ${
+                              task.priority === 'high' 
+                                ? 'bg-gradient-to-r from-red-500 to-red-600' 
+                                : task.priority === 'medium' 
+                                ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' 
+                                : 'bg-gradient-to-r from-green-500 to-green-600'
+                            }`}
+                          >
+                            {task.priority}
+                          </Badge>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center space-x-2">
+                            {task.type === 'COMMUNICATION' ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleManageMeeting(task.id)}
+                                  className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                                >
+                                  <Settings className="h-3 w-3 mr-1" />
+                                  Manage
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleUpdateCommunicationStatus(task.id)}
+                                  className="text-emerald-600 border-emerald-300 hover:bg-emerald-50"
+                                >
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Update Status
+                                </Button>
+                              </>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleUpdateQuotationStatus(task.id)}
+                                className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                              >
+                                <Settings className="h-3 w-3 mr-1" />
+                                Update Status
+                              </Button>
+                            )}
+                            <Link href={task.link}>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-gray-600 border-gray-300 hover:bg-gray-50"
+                              >
+                                View
+                              </Button>
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="lg:hidden space-y-4">
+                {filteredTasks.map((task: Task) => (
+                  <div 
+                    key={`${task.type}-${task.id}`} 
+                    className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
+                  >
+                    {/* Header with date and type */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        {isOverdue(task.dueDate) ? (
+                          <div className="p-2 bg-red-100 rounded-full">
+                            <AlertCircle className="w-4 h-4 text-red-600" />
+                          </div>
+                        ) : (
+                          <div className="p-2 bg-emerald-100 rounded-full">
+                            <Clock className="w-4 h-4 text-emerald-600" />
+                          </div>
+                        )}
+                        <span className={`font-medium text-sm ${
+                          isOverdue(task.dueDate) 
+                            ? 'text-red-700' 
+                            : 'text-emerald-700'
+                        }`}>
+                          {formatDate(task.dueDate)}
+                        </span>
+                      </div>
+                      <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border shadow-sm ${getTypeColor(task.type)}`}>
+                        {getTypeIcon(task.type)}
+                        {task.type}
+                      </div>
+                    </div>
+
+                    {/* Task description */}
+                    <div className="mb-3">
+                      <Link 
+                        href={task.link} 
+                        className="text-primary hover:underline font-medium hover:text-primary/80 transition-colors text-sm"
+                      >
+                        {task.taskDescription}
+                      </Link>
+                    </div>
+
+                    {/* Customer */}
+                    <div className="mb-3">
+                      <span className="text-xs font-medium text-gray-500">Customer:</span>
+                      <p className="text-sm text-gray-900 font-medium">{task.customerName}</p>
+                    </div>
+
+                    {/* Status and Priority */}
+                    <div className="flex items-center gap-2 mb-4">
+                      <Badge 
+                        variant="outline" 
+                        className={`text-xs font-medium shadow-sm ${getStatusColor(task.status)}`}
+                      >
+                        {task.status}
+                      </Badge>
+                      <Badge 
+                        className={`px-2 py-1 text-xs font-medium text-white border-0 shadow-sm ${
+                          task.priority === 'high' 
+                            ? 'bg-gradient-to-r from-red-500 to-red-600' 
+                            : task.priority === 'medium' 
+                            ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' 
+                            : 'bg-gradient-to-r from-green-500 to-green-600'
+                        }`}
+                      >
+                        {task.priority}
+                      </Badge>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-wrap gap-2">
+                      {task.type === 'COMMUNICATION' ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleManageMeeting(task.id)}
+                            className="text-blue-600 border-blue-300 hover:bg-blue-50 text-xs"
+                          >
+                            <Settings className="h-3 w-3 mr-1" />
+                            Manage
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleUpdateCommunicationStatus(task.id)}
+                            className="text-emerald-600 border-emerald-300 hover:bg-emerald-50 text-xs"
+                          >
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Update Status
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleUpdateQuotationStatus(task.id)}
+                          className="text-purple-600 border-purple-300 hover:bg-purple-50 text-xs"
+                        >
+                          <Settings className="h-3 w-3 mr-1" />
+                          Update Status
+                        </Button>
+                      )}
+                      <Link href={task.link}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-gray-600 border-gray-300 hover:bg-gray-50 text-xs"
+                        >
+                          View
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -463,6 +620,14 @@ export default function TasksPage() {
         isOpen={showQuotationModal}
         onClose={handleModalClose}
         quotationId={selectedQuotationId}
+        onSuccess={handleModalSuccess}
+      />
+
+      {/* Communication Status Modal */}
+      <CommunicationStatusModal
+        isOpen={showCommunicationStatusModal}
+        onClose={handleModalClose}
+        communicationId={selectedCommunicationId}
         onSuccess={handleModalSuccess}
       />
     </main>

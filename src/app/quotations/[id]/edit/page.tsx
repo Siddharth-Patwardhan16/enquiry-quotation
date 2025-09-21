@@ -11,7 +11,6 @@ export default function EditQuotationPage() {
   const quotationId = params.id as string;
   
   const [formData, setFormData] = useState({
-    quotationNumber: '',
     revisionNumber: 0,
     quotationDate: '',
     validityPeriod: '',
@@ -46,7 +45,6 @@ export default function EditQuotationPage() {
   useEffect(() => {
     if (quotation) {
       setFormData({
-        quotationNumber: quotation.quotationNumber,
         revisionNumber: quotation.revisionNumber || 0,
         quotationDate: quotation.quotationDate ? new Date(quotation.quotationDate).toISOString().split('T')[0] : '',
         validityPeriod: quotation.validityPeriod ? new Date(quotation.validityPeriod).toISOString().split('T')[0] : '',
@@ -109,7 +107,6 @@ export default function EditQuotationPage() {
       await updateQuotationMutation.mutateAsync({
         id: quotationId,
         enquiryId: quotation.enquiryId,
-        quotationNumber: formData.quotationNumber,
         revisionNumber: formData.revisionNumber,
         quotationDate: formData.quotationDate,
         validityPeriod: formData.validityPeriod,
@@ -177,15 +174,14 @@ export default function EditQuotationPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Quotation Number *
+                Quotation Number
               </label>
-              <input
-                type="text"
-                value={formData.quotationNumber}
-                onChange={(e) => handleInputChange('quotationNumber', e.target.value)}
-                className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
+              <div className="w-full rounded-md border border-gray-300 p-2 bg-gray-50 text-gray-700">
+                {quotation?.quotationNumber || 'Loading...'}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Quotation number is assigned from the enquiry and cannot be changed
+              </p>
             </div>
             
             <div>

@@ -14,14 +14,7 @@ import type { inferRouterOutputs } from '@trpc/server';
 // Use the same type as other enquiry components
 type Enquiry = inferRouterOutputs<AppRouter>['enquiry']['getAll'][0];
 
-// Generate a unique quotation number
-const generateQuotationNumber = (): string => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const timestamp = now.getTime().toString().slice(-6);
-  return `Q${year}${month}${timestamp}`;
-};
+// Quotation number will be auto-assigned from the selected enquiry
 
 type FormData = z.infer<typeof CreateQuotationSchema>;
 
@@ -29,8 +22,6 @@ export default function NewQuotationPage() {
   const router = useRouter();
   const [customPaymentPlan, setCustomPaymentPlan] = useState<string>('');
   const [customPaymentError, setCustomPaymentError] = useState<string>('');
-  const [quotationNumberError, setQuotationNumberError] = useState<string>('');
-  const [isCheckingQuotationNumber, setIsCheckingQuotationNumber] = useState(false);
   
   // Fetch enquiries to populate the dropdown
   const { data: enquiries, isLoading: isLoadingEnquiries } = api.enquiry.getAll.useQuery();
@@ -45,7 +36,6 @@ export default function NewQuotationPage() {
   } = useForm({
     resolver: zodResolver(CreateQuotationSchema),
     defaultValues: {
-      quotationNumber: generateQuotationNumber(),
       currency: 'INR',
       revisionNumber: 0,
       transportCosts: 0,
@@ -56,20 +46,16 @@ export default function NewQuotationPage() {
     },
   });
 
+  // Watch the selected enquiry to get its quotation number
+  const selectedEnquiryId = watch('enquiryId');
+  const selectedEnquiry = enquiries?.find(e => e.id === selectedEnquiryId);
+  
   // Watch the items to calculate totals in real-time
-      const watchedItems = watch('items') ?? [];
-    const currency = watch('currency') ?? 'INR';
+  const watchedItems = watch('items') ?? [];
+  const currency = watch('currency') ?? 'INR';
   const watchedPaymentTerms = watch('paymentTerms');
   
-  // Check for duplicate quotation numbers
-  const checkDuplicateQuotationNumber = api.quotation.checkDuplicateNumber.useMutation();
-  
-  // Debug: Log when the mutation changes
-  console.log('TRPC Mutation State:', {
-    data: checkDuplicateQuotationNumber.data,
-    isPending: checkDuplicateQuotationNumber.isPending,
-    error: checkDuplicateQuotationNumber.error,
-  });
+  // Quotation number will be auto-assigned from the selected enquiry
 
   // Calculate totals
   const totalBasicPrice = watchedItems.reduce((sum, item) => {
@@ -137,40 +123,7 @@ export default function NewQuotationPage() {
     }
   };
 
-  // Handle quotation number change and check for duplicates
-  const handleQuotationNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    console.log('Quotation number changed to:', value); // Debug log
-    setQuotationNumberError(''); // Clear previous errors
-    
-    if (value.trim()) {
-      setIsCheckingQuotationNumber(true);
-      console.log('Checking for duplicates...'); // Debug log
-      // Use a timeout to debounce the API call
-      setTimeout(() => {
-        checkDuplicateQuotationNumber.mutate(
-          { quotationNumber: value },
-          {
-            onSuccess: (result) => {
-              console.log('Duplicate check result:', result); // Debug log
-              if (result?.exists) {
-                const errorMsg = `Quotation number "${value}" already exists. Please use a different number.`;
-                console.log('Setting error:', errorMsg); // Debug log
-                setQuotationNumberError(errorMsg);
-              }
-              setIsCheckingQuotationNumber(false);
-            },
-            onError: (error) => {
-              console.error('Error checking duplicate:', error);
-              setIsCheckingQuotationNumber(false);
-            }
-          }
-        );
-      }, 500); // 500ms delay
-    } else {
-      setIsCheckingQuotationNumber(false);
-    }
-  };
+  // Quotation number is auto-assigned from the selected enquiry
 
   // Generate payment plan details for custom plans
   const generateCustomPaymentDetails = (percentages: number[]) => {
@@ -218,10 +171,6 @@ export default function NewQuotationPage() {
   });
 
   const onSubmit = (data: FormData) => {
-    // Prevent submission if there's a duplicate quotation number error
-    if (quotationNumberError) {
-      return;
-    }
     createQuotation.mutate(data);
   };
 
@@ -239,46 +188,14 @@ export default function NewQuotationPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Quotation Number <span className="text-red-500">*</span>
+                Quotation Number
               </label>
-              <div className="flex gap-2">
-                <div className="flex-1 relative">
-                  <input 
-                    {...register('quotationNumber')} 
-                    onChange={handleQuotationNumberChange}
-                    placeholder="e.g., QT-2024-001"
-                    className={`w-full rounded-md border p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      quotationNumberError ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  />
-                  {(isCheckingQuotationNumber || checkDuplicateQuotationNumber.isPending) && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                    </div>
-                  )}
-                  {!isCheckingQuotationNumber && !quotationNumberError && watch('quotationNumber') && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <div className="text-green-600">✓</div>
-                    </div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newNumber = generateQuotationNumber();
-                    setValue('quotationNumber', newNumber);
-                    setQuotationNumberError(''); // Clear any existing errors
-                  }}
-                  className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-md"
-                  title="Generate new quotation number"
-                >
-                  🔄
-                </button>
+              <div className="w-full rounded-md border border-gray-300 p-2 bg-gray-50 text-gray-700">
+                {selectedEnquiry?.quotationNumber ?? 'Select an enquiry to auto-assign quotation number'}
               </div>
-              {quotationNumberError && (
-                <p className="text-red-500 text-sm mt-1">{quotationNumberError}</p>
-              )}
-              {errors.quotationNumber && <p className="text-red-500 text-sm mt-1">{errors.quotationNumber.message}</p>}
+              <p className="text-xs text-gray-500 mt-1">
+                Quotation number is automatically assigned from the selected enquiry
+              </p>
             </div>
             
             <div>
@@ -505,6 +422,7 @@ export default function NewQuotationPage() {
                 </label>
                 <select 
                   {...register('packingForwardingPercentage')} 
+                  defaultValue="3"
                   className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="0">0%</option>
@@ -513,7 +431,7 @@ export default function NewQuotationPage() {
                   <option value="1.5">1.5%</option>
                   <option value="2">2%</option>
                   <option value="2.5">2.5%</option>
-                  <option value="3" selected>3%</option>
+                  <option value="3">3%</option>
                   <option value="3.5">3.5%</option>
                   <option value="4">4%</option>
                   <option value="4.5">4.5%</option>
@@ -682,7 +600,7 @@ export default function NewQuotationPage() {
         <div className="flex justify-end">
           <button 
             type="submit" 
-            disabled={createQuotation.isPending || !!quotationNumberError} 
+            disabled={createQuotation.isPending} 
             className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-6 py-3 text-white font-medium hover:bg-blue-700 disabled:opacity-50"
           >
             <Save className="h-4 w-4" />

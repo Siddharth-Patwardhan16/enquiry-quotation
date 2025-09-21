@@ -10,7 +10,29 @@ export const quotationRouter = createTRPCRouter({
   create: publicProcedure
     .input(CreateQuotationSchema)
     .mutation(async ({ input }) => {
-      const { enquiryId, quotationNumber, items, quotationDate, validityPeriod, ...rest } = input;
+      const { enquiryId, items, quotationDate, validityPeriod, ...rest } = input;
+
+      // Get the enquiry to retrieve its quotation number
+      const enquiry = await db.enquiry.findUnique({
+        where: { id: enquiryId },
+        select: { quotationNumber: true, subject: true }
+      });
+
+      if (!enquiry) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Enquiry not found',
+        });
+      }
+
+      if (!enquiry.quotationNumber) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Selected enquiry does not have a quotation number assigned',
+        });
+      }
+
+      const quotationNumber = enquiry.quotationNumber;
 
       // Check for duplicate quotation number before creating
       const existingQuotation = await db.quotation.findUnique({
@@ -174,7 +196,29 @@ export const quotationRouter = createTRPCRouter({
   update: publicProcedure
     .input(CreateQuotationSchema.extend({ id: z.string() }))
     .mutation(async ({ input }) => {
-      const { id, enquiryId, quotationNumber, items, quotationDate, validityPeriod, ...rest } = input;
+      const { id, enquiryId, items, quotationDate, validityPeriod, ...rest } = input;
+
+      // Get the enquiry to retrieve its quotation number
+      const enquiry = await db.enquiry.findUnique({
+        where: { id: enquiryId },
+        select: { quotationNumber: true, subject: true }
+      });
+
+      if (!enquiry) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Enquiry not found',
+        });
+      }
+
+      if (!enquiry.quotationNumber) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Selected enquiry does not have a quotation number assigned',
+        });
+      }
+
+      const quotationNumber = enquiry.quotationNumber;
 
       // Check for duplicate quotation number (excluding current quotation)
       const existingQuotation = await db.quotation.findFirst({
