@@ -19,8 +19,7 @@ export function UserSyncProvider({ children }: { children: React.ReactNode }) {
         name: fullName,
         role: 'MARKETING', // Default role
       }, {
-        onSuccess: (data) => {
-          console.log('Employee created successfully:', data);
+        onSuccess: (_data) => {
         },
         onError: (error) => {
           console.error('Failed to create employee:', error);

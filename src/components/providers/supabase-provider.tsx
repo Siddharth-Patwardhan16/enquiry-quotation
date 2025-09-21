@@ -71,7 +71,6 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       (event, session) => {
         if (!mounted) return
 
-        console.log('Auth state change:', event, session?.user?.email)
         
         try {
           switch (event) {

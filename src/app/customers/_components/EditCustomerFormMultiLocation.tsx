@@ -1,48 +1,10 @@
 'use client';
 
 import { useForm, useFieldArray } from 'react-hook-form';
-// import { zodResolver } from '@hookform/resolvers/zod'; // Temporarily disabled
-// import { z } from 'zod'; // Temporarily disabled
 import { api } from '@/trpc/client';
 import { Save, X, Building, Factory, Package, Info, Plus, Trash2 } from 'lucide-react';
-// import { useEffect, useState } from 'react'; // Unused imports commented out
 import { useToast } from '@/components/ui/toast';
 
-// Validation schema for the edit form
-// const EditCustomerMultiLocationSchema = z.object({
-//   id: z.string().uuid(),
-//   name: z.string().min(2, 'Customer name is required'),
-//   isNew: z.boolean(),
-//   offices: z.array(z.object({
-//     id: z.string().uuid().optional(),
-//     name: z.string().min(2, 'Office name is required'),
-//     address: z.string().optional(),
-//     city: z.string().optional(),
-//     state: z.string().optional(),
-//     country: z.string().optional(),
-//     receptionNumber: z.string().optional(),
-//   })).min(1, 'At least one office is required'),
-//   plants: z.array(z.object({
-//     id: z.string().uuid().optional(),
-//     name: z.string().min(2, 'Plant name is required'),
-//     address: z.string().optional(),
-//     city: z.string().optional(),
-//     state: z.string().optional(),
-//     country: z.string().optional(),
-//     receptionNumber: z.string().optional(),
-//   })).default([]),
-//   // PO Information
-//   poRuptureDiscs: z.boolean(),
-//   poThermowells: z.boolean(),
-//   poHeatExchanger: z.boolean(),
-//   poMiscellaneous: z.boolean(),
-//   poWaterJetSteamJet: z.boolean(),
-//   // Supplier Information
-//   existingGraphiteSuppliers: z.string().optional(),
-//   problemsFaced: z.string().optional(),
-// });
-
-// type FormData = z.infer<typeof EditCustomerMultiLocationSchema>; // Temporarily disabled
 type FormData = {
   id: string;
   name: string;

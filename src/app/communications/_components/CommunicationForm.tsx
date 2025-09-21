@@ -79,7 +79,6 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
   const watchedEnquiryRelated = watch('enquiryRelated');
 
     // Filter contacts based on selected customer (unused for now)
-  // const filteredContacts = contacts?.filter((contact: { customerId: string }) => contact.customerId === watchedCustomerId) || [];
   
   // Filter enquiries based on selected customer
   const filteredEnquiries = enquiries?.filter((enquiry: { customerId: string; id: number; subject: string; quotationNumber?: string | null }) => enquiry.customerId === watchedCustomerId) ?? [];
@@ -111,7 +110,6 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
 
   const createCommunication = api.communication.create.useMutation({
     onSuccess: () => {
-      console.log('Communication created successfully');
       success('Communication Created', 'The communication has been successfully created.');
       setIsSubmitting(false);
       setSelectedCustomer(null);
@@ -184,14 +182,11 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
   });
 
   const onSubmit = (data: FormData) => {
-    console.log('Form submission data:', data);
     setIsSubmitting(true);
     
     if (mode === 'edit' && initialData?.id) {
-      console.log('Updating communication:', { id: initialData.id, ...data });
       updateCommunication.mutate({ id: initialData.id, ...data });
     } else {
-      console.log('Creating new communication:', data);
       createCommunication.mutate(data);
     }
   };

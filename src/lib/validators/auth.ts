@@ -1,16 +1,4 @@
-// src/lib/validators/auth.ts
 import { z } from 'zod';
-
-// Common weak passwords to blacklist (currently unused but kept for future use)
-// const weakPasswords = [
-//   'password', '123456', '123456789', 'qwerty', 'abc123', 'password123',
-//   'admin', 'letmein', 'welcome', 'monkey', 'dragon', 'master', 'hello',
-//   'freedom', 'whatever', 'qwertyuiop', 'admin123', 'login', 'passw0rd',
-//   'abc123', '111111', '123123', 'admin123', 'root', 'toor', 'test',
-//   'guest', 'info', 'adm', 'mysql', 'user', 'administrator', 'administrator',
-//   'root', 'toor', 'admin', 'admin123', 'admin1234', 'admin12345',
-//   'demo', 'demo123', 'demo1234', 'demo12345', 'demo123456'
-// ];
 
 // Password strength validation - relaxed requirements
 const passwordStrength = z.string()
@@ -27,7 +15,7 @@ export const SignupSchema = z.object({
 });
 
 export const LoginSchema = z.object({
-  email: z.email("Invalid email address"),
+  email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password cannot be empty"),
 });
 
@@ -46,7 +34,7 @@ export const checkPasswordStrength = (password: string): {
   if (password.length >= 4) score += 5; // Give full score for just meeting minimum length
   else feedback.push("At least 4 characters");
 
-    // Optional bonus points for additional complexity (but not required)
+  // Optional bonus points for additional complexity (but not required)
   if (password.length >= 6) score += 1;
   if (/[a-z]/.test(password)) score += 1;
   if (/[A-Z]/.test(password)) score += 1;

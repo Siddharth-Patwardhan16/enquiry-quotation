@@ -1,46 +1,11 @@
 'use client';
 
 import { useForm, useFieldArray } from 'react-hook-form';
-// import { zodResolver } from '@hookform/resolvers/zod'; // Temporarily disabled
-// import { z } from 'zod'; // Temporarily disabled
 import { api } from '@/trpc/client';
 import { Save, Building, Factory, Plus, Trash2, Info, Package } from 'lucide-react';
-// import { useEffect, useState } from 'react'; // Unused imports commented out
 import { useToastContext } from '@/components/providers/ToastProvider';
 import { useFormConfirmation } from '@/hooks/useFormConfirmation';
 
-// Validation schema for the new multi-location form (temporarily disabled)
-// const CreateCustomerMultiLocationSchema = z.object({
-//   name: z.string().min(2, 'Customer name is required'),
-//   isNew: z.boolean().optional().default(true),
-//   offices: z.array(z.object({
-//     name: z.string().min(2, 'Office name is required'),
-//     address: z.string().optional(),
-//     city: z.string().optional(),
-//     state: z.string().optional(),
-//     country: z.string().optional(),
-//     receptionNumber: z.string().optional(),
-//   })).min(1, 'At least one office is required').max(4, 'Maximum 4 offices allowed'),
-//   plants: z.array(z.object({
-//     name: z.string().min(2, 'Plant name is required'),
-//     address: z.string().optional(),
-//     city: z.string().optional(),
-//     state: z.string().optional(),
-//     country: z.string().optional(),
-//     receptionNumber: z.string().optional(),
-//   })).max(20, 'Maximum 20 plants allowed'),
-//   // PO Information
-//   poRuptureDiscs: z.boolean().default(false),
-//   poThermowells: z.boolean().default(false),
-//   poHeatExchanger: z.boolean().default(false),
-//   poMiscellaneous: z.boolean().default(false),
-//   poWaterJetSteamJet: z.boolean().default(false),
-//   // Supplier Information
-//   existingGraphiteSuppliers: z.string().optional(),
-//   problemsFaced: z.string().optional(),
-// });
-
-// type FormData = z.infer<typeof CreateCustomerMultiLocationSchema>; // Temporarily disabled
 type FormData = {
   name: string;
   isNew: boolean;

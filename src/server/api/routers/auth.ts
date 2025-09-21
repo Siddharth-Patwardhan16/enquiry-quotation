@@ -171,7 +171,6 @@ export const authRouter = createTRPCRouter({
     try {
       // Test database connection
       await db.$queryRaw`SELECT 1`;
-      console.log('Database connection successful');
       return ctx.session;
     } catch (error) {
       console.error('Database connection failed:', error);

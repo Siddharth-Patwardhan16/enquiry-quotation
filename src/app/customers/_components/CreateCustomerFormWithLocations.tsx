@@ -5,8 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { api } from '@/trpc/client';
 import { Save, Building, Factory, Package, Info, Plus, X } from 'lucide-react';
-// import { useEffect } from 'react'; // Unused import commented out
-// import { useState } from 'react'; // Unused import commented out
 import { useToastContext } from '@/components/providers/ToastProvider';
 import { useFormConfirmation } from '@/hooks/useFormConfirmation';
 
@@ -109,12 +107,6 @@ export function CreateCustomerFormWithLocations({ onSuccess }: CreateCustomerFor
 
   const watchedOffices = watch('offices');
   const watchedPlants = watch('plants');
-
-  // Debounced values for uniqueness checks (currently unused)
-  // const [debouncedOfficeNames, setDebouncedOfficeNames] = useState<string[]>([]);
-  // const [debouncedPlantNames, setDebouncedPlantNames] = useState<string[]>([]);
-
-  // Note: Uniqueness checks removed for now - can be added back later if needed
 
   // Create customer mutation
   const createCustomer = api.customer.create.useMutation({
