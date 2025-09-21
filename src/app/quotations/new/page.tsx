@@ -6,8 +6,10 @@ import { CreateQuotationSchema } from '@/lib/validators/quotation';
 import type { z } from 'zod';
 import { api } from '@/trpc/client';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, Save } from 'lucide-react';
+import { Plus, Trash2, Save, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
+import { useFormConfirmation } from '@/hooks/useFormConfirmation';
+import { useToastContext } from '@/components/providers/ToastProvider';
 import type { AppRouter } from '@/server/api/root';
 import type { inferRouterOutputs } from '@trpc/server';
 
@@ -22,6 +24,8 @@ export default function NewQuotationPage() {
   const router = useRouter();
   const [customPaymentPlan, setCustomPaymentPlan] = useState<string>('');
   const [customPaymentError, setCustomPaymentError] = useState<string>('');
+  const { confirmFormClose } = useFormConfirmation();
+  const { success, error: showError } = useToastContext();
   
   // Fetch enquiries to populate the dropdown
   const { data: enquiries, isLoading: isLoadingEnquiries } = api.enquiry.getAll.useQuery();
@@ -157,15 +161,35 @@ export default function NewQuotationPage() {
 
   const createQuotation = api.quotation.create.useMutation({
     onSuccess: () => {
+      success('Quotation Created', 'The quotation has been successfully created.');
       router.push('/quotations');
-      alert('Quotation created successfully!');
     },
     onError: (error) => {
-      // Handle specific error types
-      if (error.message.includes('already exists')) {
-        alert(`Duplicate quotation number: ${error.message}`);
+      console.error('Quotation creation error:', error);
+      
+      // Handle validation errors specifically
+      if (error.data?.code === 'BAD_REQUEST') {
+        try {
+          const validationErrors = JSON.parse(error.message) as { path?: string[]; message: string }[];
+          if (Array.isArray(validationErrors)) {
+            const errorMessages = validationErrors.map((err: { path?: string[]; message: string }) => {
+              if (err.path && err.path.length > 0) {
+                const fieldName = err.path.join('.');
+                return `${fieldName}: ${err.message}`;
+              }
+              return err.message;
+            });
+            showError('Validation Error', errorMessages.join('\n'));
+          } else {
+            showError('Validation Error', error.message);
+          }
+        } catch {
+          showError('Validation Error', error.message);
+        }
+      } else if (error.message.includes('already exists')) {
+        showError('Duplicate Error', `Duplicate quotation number: ${error.message}`);
       } else {
-        alert(`Failed to create quotation: ${error.message}`);
+        showError('Creation Failed', `Failed to create quotation: ${error.message}`);
       }
     },
   });
@@ -597,7 +621,20 @@ export default function NewQuotationPage() {
         </div>
 
         {/* Submit Button */}
-        <div className="flex justify-end">
+        <div className="flex justify-between">
+          <button 
+            type="button"
+            onClick={() => {
+              confirmFormClose({
+                hasUnsavedChanges: true,
+                onConfirm: () => router.push('/quotations')
+              });
+            }}
+            className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-6 py-3 text-gray-700 font-medium hover:bg-gray-50"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Quotations
+          </button>
           <button 
             type="submit" 
             disabled={createQuotation.isPending} 

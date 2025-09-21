@@ -7,7 +7,8 @@ import { api } from '@/trpc/client';
 import { Save, Building, Factory, Package, Info, Plus, X } from 'lucide-react';
 // import { useEffect } from 'react'; // Unused import commented out
 // import { useState } from 'react'; // Unused import commented out
-import { useToast } from '@/components/ui/toast';
+import { useToastContext } from '@/components/providers/ToastProvider';
+import { useFormConfirmation } from '@/hooks/useFormConfirmation';
 
 // Simplified schema for the form
 const FormSchema = z.object({
@@ -63,8 +64,9 @@ const COUNTRIES = [
 ];
 
 export function CreateCustomerFormWithLocations({ onSuccess }: CreateCustomerFormWithLocationsProps) {
-  const { success, error: showError } = useToast();
+  const { success, error: showError } = useToastContext();
   const utils = api.useUtils();
+  const { confirmFormClose } = useFormConfirmation();
 
   const {
     register,
@@ -90,7 +92,8 @@ export function CreateCustomerFormWithLocations({ onSuccess }: CreateCustomerFor
       existingGraphiteSuppliers: '',
       problemsFaced: '',
     },
-    mode: 'onChange',
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
   });
 
   // Manage dynamic arrays for offices and plants
@@ -122,7 +125,30 @@ export function CreateCustomerFormWithLocations({ onSuccess }: CreateCustomerFor
       onSuccess?.();
     },
     onError: (error) => {
-      showError(`Error: ${error.message}`);
+      console.error('Customer creation error:', error);
+      
+      // Handle validation errors specifically
+      if (error.data?.code === 'BAD_REQUEST') {
+        try {
+          const validationErrors = JSON.parse(error.message) as { path?: string[]; message: string }[];
+          if (Array.isArray(validationErrors)) {
+            const errorMessages = validationErrors.map((err: { path?: string[]; message: string }) => {
+              if (err.path && err.path.length > 0) {
+                const fieldName = err.path.join('.');
+                return `${fieldName}: ${err.message}`;
+              }
+              return err.message;
+            });
+            showError('Validation Error', errorMessages.join('\n'));
+          } else {
+            showError('Validation Error', error.message);
+          }
+        } catch {
+          showError('Validation Error', error.message);
+        }
+      } else {
+        showError('Error', error.message);
+      }
     },
   });
 
@@ -149,7 +175,23 @@ export function CreateCustomerFormWithLocations({ onSuccess }: CreateCustomerFor
   // Note: Uniqueness validation removed for now - can be added back later if needed
 
   const onSubmit = (data: FormData) => {
+    if (!isValid) {
+      showError('Validation Error', 'Please fill in all required fields correctly.');
+      return;
+    }
+    
     createCustomer.mutate(data);
+  };
+
+  const handleCancel = () => {
+    confirmFormClose({
+      hasUnsavedChanges: true,
+      onConfirm: () => {
+        if (onSuccess) {
+          onSuccess();
+        }
+      }
+    });
   };
 
   const addOffice = () => {
@@ -172,6 +214,7 @@ export function CreateCustomerFormWithLocations({ onSuccess }: CreateCustomerFor
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+
       {/* Customer Name Section */}
       <div className="bg-white rounded-lg border p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -241,6 +284,9 @@ export function CreateCustomerFormWithLocations({ onSuccess }: CreateCustomerFor
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., Headquarters, Main Office"
                   />
+                  {errors.offices?.[index]?.name && (
+                    <p className="mt-1 text-sm text-red-600">{errors.offices[index]?.name?.message}</p>
+                  )}
                 </div>
                 
                 <div>
@@ -362,6 +408,9 @@ export function CreateCustomerFormWithLocations({ onSuccess }: CreateCustomerFor
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., Main Factory, Production Plant"
                   />
+                  {errors.plants?.[index]?.name && (
+                    <p className="mt-1 text-sm text-red-600">{errors.plants[index]?.name?.message}</p>
+                  )}
                 </div>
                 
                 <div>
@@ -557,20 +606,27 @@ export function CreateCustomerFormWithLocations({ onSuccess }: CreateCustomerFor
       </div>
 
       {/* Submit Button */}
-      <div className="flex justify-end">
+      <div className="flex justify-end space-x-3 pt-6 border-t">
+        <button
+          type="button"
+          onClick={handleCancel}
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          Cancel
+        </button>
         <button
           type="submit"
           disabled={createCustomer.isPending || !isValid}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
         >
           {createCustomer.isPending ? (
             <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-2"></div>
               Creating...
             </>
           ) : (
             <>
-              <Save className="w-4 h-4" />
+              <Save className="w-4 h-4 inline-block mr-2" />
               Create Customer
             </>
           )}

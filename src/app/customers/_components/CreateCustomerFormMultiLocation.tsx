@@ -6,8 +6,8 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { api } from '@/trpc/client';
 import { Save, Building, Factory, Plus, Trash2, Info, Package } from 'lucide-react';
 // import { useEffect, useState } from 'react'; // Unused imports commented out
-import { useRouter } from 'next/navigation';
-import { useToast } from '@/components/ui/toast';
+import { useToastContext } from '@/components/providers/ToastProvider';
+import { useFormConfirmation } from '@/hooks/useFormConfirmation';
 
 // Validation schema for the new multi-location form (temporarily disabled)
 // const CreateCustomerMultiLocationSchema = z.object({
@@ -96,8 +96,8 @@ const COUNTRIES = [
 ];
 
 export function CreateCustomerFormMultiLocation({ onSuccess }: CreateCustomerFormMultiLocationProps) {
-  const router = useRouter();
-  const { success, error: showError } = useToast();
+  const { success, error: showError } = useToastContext();
+  const { confirmFormClose } = useFormConfirmation();
   const utils = api.useUtils();
 
   const {
@@ -144,14 +144,36 @@ export function CreateCustomerFormMultiLocation({ onSuccess }: CreateCustomerFor
       
       // Reset form and redirect after a short delay to show the success message
       setTimeout(() => {
-        router.push('/customers');
         if (onSuccess) {
           onSuccess();
         }
       }, 1500);
     },
     onError: (error) => {
-      showError('Creation Failed', `Failed to create customer: ${error.message}`);
+      console.error('Customer creation error:', error);
+      
+      // Handle validation errors specifically
+      if (error.data?.code === 'BAD_REQUEST') {
+        try {
+          const validationErrors = JSON.parse(error.message) as { path?: string[]; message: string }[];
+          if (Array.isArray(validationErrors)) {
+            const errorMessages = validationErrors.map((err: { path?: string[]; message: string }) => {
+              if (err.path && err.path.length > 0) {
+                const fieldName = err.path.join('.');
+                return `${fieldName}: ${err.message}`;
+              }
+              return err.message;
+            });
+            showError('Validation Error', errorMessages.join('\n'));
+          } else {
+            showError('Validation Error', error.message);
+          }
+        } catch {
+          showError('Validation Error', error.message);
+        }
+      } else {
+        showError('Error', error.message);
+      }
     },
   });
 
@@ -163,21 +185,24 @@ export function CreateCustomerFormMultiLocation({ onSuccess }: CreateCustomerFor
     createCustomer.mutate(data);
   };
 
+  const handleCancel = () => {
+    confirmFormClose({
+      hasUnsavedChanges: true,
+      onConfirm: () => {
+        if (onSuccess) {
+          onSuccess();
+        }
+      }
+    });
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header with Back Button */}
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <a
-            href="/customers"
-            className="inline-flex items-center justify-center w-10 h-10 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-            title="Back to Customers"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-          </a>
+        <div>
           <h2 className="text-2xl font-bold text-gray-900">Create New Customer</h2>
+          <p className="text-gray-600 text-sm mt-1">Add a new customer to your database</p>
         </div>
       </div>
 
@@ -646,43 +671,31 @@ export function CreateCustomerFormMultiLocation({ onSuccess }: CreateCustomerFor
         </div>
 
         {/* Submit Button */}
-        <div className="flex justify-between items-center pt-6 border-t border-gray-200">
-          <a
-            href="/customers"
-            className="inline-flex items-center justify-center w-10 h-10 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-            title="Back to Customers"
+        <div className="flex justify-end space-x-3 pt-6 border-t">
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-          </a>
-          
-          <div className="flex space-x-3">
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-            >
-              Reset Form
-            </button>
-            <button
-              type="submit"
-              disabled={createCustomer.isPending || !isValid}
-              className="inline-flex items-center px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {createCustomer.isPending ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Create Customer
-                </>
-              )}
-            </button>
-          </div>
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={createCustomer.isPending || !isValid}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            {createCustomer.isPending ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-2"></div>
+                Creating...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 inline-block mr-2" />
+                Create Customer
+              </>
+            )}
+          </button>
         </div>
       </form>
     </div>

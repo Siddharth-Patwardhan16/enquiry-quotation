@@ -1,0 +1,58 @@
+Of course. This is a crucial skill. You need a reliable template for creating migration scripts that you can adapt for any future database change.
+
+Here is a detailed, generic prompt designed to be a reusable template. You can give this prompt to an AI assistant, filling in the bracketed `[...]` sections with your specific details for any future migration. The prompt is structured to force the AI to adhere to safety best practices and prevent data loss.
+
+***
+### **The Reusable Prompt Template**
+
+**Role:** You are an expert database engineer specializing in writing safe, non-destructive data migration scripts using Prisma and TypeScript.
+
+**Context:** I need to perform a data migration to restructure my database schema. My primary goal is to transform and move existing data from an old structure to a new structure **without any data loss**.
+
+Your task is to generate a standalone TypeScript script that performs this migration.
+
+**Critical Safety Constraint:** The script you generate must be **100% non-destructive**. It must **NOT** delete any of the old columns or tables. The script's only job is to read data from the old structure and write it into the new structure. The final cleanup (deleting old columns) will be handled manually by me in a separate step after I have verified the migration was successful.
+
+---
+### **Migration Details**
+*(You will fill in this section for each new migration)*
+
+**1. Description of Change:**
+`[Briefly describe the change in plain English. For example: "I am splitting a single 'address' column into separate 'street', 'city', and 'state' columns on the User model." or "I am moving user preferences from a JSON blob into a new, separate UserPreferences table."]`
+
+**2. "Before" Schema (Current State):**
+`[Paste the relevant part of your current schema.prisma file here. Only include the models that are being changed.]`
+
+**3. "After" Schema (Target State):**
+`[Paste the new, restructured version of the models from your schema.prisma file here.]`
+
+---
+### **Required Script Logic**
+
+Please create a TypeScript script named `migrate.ts` that implements the following logic precisely:
+
+1.  **Initialization:** Import `PrismaClient` and any other necessary types. Create a single, reusable instance of the Prisma client.
+
+2.  **Fetch Records to Migrate:** Query the database to find all records that need to be migrated.
+    `[Clearly define how to identify a record that needs migration. For example: "Find all User records where the 'address' column is not null."]`
+
+3.  **Idempotency Check (Crucial for Safety):** The script must be safely re-runnable. Before migrating a record, it must check if that specific record has *already* been migrated.
+    `[Describe the check. For example: "For each User, check if their 'street' column is already filled out. If it is, log a message that this user is already migrated and skip to the next one."]`
+
+4.  **Data Transformation Loop:** For each record that needs to be migrated:
+    * Log the ID or name of the record being processed.
+    * Perform the data transformation in memory.
+        `[Describe the exact transformation logic for a single record. For example: "Read the 'address' string. Split it by commas. Assign the first part to 'street', the second to 'city', and the third to 'state'. Create a new UserPreferences object and populate it with the data from the old JSON blob."]`
+
+5.  **Database Write:** Save the transformed data to the new fields or tables. Use the most efficient Prisma method available (e.g., `update` for changing a record, `create` or `createMany` for new records).
+
+6.  **Verbose Logging:** The script must provide clear, step-by-step console logs:
+    * A message when the script starts.
+    * The total number of records found that require migration.
+    * A message for each record being processed.
+    * A message for each record that is skipped because it was already migrated.
+    * A confirmation message after each successful database write.
+    * A final success message when the script completes, or a detailed error message if it fails.
+
+**Final Output:**
+Please provide the complete, runnable code in a single TypeScript file. Include a `main` function and the standard execution boilerplate to handle success and error states and to ensure the Prisma client disconnects properly.

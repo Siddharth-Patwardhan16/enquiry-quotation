@@ -6,8 +6,9 @@ import { CreateEnquirySchema } from '@/lib/validators/enquiry';
 import type { z } from 'zod';
 import { api } from '@/trpc/client';
 import { useRouter } from 'next/navigation';
-import { useToast } from '@/components/ui/toast';
+import { useToastContext } from '@/components/providers/ToastProvider';
 import { useState } from 'react';
+import { useFormConfirmation } from '@/hooks/useFormConfirmation';
 import { 
   Save, 
   X, 
@@ -32,9 +33,10 @@ interface CreateEnquiryFormProps {
 
 export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
   const router = useRouter();
-  const { success, error: showError } = useToast();
+  const { success, error: showError } = useToastContext();
   const utils = api.useUtils();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { confirmFormClose } = useFormConfirmation();
   
   // Fetch the list of customers to populate the dropdown
   const { data: customers, isLoading: isLoadingCustomers } = api.customer.getAll.useQuery();
@@ -79,7 +81,30 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
       }
     },
     onError: (error) => {
-      showError('Creation Failed', `Failed to create enquiry: ${error.message}`);
+      console.error('Enquiry creation error:', error);
+      
+      // Handle validation errors specifically
+      if (error.data?.code === 'BAD_REQUEST') {
+        try {
+          const validationErrors = JSON.parse(error.message) as { path?: string[]; message: string }[];
+          if (Array.isArray(validationErrors)) {
+            const errorMessages = validationErrors.map((err: { path?: string[]; message: string }) => {
+              if (err.path && err.path.length > 0) {
+                const fieldName = err.path.join('.');
+                return `${fieldName}: ${err.message}`;
+              }
+              return err.message;
+            });
+            showError('Validation Error', errorMessages.join('\n'));
+          } else {
+            showError('Validation Error', error.message);
+          }
+        } catch {
+          showError('Validation Error', error.message);
+        }
+      } else {
+        showError('Creation Failed', `Failed to create enquiry: ${error.message}`);
+      }
       setIsSubmitting(false);
     },
   });
@@ -95,11 +120,16 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
   };
 
   const handleCancel = () => {
-    if (onSuccess) {
-      onSuccess();
-    } else {
-      router.push('/enquiries');
-    }
+    confirmFormClose({
+      hasUnsavedChanges: true, // Always assume there might be changes
+      onConfirm: () => {
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          router.push('/enquiries');
+        }
+      }
+    });
   };
 
   return (

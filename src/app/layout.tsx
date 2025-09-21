@@ -6,6 +6,7 @@ import { SessionProvider } from "../components/providers/SessionProvider";
 import { AuthProvider } from "../components/providers/AuthProvider";
 import { SupabaseProvider } from "../components/providers/supabase-provider";
 import { UserSyncProvider } from "../components/providers/UserSyncProvider";
+import { ToastProvider } from "../components/providers/ToastProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,7 +35,11 @@ export default function RootLayout({
           <SupabaseProvider>
             <UserSyncProvider>
               <SessionProvider>
-                <AuthProvider>{children}</AuthProvider>
+                <AuthProvider>
+                  <ToastProvider>
+                    {children}
+                  </ToastProvider>
+                </AuthProvider>
               </SessionProvider>
             </UserSyncProvider>
           </SupabaseProvider>

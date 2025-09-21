@@ -7,6 +7,8 @@ import { z } from 'zod';
 import { api } from '@/trpc/client';
 import { Calendar, Building, Phone, Mail, Video, MapPin } from 'lucide-react';
 import type { Communication } from '@/types/communication';
+import { useFormConfirmation } from '@/hooks/useFormConfirmation';
+import { useToastContext } from '@/components/providers/ToastProvider';
 
 // Validation schema for communication form
 const CommunicationSchema = z.object({
@@ -42,6 +44,8 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [selectedCommunicationType, setSelectedCommunicationType] = useState<string>('TELEPHONIC');
+  const { confirmFormClose } = useFormConfirmation();
+  const { success, error: showError } = useToastContext();
 
   // Fetch data
   const { data: customers, isLoading: loadingCustomers } = api.customer.getAll.useQuery();
@@ -108,6 +112,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
   const createCommunication = api.communication.create.useMutation({
     onSuccess: () => {
       console.log('Communication created successfully');
+      success('Communication Created', 'The communication has been successfully created.');
       setIsSubmitting(false);
       setSelectedCustomer(null);
       setSelectedCommunicationType('TELEPHONIC');
@@ -117,18 +122,64 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
     onError: (error) => {
       console.error('Communication creation error:', error);
       setIsSubmitting(false);
-      alert(`Failed to create communication: ${error.message}`);
+      
+      // Handle validation errors specifically
+      if (error.data?.code === 'BAD_REQUEST') {
+        try {
+          const validationErrors = JSON.parse(error.message) as { path?: string[]; message: string }[];
+          if (Array.isArray(validationErrors)) {
+            const errorMessages = validationErrors.map((err: { path?: string[]; message: string }) => {
+              if (err.path && err.path.length > 0) {
+                const fieldName = err.path.join('.');
+                return `${fieldName}: ${err.message}`;
+              }
+              return err.message;
+            });
+            showError('Validation Error', errorMessages.join('\n'));
+          } else {
+            showError('Validation Error', error.message);
+          }
+        } catch {
+          showError('Validation Error', error.message);
+        }
+      } else {
+        showError('Creation Failed', `Failed to create communication: ${error.message}`);
+      }
     },
   });
 
   const updateCommunication = api.communication.update.useMutation({
     onSuccess: () => {
+      success('Communication Updated', 'The communication has been successfully updated.');
       setIsSubmitting(false);
       onSuccess?.();
     },
     onError: (error) => {
+      console.error('Communication update error:', error);
       setIsSubmitting(false);
-      alert(`Failed to update communication: ${error.message}`);
+      
+      // Handle validation errors specifically
+      if (error.data?.code === 'BAD_REQUEST') {
+        try {
+          const validationErrors = JSON.parse(error.message) as { path?: string[]; message: string }[];
+          if (Array.isArray(validationErrors)) {
+            const errorMessages = validationErrors.map((err: { path?: string[]; message: string }) => {
+              if (err.path && err.path.length > 0) {
+                const fieldName = err.path.join('.');
+                return `${fieldName}: ${err.message}`;
+              }
+              return err.message;
+            });
+            showError('Validation Error', errorMessages.join('\n'));
+          } else {
+            showError('Validation Error', error.message);
+          }
+        } catch {
+          showError('Validation Error', error.message);
+        }
+      } else {
+        showError('Update Failed', `Failed to update communication: ${error.message}`);
+      }
     },
   });
 
@@ -413,9 +464,14 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
           <button
             type="button"
             onClick={() => {
-                setSelectedCustomer(null);
-              setSelectedCommunicationType('TELEPHONIC');
-              reset();
+              confirmFormClose({
+                hasUnsavedChanges: true,
+                onConfirm: () => {
+                  setSelectedCustomer(null);
+                  setSelectedCommunicationType('TELEPHONIC');
+                  reset();
+                }
+              });
             }}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
