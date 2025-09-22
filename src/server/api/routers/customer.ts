@@ -291,4 +291,132 @@ export const customerRouter = createTRPCRouter({
         take: 10, // Limit results
       });
     }),
+
+  // New procedure for server-side filtering with pagination
+  getFilteredCustomers: publicProcedure
+    .input(z.object({
+      searchTerm: z.string().optional().default(''),
+      page: z.number().min(1).default(1),
+      pageSize: z.number().min(1).max(100).default(20),
+      sortBy: z.enum(['name', 'designation', 'emailId', 'createdAt']).default('name'),
+      sortOrder: z.enum(['asc', 'desc']).default('asc'),
+      filters: z.object({
+        designation: z.string().optional(),
+        hasPhone: z.boolean().optional(),
+        hasEmail: z.boolean().optional(),
+      }).optional(),
+    }))
+    .query(async ({ input }) => {
+      try {
+        await db.$connect();
+        
+        const { searchTerm, page, pageSize, sortBy, sortOrder, filters } = input;
+        const skip = (page - 1) * pageSize;
+
+        // Build where clause for filtering
+        const whereClause: Record<string, any> = {};
+
+        // Search term filter (searches across multiple fields)
+        if (searchTerm.trim()) {
+          whereClause.OR = [
+            {
+              name: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+            {
+              designation: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+            {
+              phoneNumber: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+            {
+              emailId: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+          ];
+        }
+
+        // Additional filters
+        if (filters) {
+          if (filters.designation) {
+            whereClause.designation = {
+              contains: filters.designation,
+              mode: 'insensitive',
+            };
+          }
+          
+          if (filters.hasPhone !== undefined) {
+            whereClause.phoneNumber = filters.hasPhone 
+              ? { not: null }
+              : null;
+          }
+          
+          if (filters.hasEmail !== undefined) {
+            whereClause.emailId = filters.hasEmail 
+              ? { not: null }
+              : null;
+          }
+        }
+
+        // Build orderBy clause
+        const orderBy: Record<string, string> = {};
+        orderBy[sortBy] = sortOrder;
+
+        // Execute queries in parallel
+        const [customers, totalCount] = await Promise.all([
+          db.customer.findMany({
+            where: whereClause,
+            orderBy,
+            skip,
+            take: pageSize,
+            include: {
+              createdBy: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  role: true,
+                },
+              },
+              locations: {
+                orderBy: { name: 'asc' },
+              },
+              contacts: {
+                include: {
+                  location: true,
+                },
+              },
+            },
+          }),
+          db.customer.count({
+            where: whereClause,
+          }),
+        ]);
+
+        const totalPages = Math.ceil(totalCount / pageSize);
+
+        return {
+          customers,
+          totalCount,
+          page,
+          pageSize,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        };
+      } catch (error) {
+        console.error('Error fetching filtered customers:', error);
+        throw new Error('Failed to fetch customers');
+      }
+    }),
 });

@@ -76,3 +76,71 @@ body {
   /* color: hsl(var(--foreground)); */
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/* Ensure modal overlay is visible */
+[data-slot="dialog-overlay"] {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* Ensure modal content is properly positioned */
+[data-slot="dialog-content"] {
+  z-index: 60 !important;
+  background-color: white !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Ensure close button is visible */
+[data-slot="dialog-close"] {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  opacity: 0.9 !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+[data-slot="dialog-close"]:hover {
+  background-color: white !important;
+  opacity: 1 !important;
+  transform: scale(1.05) !important;
+}
+
+/* Improve modal animations */
+[data-slot="dialog-content"] {
+  animation: modalSlideIn 0.2s ease-out !important;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* Ensure modal is responsive */
+@media (max-width: 640px) {
+  [data-slot="dialog-content"] {
+    max-width: calc(100vw - 1rem) !important;
+    margin: 0.5rem !important;
+  }
+}
+
+/* Focus management for accessibility */
+[data-slot="dialog-content"]:focus {
+  outline: none !important;
+}
+
+/* Ensure close button is keyboard accessible */
+[data-slot="dialog-close"]:focus {
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: 2px !important;
+}
+
+/* Improve modal backdrop interaction */
+[data-slot="dialog-overlay"]:hover {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+}

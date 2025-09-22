@@ -7,6 +7,7 @@ import { AuthProvider } from "../components/providers/AuthProvider";
 import { SupabaseProvider } from "../components/providers/supabase-provider";
 import { UserSyncProvider } from "../components/providers/UserSyncProvider";
 import { ToastProvider } from "../components/providers/ToastProvider";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,6 +45,7 @@ export default function RootLayout({
             </UserSyncProvider>
           </SupabaseProvider>
         </TRPCProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
