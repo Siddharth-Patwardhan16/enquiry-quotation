@@ -38,9 +38,9 @@ export const enquiryRouter = createTRPCRouter({
       return db.enquiry.create({
         data: {
           subject: input.subject,
-          customerId: input.entityType === 'customer' ? input.customerId : null,
-          companyId: input.entityType === 'company' ? input.customerId : null,
-          locationId: input.entityType === 'customer' ? input.locationId : null, // Only for legacy customers
+          customerId: null, // No longer support old customer structure
+          companyId: input.customerId, // Always use companyId now
+          locationId: null, // No longer support old location structure
           officeId: officeId, // For company offices
           plantId: plantId, // For company plants
           description: input.description,
@@ -57,25 +57,14 @@ export const enquiryRouter = createTRPCRouter({
       });
     }),
 
-  // Procedure to get all enquiries with customer, company, and location names
+  // Procedure to get all enquiries with company and location names
   getAll: publicProcedure.query(async () => {
     return db.enquiry.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
-        customer: {
-          select: {
-            name: true,
-          },
-        },
         company: {
           select: {
             name: true,
-          },
-        },
-        location: {
-          select: {
-            name: true,
-            type: true,
           },
         },
         office: {
@@ -104,17 +93,26 @@ export const enquiryRouter = createTRPCRouter({
       const enquiry = await db.enquiry.findUnique({
         where: { id: input.id },
         include: {
-          customer: {
+          company: {
             select: {
               id: true,
               name: true,
             },
           },
-          location: {
+          office: {
             select: {
               id: true,
               name: true,
-              type: true,
+              address: true,
+              city: true,
+              state: true,
+              country: true,
+            },
+          },
+          plant: {
+            select: {
+              id: true,
+              name: true,
               address: true,
               city: true,
               state: true,
@@ -166,3 +164,4 @@ export const enquiryRouter = createTRPCRouter({
       });
     }),
 });
+

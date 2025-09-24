@@ -1,10 +1,10 @@
-import { Customer } from '../_types/customer.types';
+import { CombinedEntity } from '../_types/customer.types';
 import { generateCustomerExportData } from './customerHelpers';
 
 /**
  * Export customers to CSV format
  */
-export function exportCustomersToCSV(customers: Customer[], filename?: string): void {
+export function exportCustomersToCSV(customers: CombinedEntity[], filename?: string): void {
   if (customers.length === 0) {
     alert('No customers to export');
     return;
@@ -47,7 +47,7 @@ export function exportCustomersToCSV(customers: Customer[], filename?: string): 
 /**
  * Export customers to Excel format (using SheetJS)
  */
-export async function exportCustomersToExcel(customers: Customer[], filename?: string): Promise<void> {
+export async function exportCustomersToExcel(customers: CombinedEntity[], filename?: string): Promise<void> {
   try {
     // Dynamic import to avoid bundling SheetJS in the main bundle
     const XLSX = await import('xlsx');
@@ -104,7 +104,7 @@ export async function exportCustomersToExcel(customers: Customer[], filename?: s
 /**
  * Export customers to JSON format
  */
-export function exportCustomersToJSON(customers: Customer[], filename?: string): void {
+export function exportCustomersToJSON(customers: CombinedEntity[], filename?: string): void {
   if (customers.length === 0) {
     alert('No customers to export');
     return;
@@ -116,13 +116,13 @@ export function exportCustomersToJSON(customers: Customer[], filename?: string):
     customers: customers.map(customer => ({
       id: customer.id,
       name: customer.name,
+      type: customer.type,
       designation: customer.designation,
       phoneNumber: customer.phoneNumber,
       emailId: customer.emailId,
-      isNew: customer.isNew,
       createdAt: customer.createdAt,
       locations: customer.locations,
-      contacts: customer.contacts,
+      contactPersons: customer.contactPersons,
     })),
   };
 

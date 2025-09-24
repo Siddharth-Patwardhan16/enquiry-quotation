@@ -41,7 +41,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
   const { confirmFormClose } = useFormConfirmation();
   
   // Fetch both customers and companies to populate the dropdown
-  const { data: customers, isLoading: isLoadingCustomers } = api.customer.getAll.useQuery();
+  const { data: customers, isLoading: isLoadingCustomers } = api.company.getAll.useQuery();
   const { data: companies, isLoading: isLoadingCompanies } = api.company.getAll.useQuery();
   
   // Combine customers and companies into a unified list with deduplication

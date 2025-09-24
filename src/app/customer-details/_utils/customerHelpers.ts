@@ -1,4 +1,4 @@
-import { Customer, SortField, SortOrder } from '../_types/customer.types';
+import { Customer, CombinedEntity, SortField, SortOrder } from '../_types/customer.types';
 
 /**
  * Debounce function to limit the rate of function execution
@@ -17,42 +17,42 @@ export function debounce<T extends (..._args: never[]) => unknown>(
 /**
  * Format customer name for display
  */
-export function formatCustomerName(customer: Customer): string {
+export function formatCustomerName(customer: Customer | CombinedEntity): string {
   return customer.name.trim();
 }
 
 /**
  * Format customer designation for display
  */
-export function formatCustomerDesignation(customer: Customer): string {
+export function formatCustomerDesignation(customer: Customer | CombinedEntity): string {
   return customer.designation?.trim() ?? '-';
 }
 
 /**
  * Format phone number for display
  */
-export function formatPhoneNumber(customer: Customer): string {
+export function formatPhoneNumber(customer: Customer | CombinedEntity): string {
   return customer.phoneNumber?.trim() ?? '-';
 }
 
 /**
  * Format email for display
  */
-export function formatEmail(customer: Customer): string {
+export function formatEmail(customer: Customer | CombinedEntity): string {
   return customer.emailId?.trim() ?? '-';
 }
 
 /**
  * Check if customer has contact information
  */
-export function hasContactInfo(customer: Customer): boolean {
+export function hasContactInfo(customer: Customer | CombinedEntity): boolean {
   return !!(customer.phoneNumber ?? customer.emailId);
 }
 
 /**
  * Get customer initials for avatar
  */
-export function getCustomerInitials(customer: Customer): string {
+export function getCustomerInitials(customer: Customer | CombinedEntity): string {
   const name = customer.name.trim();
   const words = name.split(' ');
   
@@ -162,14 +162,14 @@ export function isValidPhoneNumber(phone: string): boolean {
 /**
  * Generate customer export data
  */
-export function generateCustomerExportData(customers: Customer[]): Record<string, string>[] {
+export function generateCustomerExportData(customers: CombinedEntity[]): Record<string, string>[] {
   return customers.map(customer => ({
-    'Customer Name': customer.name,
+    'Company Name': customer.name,
+    'Type': customer.type,
     'Designation': customer.designation ?? '',
     'Phone Number': customer.phoneNumber ?? '',
     'Email ID': customer.emailId ?? '',
     'Created Date': customer.createdAt.toLocaleDateString(),
-    'Is New Customer': customer.isNew ? 'Yes' : 'No',
     'Office Locations': customer.locations
       .filter(loc => loc.type === 'OFFICE')
       .map(loc => loc.name)
@@ -177,6 +177,9 @@ export function generateCustomerExportData(customers: Customer[]): Record<string
     'Plant Locations': customer.locations
       .filter(loc => loc.type === 'PLANT')
       .map(loc => loc.name)
+      .join(', '),
+    'Contact Persons': customer.contactPersons
+      .map(contact => `${contact.name} (${contact.designation || 'No designation'})`)
       .join(', '),
   }));
 }

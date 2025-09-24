@@ -7,7 +7,9 @@
     "build": "npx prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "dummy-data": "node scripts/run-dummy-data.js"
+    "dummy-data": "node scripts/run-dummy-data.js",
+    "migrate-customers": "npx tsx scripts/migrate-customers-to-companies.ts",
+    "cleanup-old-customers": "npx tsx scripts/cleanup-old-customers.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",

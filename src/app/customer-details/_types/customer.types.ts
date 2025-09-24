@@ -25,6 +25,36 @@ export interface Customer {
   contacts: Contact[];
 }
 
+// New combined entity type for displaying both customers and companies
+export interface CombinedEntity {
+  id: string;
+  name: string;
+  type: 'customer' | 'company';
+  designation?: string | null;
+  phoneNumber?: string | null;
+  emailId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  locations: Location[];
+  contactPersons: ContactPerson[];
+}
+
+export interface ContactPerson {
+  id: string;
+  name: string;
+  designation?: string | null;
+  phoneNumber?: string | null;
+  emailId?: string | null;
+  isPrimary: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  location?: {
+    id: string;
+    name: string;
+    type: 'OFFICE' | 'PLANT';
+  };
+}
+
 export interface Location {
   id: string;
   name: string;
@@ -80,15 +110,10 @@ export interface FilterState {
 }
 
 export interface CustomerTableProps {
-  customers: Customer[];
+  customers: CombinedEntity[];
   isLoading: boolean;
   isFetching: boolean;
   error: Error | null;
-  selectedIds: string[];
-  onSelectionChange: (_customerId: string) => void;
-  onSelectAll: (_selectedIds: string[]) => void;
-  onEdit: (_customer: Customer) => void;
-  onDelete: (_customer: Customer) => void;
 }
 
 export interface CustomerFiltersProps {
@@ -113,17 +138,10 @@ export interface PaginationProps {
 }
 
 export interface CustomerRowProps {
-  customer: Customer;
-  isSelected: boolean;
-  onSelectionChange: (_customerId: string) => void;
-  onEdit: (_customer: Customer) => void;
-  onDelete: (_customer: Customer) => void;
+  customer: CombinedEntity;
 }
 
 export interface CustomerActionsProps {
-  selectedCount: number;
   onImport: () => void;
   onExport: () => void;
-  onBulkDelete?: () => void;
-  onBulkEdit?: () => void;
 }

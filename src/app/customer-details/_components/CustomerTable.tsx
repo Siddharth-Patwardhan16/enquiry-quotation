@@ -62,29 +62,7 @@ export const CustomerTable = memo(function CustomerTable({
   isLoading,
   isFetching,
   error,
-  selectedIds,
-  onSelectionChange,
-  onSelectAll,
-  onEdit,
-  onDelete,
 }: CustomerTableProps) {
-  const selectedSet = new Set(selectedIds);
-  const isAllSelected = customers.length > 0 && selectedIds.length === customers.length;
-  const isPartiallySelected = selectedIds.length > 0 && selectedIds.length < customers.length;
-
-  const handleSelectAll = () => {
-    if (isAllSelected) {
-      // Clear selection by calling with empty array
-      onSelectAll([]);
-    } else {
-      // Select all by calling with all customer IDs
-      onSelectAll(customers.map(c => c.id));
-    }
-  };
-
-  const handleSelectionChange = (customerId: string) => {
-    onSelectionChange(customerId);
-  };
 
   // Show loading state
   if (isLoading && customers.length === 0) {
@@ -141,32 +119,8 @@ export const CustomerTable = memo(function CustomerTable({
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left">
-                <input
-                  type="checkbox"
-                  checked={isAllSelected}
-                  ref={(input) => {
-                    if (input) input.indeterminate = isPartiallySelected;
-                  }}
-                  onChange={handleSelectAll}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  aria-label="Select all customers"
-                />
-              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Designation
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Phone Number
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Email ID
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
               </th>
             </tr>
           </thead>
@@ -175,10 +129,6 @@ export const CustomerTable = memo(function CustomerTable({
               <CustomerRow
                 key={customer.id}
                 customer={customer}
-                isSelected={selectedSet.has(customer.id)}
-                onSelectionChange={handleSelectionChange}
-                onEdit={onEdit}
-                onDelete={onDelete}
               />
             ))}
           </tbody>

@@ -35,7 +35,7 @@ export function CommunicationList({
   const [filterQuotation, setFilterQuotation] = useState<string>('all');
 
   const { data: communications, isLoading, refetch } = api.communication.getAll.useQuery();
-  const { data: customers } = api.customer.getAll.useQuery();
+  const { data: customers } = api.company.getAll.useQuery();
 
   const deleteCommunication = api.communication.delete.useMutation({
     onSuccess: () => {

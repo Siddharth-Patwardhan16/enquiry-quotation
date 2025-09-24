@@ -25,13 +25,36 @@ const CommunicationSchema = z.object({
 
 type FormData = z.infer<typeof CommunicationSchema>;
 
-// Define customer type
-type Customer = {
+// Define company type (replacing old customer type)
+type Company = {
   id: string;
   name: string;
-  isNew: boolean;
+  website?: string | null;
+  industry?: string | null;
   createdAt: Date;
   updatedAt: Date;
+  offices: Array<{
+    id: string;
+    name: string;
+    contactPersons: Array<{
+      id: string;
+      name: string;
+      designation?: string | null;
+      phoneNumber?: string | null;
+      emailId?: string | null;
+    }>;
+  }>;
+  plants: Array<{
+    id: string;
+    name: string;
+    contactPersons: Array<{
+      id: string;
+      name: string;
+      designation?: string | null;
+      phoneNumber?: string | null;
+      emailId?: string | null;
+    }>;
+  }>;
 };
 
 interface CommunicationFormProps {
@@ -42,13 +65,13 @@ interface CommunicationFormProps {
 
 export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: CommunicationFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Company | null>(null);
   const [selectedCommunicationType, setSelectedCommunicationType] = useState<string>('TELEPHONIC');
   const { confirmFormClose } = useFormConfirmation();
   const { success, error: showError } = useToastContext();
 
   // Fetch data
-  const { data: customers, isLoading: loadingCustomers } = api.customer.getAll.useQuery();
+  const { data: customers, isLoading: loadingCustomers } = api.company.getAll.useQuery();
   const { data: enquiries } = api.enquiry.getAll.useQuery();
 
   const {
