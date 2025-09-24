@@ -77,13 +77,31 @@ export const CustomerRow = memo(function CustomerRow({
           </div>
         </td>
 
+        {/* Created by Column */}
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+          {customer.createdBy ? (
+            <div className="flex items-center">
+              <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                <span className="text-xs font-medium text-gray-600">
+                  {customer.createdBy.name.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div>
+                <div className="font-medium text-gray-900">{customer.createdBy.name}</div>
+                <div className="text-xs text-gray-500">{customer.createdBy.email}</div>
+              </div>
+            </div>
+          ) : (
+            <span className="text-gray-400 italic">Unknown</span>
+          )}
+        </td>
 
       </tr>
 
       {/* Expanded Contact Persons Row */}
       {isExpanded && hasContactPersons && (
         <tr className="bg-gray-50">
-          <td colSpan={1} className="px-6 py-4">
+          <td colSpan={2} className="px-6 py-4">
             <div className="space-y-3">
               <h4 className="text-sm font-medium text-gray-900 mb-3">
                 Contact Persons

@@ -97,16 +97,6 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
 
   const [isLoading, setIsLoading] = useState(false);
 
-  // Update customer mutation
-  const updateCustomer = api.customer.update.useMutation({
-    onSuccess: () => {
-      onSuccess();
-    },
-    onError: (error) => {
-      console.error('Error updating customer:', error);
-    },
-  });
-
   // Update company mutation
   const updateCompany = api.company.update.useMutation({
     onSuccess: () => {
@@ -122,20 +112,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
     setIsLoading(true);
 
     try {
-      if (entity.type === 'customer') {
-        await updateCustomer.mutateAsync({
-          id: entity.id,
-          name: formData.name,
-          isNew: entity.isNew,
-          poRuptureDiscs: formData.poRuptureDiscs,
-          poThermowells: formData.poThermowells,
-          poHeatExchanger: formData.poHeatExchanger,
-          poMiscellaneous: formData.poMiscellaneous,
-          poWaterJetSteamJet: formData.poWaterJetSteamJet,
-          existingGraphiteSuppliers: formData.existingGraphiteSuppliers ?? null,
-          problemsFaced: formData.problemsFaced ?? null,
-        });
-      } else if (entity.type === 'company') {
+      if (entity.type === 'company') {
         await updateCompany.mutateAsync({
           id: entity.id,
           name: formData.name,

@@ -335,14 +335,14 @@ export default function EnquiriesPage() {
                 <table className="w-full caption-bottom text-sm">
                   <thead className="[&_tr]:border-b bg-gray-50">
                     <tr>
-                      <th className="text-foreground h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Enquiry ID</th>
-                      <th className="text-foreground h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Quotation Number</th>
-                      <th className="text-foreground h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Subject</th>
-                      <th className="text-foreground h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Customer</th>
-                      <th className="text-foreground h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Marketing Person</th>
-                      <th className="text-foreground h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Date</th>
-                      <th className="text-foreground h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Status</th>
-                      <th className="text-foreground h-10 px-4 text-right align-middle font-medium whitespace-nowrap">Actions</th>
+                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Enq-ID</th>
+                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Quotation Number</th>
+                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Subject</th>
+                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Customer</th>
+                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Created by</th>
+                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Date</th>
+                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Status</th>
+                      <th className="text-black h-10 px-4 text-right align-middle font-medium whitespace-nowrap">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="[&_tr:last-child]:border-0">
@@ -375,7 +375,21 @@ export default function EnquiriesPage() {
                             {enquiry.company?.name ?? enquiry.customer?.name ?? 'N/A'}
                           </td>
                           <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900">
-                            {enquiry.marketingPerson?.name ?? 'Unassigned'}
+                            {enquiry.marketingPerson ? (
+                              <div className="flex items-center">
+                                <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                                  <span className="text-xs font-medium text-gray-600">
+                                    {enquiry.marketingPerson.name.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                                <div>
+                                  <div className="font-medium text-gray-900">{enquiry.marketingPerson.name}</div>
+                                  <div className="text-xs text-gray-500">{enquiry.marketingPerson.email}</div>
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 italic">Unassigned</span>
+                            )}
                           </td>
                           <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-500">
                             {new Date(enquiry.createdAt).toLocaleDateString()}

@@ -245,7 +245,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">New Enquiry</h3>
-              <p className="text-sm text-gray-500">Create a new customer enquiry</p>
+              <p className="text-sm text-gray-900">Create a new customer enquiry</p>
             </div>
           </div>
           <button
@@ -266,7 +266,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                 <Building className="w-5 h-5 mr-2 text-blue-600" />
                 Customer Information
               </h4>
-              <p className="text-gray-600 text-sm">Select the customer for this enquiry</p>
+              <p className="text-gray-900 text-sm">Select the customer for this enquiry</p>
             </div>
             <div className="px-6 pb-6 space-y-4">
               <CustomerSelector
@@ -330,7 +330,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                 <FileText className="w-5 h-5 mr-2 text-blue-600" />
                 Enquiry Details
               </h4>
-              <p className="text-gray-600 text-sm">Provide comprehensive enquiry information</p>
+              <p className="text-gray-900 text-sm">Provide comprehensive enquiry information</p>
             </div>
             <div className="px-6 pb-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -435,7 +435,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                 {errors.description && (
                   <p className="mt-2 text-sm text-red-600">{errors.description.message}</p>
                 )}
-                <p className="mt-2 text-sm text-gray-500 pl-3 pb-2">
+                <p className="mt-2 text-sm text-gray-900 pl-3 pb-2">
                   Minimum 10 characters required
                 </p>
               </div>

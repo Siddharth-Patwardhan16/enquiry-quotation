@@ -21,6 +21,7 @@ model Employee {
   communications Communication[]
   createdCustomers Customer[] @relation("CustomerCreatedBy")
   createdCompanies Company[] @relation("CompanyCreatedBy")
+  createdQuotations Quotation[] @relation("QuotationCreatedBy")
 }
 
 // Cleaned-up Customer model - no address fields
@@ -270,6 +271,11 @@ model Quotation {
   purchaseOrderNumber String?
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
+  
+  // Track who created this quotation
+  createdById         String?
+  createdBy           Employee? @relation("QuotationCreatedBy", fields: [createdById], references: [id])
+  
   enquiryId           Int
   documents           Document[]
   enquiry             Enquiry         @relation(fields: [enquiryId], references: [id])

@@ -9,7 +9,7 @@ import { z } from 'zod';
 export const quotationRouter = createTRPCRouter({
   create: publicProcedure
     .input(CreateQuotationSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const { enquiryId, items, quotationDate, validityPeriod, ...rest } = input;
 
       // Get the enquiry to retrieve its quotation number
@@ -68,6 +68,7 @@ export const quotationRouter = createTRPCRouter({
               totalValue,
               quotationDate: quotationDate ? new Date(quotationDate) : new Date(),
               validityPeriod: validityPeriod ? new Date(validityPeriod) : null,
+              createdById: ctx.currentUser?.id ?? null,
               ...rest,
             },
           });
@@ -123,6 +124,13 @@ export const quotationRouter = createTRPCRouter({
           },
         },
         items: true, // Also include the line items
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
       },
     });
   }),

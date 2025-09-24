@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 export function CompanyForm() {
   const [activeTab, setActiveTab] = useState<'offices' | 'plants'>('offices');
   const router = useRouter();
+  const utils = api.useUtils();
 
   const methods = useForm<CompanyFormData>({
     resolver: zodResolver(companyFormSchema),
@@ -56,9 +57,16 @@ export function CompanyForm() {
   });
 
   const createCompany = api.company.create.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success('Company created successfully!');
-      router.push('/customers');
+      
+      // Invalidate and refetch company data
+      utils.company.getAll.invalidate();
+      
+      // Redirect to customers list after successful creation
+      setTimeout(() => {
+        router.push('/customers');
+      }, 1000); // Small delay to show the success message
     },
     onError: (error) => {
       toast.error(`Failed to create company: ${error.message}`);

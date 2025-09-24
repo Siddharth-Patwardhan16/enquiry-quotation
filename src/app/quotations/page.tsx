@@ -187,6 +187,7 @@ export default function QuotationsPage() {
                   <tr className="bg-gray-50 border-b">
                     <th className="p-4 font-medium text-gray-900">Quotation #</th>
                     <th className="p-4 font-medium text-gray-900">Customer</th>
+                    <th className="p-4 font-medium text-gray-900">Created by</th>
                     <th className="p-4 font-medium text-gray-900">Date</th>
                     <th className="p-4 font-medium text-gray-900">Total Value</th>
                     <th className="p-4 font-medium text-gray-900">Status</th>
@@ -198,6 +199,23 @@ export default function QuotationsPage() {
                     <tr key={q.id} className="border-b last:border-none hover:bg-gray-50">
                       <td className="p-4 font-medium text-gray-900">{q.quotationNumber}</td>
                       <td className="p-4 text-gray-900">{q.enquiry.company?.name ?? q.enquiry.customer?.name ?? 'Unknown Customer'}</td>
+                      <td className="p-4 text-gray-900">
+                        {q.createdBy ? (
+                          <div className="flex items-center">
+                            <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                              <span className="text-xs font-medium text-gray-600">
+                                {q.createdBy.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-900">{q.createdBy.name}</div>
+                              <div className="text-xs text-gray-500">{q.createdBy.email}</div>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 italic">Unknown</span>
+                        )}
+                      </td>
                       <td className="p-4 text-gray-500">
                         {new Date(q.quotationDate ?? q.createdAt).toLocaleDateString()}
                       </td>

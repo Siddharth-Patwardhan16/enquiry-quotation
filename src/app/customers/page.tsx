@@ -4,7 +4,7 @@ import { api } from '@/trpc/client';
 import { EntityDetailView } from './_components/EntityDetailView';
 import { EntityEditForm } from './_components/EntityEditForm';
 import { DeleteConfirmationDialog } from './_components/DeleteConfirmationDialog';
-import { AddLocationModal } from './_components/AddLocationModal';
+// import { AddLocationModal } from './_components/AddLocationModal';
 import { ToastContainer, useToast } from '@/components/ui/toast';
 import { useState, useEffect } from 'react';
 import { 
@@ -135,20 +135,11 @@ interface CombinedEntity {
 }
 
 export default function CustomersPage() {
-  // Fetch both old customers and new companies
-  const { data: customers, isLoading: customersLoading, error: customersError } = api.customer.getAll.useQuery();
+  // Fetch companies only (new company-based structure)
   const { data: companies, isLoading: companiesLoading, error: companiesError } = api.company.getAll.useQuery();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState<'all' | 'office' | 'plant'>('all');
   const [showForm, setShowForm] = useState(false);
-  
-  // Advanced search using the search endpoint
-  const { data: searchResults, isLoading: isSearching } = api.customer.search.useQuery(
-    { searchTerm: searchTerm },
-    {
-      enabled: searchTerm.length > 0,
-    }
-  );
   
   // State for modals
   const [selectedCustomer, setSelectedCustomer] = useState<CombinedEntity | null>(null);
@@ -167,22 +158,6 @@ export default function CustomersPage() {
 
   // tRPC utility to manually refetch data
   const utils = api.useUtils();
-
-  // Delete customer mutation
-  const deleteCustomer = api.customer.delete.useMutation({
-    onSuccess: () => {
-      // Invalidate and refetch customers
-      utils.customer.getAll.invalidate();
-      // Close delete dialog
-      setShowDeleteDialog(false);
-      setCustomerToDelete(null);
-      // Show success toast
-      success('Customer Deleted', 'The customer has been successfully removed from your database.');
-    },
-    onError: (error) => {
-      showError('Delete Failed', `Failed to delete customer: ${error.message}`);
-    },
-  });
 
   // Delete company mutation
   const deleteCompany = api.company.delete.useMutation({
@@ -238,73 +213,20 @@ export default function CustomersPage() {
     });
     /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
     
-    // Then, add customers that don't have duplicate names
-    (customers ?? []).forEach((customer: Customer) => {
-      const normalizedName = customer.name.trim().toLowerCase();
-      if (!seenNames.has(normalizedName)) {
-        seenNames.add(normalizedName);
-        allEntities.push({
-          id: customer.id,
-          name: customer.name,
-          type: 'customer',
-          isNew: customer.isNew,
-          createdAt: customer.createdAt,
-          updatedAt: customer.updatedAt,
-          createdBy: customer.createdBy,
-          poRuptureDiscs: customer.poRuptureDiscs,
-          poThermowells: customer.poThermowells,
-          poHeatExchanger: customer.poHeatExchanger,
-          poMiscellaneous: customer.poMiscellaneous,
-          poWaterJetSteamJet: customer.poWaterJetSteamJet,
-          existingGraphiteSuppliers: customer.existingGraphiteSuppliers,
-          problemsFaced: customer.problemsFaced,
-          locations: customer.locations,
-        });
-      }
-    });
     
     return allEntities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   })();
 
-  if (customersError || companiesError) {
-    return <div>Error: {customersError?.message || companiesError?.message}</div>;
+  if (companiesError) {
+    return <div>Error: {companiesError?.message}</div>;
   }
 
-  // Use search results if searching, otherwise use all combined entities
-  // Note: searchResults are still in old customer format, so we need to convert them
-  const filteredEntities = searchTerm.length > 0 ? (() => {
-    const searchEntities: CombinedEntity[] = [];
-    const seenNames = new Set<string>();
-    
-    // Convert search results to combined format with deduplication
-    /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
-    (searchResults ?? []).forEach((customer: any) => {
-      const normalizedName = customer.name.trim().toLowerCase();
-      if (!seenNames.has(normalizedName)) {
-        seenNames.add(normalizedName);
-        searchEntities.push({
-          id: customer.id,
-          name: customer.name,
-          type: 'customer',
-          isNew: customer.isNew,
-          createdAt: customer.createdAt,
-          updatedAt: customer.updatedAt,
-          createdBy: customer.createdBy,
-          poRuptureDiscs: customer.poRuptureDiscs,
-          poThermowells: customer.poThermowells,
-          poHeatExchanger: customer.poHeatExchanger,
-          poMiscellaneous: customer.poMiscellaneous,
-          poWaterJetSteamJet: customer.poWaterJetSteamJet,
-          existingGraphiteSuppliers: customer.existingGraphiteSuppliers,
-          problemsFaced: customer.problemsFaced,
-          locations: customer.locations,
-        });
-      }
-    });
-    /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
-    
-    return searchEntities;
-  })() : combinedEntities;
+  // Filter entities based on search term
+  const filteredEntities = searchTerm.length > 0 
+    ? combinedEntities.filter(entity => 
+        entity.name.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : combinedEntities;
 
   // Calculate stats
   const totalEntities = combinedEntities.length;
@@ -348,11 +270,7 @@ export default function CustomersPage() {
   // Confirm delete
   const confirmDelete = (entityId: string) => {
     if (customerToDelete) {
-      if (customerToDelete.type === 'customer') {
-        deleteCustomer.mutate({ id: entityId });
-      } else if (customerToDelete.type === 'company') {
-        deleteCompany.mutate({ id: entityId });
-      }
+      deleteCompany.mutate({ id: entityId });
     }
   };
 
@@ -476,7 +394,7 @@ export default function CustomersPage() {
                   </tr>
                 </thead>
                 <tbody className="[&_tr:last-child]:border-0">
-                  {customersLoading || companiesLoading || isSearching ? (
+                  {companiesLoading ? (
                     <tr>
                       <td colSpan={6} className="p-8 text-center">
                         <div className="animate-pulse space-y-4">
@@ -721,7 +639,6 @@ export default function CustomersPage() {
           onSuccess={() => {
             setCustomerToEdit(null);
             // Refresh data
-            utils.customer.getAll.invalidate();
             utils.company.getAll.invalidate();
           }}
         />
@@ -737,26 +654,11 @@ export default function CustomersPage() {
             setCustomerToDelete(null);
           }}
           onConfirm={() => confirmDelete(customerToDelete.id)}
-          isDeleting={customerToDelete.type === 'customer' ? deleteCustomer.isPending : deleteCompany.isPending}
+          isDeleting={deleteCompany.isPending}
         />
       )}
 
-      {/* Add Location Modal - only for customers */}
-      {customerForLocation && customerForLocation.type === 'customer' && (
-        <AddLocationModal
-          isOpen={showAddLocationModal}
-          onClose={() => {
-            setShowAddLocationModal(false);
-            setCustomerForLocation(null);
-          }}
-          customerId={customerForLocation.id}
-          customerName={customerForLocation.name}
-          onSuccess={() => {
-            // Refresh the customer data
-            utils.customer.getAll.invalidate();
-          }}
-        />
-      )}
+      {/* Add Location Modal - temporarily disabled - needs company.addLocation API */}
 
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onClose={removeToast} />

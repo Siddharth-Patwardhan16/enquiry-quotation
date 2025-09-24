@@ -7,7 +7,7 @@ export const enquiryRouter = createTRPCRouter({
   // Procedure to create a new enquiry
   create: publicProcedure
     .input(CreateEnquirySchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       // Find the first marketing person in the database
       const marketingPerson = await db.employee.findFirst({
         where: { role: 'MARKETING' },
@@ -47,7 +47,7 @@ export const enquiryRouter = createTRPCRouter({
           requirements: input.requirements,
           timeline: input.timeline,
           enquiryDate: new Date(input.enquiryDate),
-          marketingPersonId: marketingPerson?.id ?? null,
+          marketingPersonId: ctx.currentUser?.id ?? marketingPerson?.id ?? null,
           priority: input.priority,
           source: input.source,
           notes: input.notes,
@@ -79,7 +79,9 @@ export const enquiryRouter = createTRPCRouter({
         },
         marketingPerson: {
           select: {
+            id: true,
             name: true,
+            email: true,
           },
         },
       },

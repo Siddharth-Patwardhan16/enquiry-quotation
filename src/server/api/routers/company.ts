@@ -31,8 +31,8 @@ export const companyRouter = createTRPCRouter({
             // Additional Information fields
             existingGraphiteSuppliers: input.existingGraphiteSuppliers ?? null,
             problemsFaced: input.problemsFaced ?? null,
-            // Single user system - no user tracking needed
-            createdById: null
+            // Track who created this company
+            createdById: ctx.currentUser?.id ?? null
           }
         });
 
