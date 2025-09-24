@@ -40,49 +40,12 @@ function CustomerDetailsContent() {
     refetch 
   } = api.company.getAll.useQuery();
 
-  // Convert companies to display format
-  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
-  const combinedEntities = (companiesData ?? []).map((company: any) => ({
-    id: company.id,
-    name: company.name,
-    type: 'company' as const,
-    designation: null,
-    phoneNumber: null,
-    emailId: null,
-    createdAt: company.createdAt,
-    updatedAt: company.updatedAt,
-    locations: company.offices?.map((office: any) => ({
-      id: office.id,
-      name: office.name,
-      type: 'OFFICE' as const,
-      address: office.address,
-      city: office.city,
-      state: office.state,
-      country: office.country,
-      receptionNumber: office.receptionNumber,
-    })) || [],
-    contactPersons: [
-      ...(company.offices?.flatMap((office: any) => 
-        office.contactPersons?.map((contact: any) => ({
-          ...contact,
-          location: { id: office.id, name: office.name, type: 'OFFICE' as const }
-        })) || []
-      ) || []),
-      ...(company.plants?.flatMap((plant: any) => 
-        plant.contactPersons?.map((contact: any) => ({
-          ...contact,
-          location: { id: plant.id, name: plant.name, type: 'PLANT' as const }
-        })) || []
-      ) || [])
-    ],
-  }));
-
   // Apply client-side filtering and pagination since we're only using companies
-  const filteredEntities = combinedEntities.filter(entity => {
+  const filteredEntities = (companiesData ?? []).filter(company => {
     const searchTerm = debouncedSearchTerm.toLowerCase();
     if (!searchTerm) return true;
     
-    return entity.name.toLowerCase().includes(searchTerm);
+    return company.name.toLowerCase().includes(searchTerm);
   });
 
   const totalCount = filteredEntities.length;
@@ -125,15 +88,15 @@ function CustomerDetailsContent() {
   }, [success, refetch]);
 
   const handleExport = useCallback(() => {
-    if (combinedEntities.length === 0) {
+    if (filteredEntities.length === 0) {
       toastError('Export Error', 'No companies to export');
       return;
     }
 
     // Export all companies
-    exportCustomersToCSV(combinedEntities);
-    success('Export', `Exported ${combinedEntities.length} companies to CSV`);
-  }, [combinedEntities, success, toastError]);
+    exportCustomersToCSV(filteredEntities);
+    success('Export', `Exported ${filteredEntities.length} companies to CSV`);
+  }, [filteredEntities, success, toastError]);
 
   return (
     <div className="min-h-screen bg-gray-50">

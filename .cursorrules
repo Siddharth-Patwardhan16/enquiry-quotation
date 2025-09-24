@@ -146,3 +146,28 @@
 - `src/server/` - tRPC API routes
 - `src/lib/` - Utility functions and configurations
 - `prisma/` - Database schema and migrations
+**Key Models:**
+- **Employee**: Represents users/employees of the system, including marketing, sales, admin, and support roles.
+- **Customer**: Represents companies or individuals who are customers. Each customer can have multiple locations and contact persons.
+- **Location**: Represents a physical location (office or plant) associated with a customer.
+- **Contact**: Represents a contact person, linked to a customer and a location.
+- **Enquiry**: Represents a customer enquiry, linked to a customer, location, contact, and marketing person.
+- **Quotation**: Represents a quotation generated for an enquiry, with line items and status tracking.
+- **Communication**: Represents communications (emails, calls, etc.) linked to an enquiry or customer.
+
+**Database Relationships:**
+- Customers have many Locations and Contacts.
+- Locations belong to a Customer and can have many Contacts.
+- Contacts belong to a Location and a Customer.
+- Enquiries are linked to a Customer, Location, Contact, and Employee (marketing person).
+- Quotations are linked to an Enquiry.
+- Communications are linked to an Enquiry or Customer.
+
+**Prisma Schema Location:**
+- See `prisma/schema.prisma` for model definitions and relationships.
+
+**Data Safety:**
+- Never run destructive operations on Supabase/PostgreSQL without explicit confirmation.
+- Always use WHERE clauses for updates/deletes.
+- Review foreign key constraints and cascade rules before schema changes.
+

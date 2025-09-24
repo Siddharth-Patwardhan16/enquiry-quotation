@@ -39,7 +39,13 @@ export default function TasksPage() {
   // State for search
   const [searchTerm, setSearchTerm] = useState('');
 
-  const queryResult = api.tasks.getUpcoming.useQuery();
+  const queryResult = api.tasks.getUpcoming.useQuery({
+    search: searchTerm,
+    type: filterType === 'all' ? undefined : filterType,
+    status: filterStatus === 'all' ? undefined : filterStatus,
+    priority: filterPriority === 'all' ? undefined : filterPriority,
+  });
+  const { data: taskStats } = api.tasks.getTaskStats.useQuery();
   const tasks = queryResult.data as Task[] | undefined;
   const isLoading = queryResult.isLoading;
   const error = queryResult.error as { message: string } | null;
@@ -166,54 +172,21 @@ export default function TasksPage() {
     void queryResult.refetch();
   };
 
-  // Filter tasks based on current filters and search term
-  const filteredTasks: Task[] = tasks ? tasks.filter((task: Task) => {
-    // Filter by search term
-    if (searchTerm.trim()) {
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch = 
-        task.customerName.toLowerCase().includes(searchLower) ||
-        task.taskDescription.toLowerCase().includes(searchLower) ||
-        task.status.toLowerCase().includes(searchLower) ||
-        task.type.toLowerCase().includes(searchLower);
-      
-      if (!matchesSearch) return false;
-    }
-    
-    // Filter by type
-    if (filterType !== 'all' && task.type !== filterType) return false;
-    
-    // Filter by priority
-    if (filterPriority !== 'all' && task.priority !== filterPriority) return false;
-    
-    // Filter by status
-    if (filterStatus !== 'all') {
-      const today = new Date();
-      const taskDate = new Date(task.dueDate);
-      const isOverdue = taskDate < today;
-      const isToday = taskDate.toDateString() === today.toDateString();
-      
-      switch (filterStatus) {
-        case 'overdue':
-          return isOverdue;
-        case 'today':
-          return isToday;
-        case 'upcoming':
-          return !isOverdue && !isToday;
-        default:
-          return true;
-      }
-    }
-    
-    return true;
-  }) : [];
+  // Use backend filtered tasks directly
+  const filteredTasks: Task[] = tasks ?? [];
 
-  // Calculate stats for filtered tasks
-  const overdueTasks: Task[] = filteredTasks.filter((task: Task) => isOverdue(task.dueDate));
-  const todayTasks: Task[] = filteredTasks.filter((task: Task) => {
-    const today = new Date();
-    return new Date(task.dueDate).toDateString() === today.toDateString();
-  });
+  // Use backend stats if available, otherwise show loading
+  const displayStats = taskStats ? {
+    total: taskStats.total,
+    overdue: taskStats.overdue,
+    today: taskStats.today,
+    upcoming: taskStats.upcoming
+  } : {
+    total: 0,
+    overdue: 0,
+    today: 0,
+    upcoming: 0
+  };
 
 
   return (
@@ -348,7 +321,7 @@ export default function TasksPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-red-700">Overdue</p>
-                <p className="text-2xl font-bold text-red-900">{overdueTasks.length}</p>
+                <p className="text-2xl font-bold text-red-900">{displayStats.overdue}</p>
               </div>
             </div>
           </CardContent>
@@ -362,7 +335,7 @@ export default function TasksPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-orange-700">Due Today</p>
-                <p className="text-2xl font-bold text-orange-900">{todayTasks.length}</p>
+                <p className="text-2xl font-bold text-orange-900">{displayStats.today}</p>
               </div>
             </div>
           </CardContent>

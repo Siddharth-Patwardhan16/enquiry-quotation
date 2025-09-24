@@ -202,7 +202,7 @@ export function EntityDetailView({ entity, isOpen, onClose }: EntityDetailViewPr
               </div>
 
               {/* Additional Information */}
-              {(entity.existingGraphiteSuppliers || entity.problemsFaced) && (
+              {(entity.existingGraphiteSuppliers ?? entity.problemsFaced) && (
                 <div className="bg-green-50 rounded-lg p-4">
                   <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                     <Globe className="w-5 h-5 mr-2 text-green-600" />
@@ -250,11 +250,11 @@ export function EntityDetailView({ entity, isOpen, onClose }: EntityDetailViewPr
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                            <p className="text-sm text-gray-900">{office.address || 'Not provided'}</p>
+                            <p className="text-sm text-gray-900">{office.address ?? 'Not provided'}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Area</label>
-                            <p className="text-sm text-gray-900">{office.area || 'Not provided'}</p>
+                            <p className="text-sm text-gray-900">{office.area ?? 'Not provided'}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
@@ -270,7 +270,7 @@ export function EntityDetailView({ entity, isOpen, onClose }: EntityDetailViewPr
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code</label>
-                            <p className="text-sm text-gray-900">{office.pincode || 'Not provided'}</p>
+                            <p className="text-sm text-gray-900">{office.pincode ?? 'Not provided'}</p>
                           </div>
                         </div>
 
@@ -295,15 +295,15 @@ export function EntityDetailView({ entity, isOpen, onClose }: EntityDetailViewPr
                                   <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-600">
                                     <div className="flex items-center">
                                       <span className="font-medium">Designation:</span>
-                                      <span className="ml-1">{contact.designation || 'Not provided'}</span>
+                                      <span className="ml-1">{contact.designation ?? 'Not provided'}</span>
                                     </div>
                                     <div className="flex items-center">
                                       <Phone className="w-3 h-3 mr-1" />
-                                      <span>{contact.phoneNumber || 'Not provided'}</span>
+                                      <span>{contact.phoneNumber ?? 'Not provided'}</span>
                                     </div>
                                     <div className="flex items-center">
                                       <Mail className="w-3 h-3 mr-1" />
-                                      <span>{contact.emailId || 'Not provided'}</span>
+                                      <span>{contact.emailId ?? 'Not provided'}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -340,11 +340,11 @@ export function EntityDetailView({ entity, isOpen, onClose }: EntityDetailViewPr
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                            <p className="text-sm text-gray-900">{plant.address || 'Not provided'}</p>
+                            <p className="text-sm text-gray-900">{plant.address ?? 'Not provided'}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Area</label>
-                            <p className="text-sm text-gray-900">{plant.area || 'Not provided'}</p>
+                            <p className="text-sm text-gray-900">{plant.area ?? 'Not provided'}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
@@ -360,7 +360,7 @@ export function EntityDetailView({ entity, isOpen, onClose }: EntityDetailViewPr
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code</label>
-                            <p className="text-sm text-gray-900">{plant.pincode || 'Not provided'}</p>
+                            <p className="text-sm text-gray-900">{plant.pincode ?? 'Not provided'}</p>
                           </div>
                         </div>
 
@@ -385,15 +385,15 @@ export function EntityDetailView({ entity, isOpen, onClose }: EntityDetailViewPr
                                   <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-600">
                                     <div className="flex items-center">
                                       <span className="font-medium">Designation:</span>
-                                      <span className="ml-1">{contact.designation || 'Not provided'}</span>
+                                      <span className="ml-1">{contact.designation ?? 'Not provided'}</span>
                                     </div>
                                     <div className="flex items-center">
                                       <Phone className="w-3 h-3 mr-1" />
-                                      <span>{contact.phoneNumber || 'Not provided'}</span>
+                                      <span>{contact.phoneNumber ?? 'Not provided'}</span>
                                     </div>
                                     <div className="flex items-center">
                                       <Mail className="w-3 h-3 mr-1" />
-                                      <span>{contact.emailId || 'Not provided'}</span>
+                                      <span>{contact.emailId ?? 'Not provided'}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -436,16 +436,16 @@ export function EntityDetailView({ entity, isOpen, onClose }: EntityDetailViewPr
                     </div>
                     <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
                       <div>
-                        <span className="font-medium">Address:</span> {location.address || 'Not provided'}
+                        <span className="font-medium">Address:</span> {location.address ?? 'Not provided'}
                       </div>
                       <div>
-                        <span className="font-medium">City:</span> {location.city || 'Not provided'}
+                        <span className="font-medium">City:</span> {location.city ?? 'Not provided'}
                       </div>
                       <div>
-                        <span className="font-medium">State:</span> {location.state || 'Not provided'}
+                        <span className="font-medium">State:</span> {location.state ?? 'Not provided'}
                       </div>
                       <div>
-                        <span className="font-medium">Country:</span> {location.country || 'Not provided'}
+                        <span className="font-medium">Country:</span> {location.country ?? 'Not provided'}
                       </div>
                       {location.receptionNumber && (
                         <div>

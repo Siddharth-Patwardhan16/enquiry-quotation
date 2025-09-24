@@ -1,4 +1,4 @@
-import { Customer, CombinedEntity, SortField, SortOrder } from '../_types/customer.types';
+import { Customer, Company, CompanyApiResponse, SortField, SortOrder } from '../_types/customer.types';
 
 /**
  * Debounce function to limit the rate of function execution
@@ -17,42 +17,75 @@ export function debounce<T extends (..._args: never[]) => unknown>(
 /**
  * Format customer name for display
  */
-export function formatCustomerName(customer: Customer | CombinedEntity): string {
+export function formatCustomerName(customer: Customer | Company | CompanyApiResponse): string {
   return customer.name.trim();
 }
 
 /**
  * Format customer designation for display
  */
-export function formatCustomerDesignation(customer: Customer | CombinedEntity): string {
-  return customer.designation?.trim() ?? '-';
+export function formatCustomerDesignation(customer: Customer | Company | CompanyApiResponse): string {
+  if ('designation' in customer && customer.designation !== undefined && customer.designation !== null) {
+    return customer.designation.trim() ?? '-';
+  }
+  // For Company type, get designation from primary contact person
+  if ('contactPersons' in customer && Array.isArray(customer.contactPersons)) {
+    const primaryContact = customer.contactPersons.find(contact => contact.isPrimary);
+    return primaryContact?.designation?.trim() ?? '-';
+  }
+  return '-';
 }
 
 /**
  * Format phone number for display
  */
-export function formatPhoneNumber(customer: Customer | CombinedEntity): string {
-  return customer.phoneNumber?.trim() ?? '-';
+export function formatPhoneNumber(customer: Customer | Company | CompanyApiResponse): string {
+  if ('phoneNumber' in customer && customer.phoneNumber !== undefined && customer.phoneNumber !== null) {
+    return customer.phoneNumber.trim() ?? '-';
+  }
+  // For Company type, get phone number from primary contact person
+  if ('contactPersons' in customer && Array.isArray(customer.contactPersons)) {
+    const primaryContact = customer.contactPersons.find(contact => contact.isPrimary);
+    return primaryContact?.phoneNumber?.trim() ?? '-';
+  }
+  return '-';
 }
 
 /**
  * Format email for display
  */
-export function formatEmail(customer: Customer | CombinedEntity): string {
-  return customer.emailId?.trim() ?? '-';
+export function formatEmail(customer: Customer | Company | CompanyApiResponse): string {
+  if ('emailId' in customer && customer.emailId !== undefined && customer.emailId !== null) {
+    return customer.emailId.trim() ?? '-';
+  }
+  // For Company type, get email from primary contact person
+  if ('contactPersons' in customer && Array.isArray(customer.contactPersons)) {
+    const primaryContact = customer.contactPersons.find(contact => contact.isPrimary);
+    return primaryContact?.emailId?.trim() ?? '-';
+  }
+  return '-';
 }
 
 /**
  * Check if customer has contact information
  */
-export function hasContactInfo(customer: Customer | CombinedEntity): boolean {
-  return !!(customer.phoneNumber ?? customer.emailId);
+export function hasContactInfo(customer: Customer | Company | CompanyApiResponse): boolean {
+  if ('phoneNumber' in customer && customer.phoneNumber !== undefined) {
+    return !!(customer.phoneNumber ?? customer.emailId);
+  }
+  // For Company type, check if any contact person has phone or email
+  if ('contactPersons' in customer && Array.isArray(customer.contactPersons)) {
+    return customer.contactPersons.some(contact => 
+      !!(contact.phoneNumber ?? contact.emailId)
+    );
+  }
+  return false;
 }
 
 /**
  * Get customer initials for avatar
  */
-export function getCustomerInitials(customer: Customer | CombinedEntity): string {
+export function getCustomerInitials(customer: Customer | Company | CompanyApiResponse): string {
   const name = customer.name.trim();
   const words = name.split(' ');
   
@@ -81,12 +114,12 @@ export function sortCustomers(
         bValue = b.name.toLowerCase();
         break;
       case 'designation':
-        aValue = a.designation?.toLowerCase() || '';
-        bValue = b.designation?.toLowerCase() || '';
+        aValue = a.designation?.toLowerCase() ?? '';
+        bValue = b.designation?.toLowerCase() ?? '';
         break;
       case 'emailId':
-        aValue = a.emailId?.toLowerCase() || '';
-        bValue = b.emailId?.toLowerCase() || '';
+        aValue = a.emailId?.toLowerCase() ?? '';
+        bValue = b.emailId?.toLowerCase() ?? '';
         break;
       case 'createdAt':
         aValue = new Date(a.createdAt).getTime();
@@ -162,24 +195,33 @@ export function isValidPhoneNumber(phone: string): boolean {
 /**
  * Generate customer export data
  */
-export function generateCustomerExportData(customers: CombinedEntity[]): Record<string, string>[] {
-  return customers.map(customer => ({
-    'Company Name': customer.name,
-    'Type': customer.type,
-    'Designation': customer.designation ?? '',
-    'Phone Number': customer.phoneNumber ?? '',
-    'Email ID': customer.emailId ?? '',
-    'Created Date': customer.createdAt.toLocaleDateString(),
-    'Office Locations': customer.locations
-      .filter(loc => loc.type === 'OFFICE')
-      .map(loc => loc.name)
-      .join(', '),
-    'Plant Locations': customer.locations
-      .filter(loc => loc.type === 'PLANT')
-      .map(loc => loc.name)
-      .join(', '),
-    'Contact Persons': customer.contactPersons
-      .map(contact => `${contact.name} (${contact.designation || 'No designation'})`)
-      .join(', '),
-  }));
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
+export function generateCustomerExportData(customers: any[]): Record<string, string>[] {
+  return customers.map(customer => {
+    const primaryContact = Array.isArray(customer.contactPersons) 
+      ? customer.contactPersons.find((contact: any) => contact.isPrimary)
+      : undefined;
+    
+    return {
+      'Company Name': customer.name,
+      'Type': customer.type,
+      'Website': customer.website ?? '',
+      'Industry': customer.industry ?? '',
+      'Designation': primaryContact?.designation ?? '',
+      'Phone Number': primaryContact?.phoneNumber ?? '',
+      'Email ID': primaryContact?.emailId ?? '',
+      'Created Date': customer.createdAt.toLocaleDateString(),
+      'Created By': customer.createdBy?.name ?? '',
+      'Office Locations': Array.isArray(customer.offices)
+        ? customer.offices.map((office: any) => office.name).join(', ')
+        : '',
+      'Plant Locations': Array.isArray(customer.plants)
+        ? customer.plants.map((plant: any) => plant.name).join(', ')
+        : '',
+      'Contact Persons': Array.isArray(customer.contactPersons)
+        ? customer.contactPersons.map((contact: any) => `${contact.name} (${contact.designation ?? 'No designation'})`).join(', ')
+        : '',
+    };
+  });
 }
+/* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */

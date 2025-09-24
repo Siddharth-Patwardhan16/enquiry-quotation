@@ -60,6 +60,7 @@ import {
 
 export default function EnquiriesPage() {
   const enquiriesQuery = api.enquiry.getAll.useQuery();
+  const { data: stats } = api.enquiry.getStats.useQuery();
   const { data: enquiries, isLoading, error } = enquiriesQuery;
   const updateEnquiryMutation = api.enquiry.update.useMutation({
     onSuccess: () => {
@@ -124,12 +125,17 @@ export default function EnquiriesPage() {
     return matchesSearch && matchesStatus;
   }) ?? [];
 
-  // Calculate stats
-  const stats = {
-    total: enquiries?.length ?? 0,
-    new: enquiries?.filter(e => e.status === 'NEW').length ?? 0,
-    inProgress: enquiries?.filter(e => e.status === 'IN_PROGRESS').length ?? 0,
-    quoted: enquiries?.filter(e => e.status === 'QUOTED').length ?? 0
+  // Use backend stats if available, otherwise show loading
+  const displayStats = stats ? {
+    total: stats.total,
+    new: stats.new,
+    inProgress: stats.inProgress,
+    quoted: stats.quoted
+  } : {
+    total: 0,
+    new: 0,
+    inProgress: 0,
+    quoted: 0
   };
 
   const getStatusBadge = (status: string) => {
@@ -260,7 +266,7 @@ export default function EnquiriesPage() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Total Enquiries</dt>
-                    <dd className="text-lg font-medium text-gray-900">{stats.total}</dd>
+                    <dd className="text-lg font-medium text-gray-900">{displayStats.total}</dd>
                   </dl>
                 </div>
               </div>
@@ -278,7 +284,7 @@ export default function EnquiriesPage() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">New Enquiries</dt>
-                    <dd className="text-lg font-medium text-gray-900">{stats.new}</dd>
+                    <dd className="text-lg font-medium text-gray-900">{displayStats.new}</dd>
                   </dl>
                 </div>
               </div>
@@ -296,7 +302,7 @@ export default function EnquiriesPage() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">In Progress</dt>
-                    <dd className="text-lg font-medium text-gray-900">{stats.inProgress}</dd>
+                    <dd className="text-lg font-medium text-gray-900">{displayStats.inProgress}</dd>
                   </dl>
                 </div>
               </div>
@@ -314,7 +320,7 @@ export default function EnquiriesPage() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Quoted</dt>
-                    <dd className="text-lg font-medium text-gray-900">{stats.quoted}</dd>
+                    <dd className="text-lg font-medium text-gray-900">{displayStats.quoted}</dd>
                   </dl>
                 </div>
               </div>

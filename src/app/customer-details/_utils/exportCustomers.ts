@@ -1,10 +1,11 @@
-import { CombinedEntity } from '../_types/customer.types';
+
+import { CompanyApiResponse } from '../_types/customer.types';
 import { generateCustomerExportData } from './customerHelpers';
 
 /**
  * Export customers to CSV format
  */
-export function exportCustomersToCSV(customers: CombinedEntity[], filename?: string): void {
+export function exportCustomersToCSV(customers: CompanyApiResponse[], filename?: string): void {
   if (customers.length === 0) {
     alert('No customers to export');
     return;
@@ -47,7 +48,7 @@ export function exportCustomersToCSV(customers: CombinedEntity[], filename?: str
 /**
  * Export customers to Excel format (using SheetJS)
  */
-export async function exportCustomersToExcel(customers: CombinedEntity[], filename?: string): Promise<void> {
+export async function exportCustomersToExcel(customers: CompanyApiResponse[], filename?: string): Promise<void> {
   try {
     // Dynamic import to avoid bundling SheetJS in the main bundle
     const XLSX = await import('xlsx');
@@ -104,7 +105,7 @@ export async function exportCustomersToExcel(customers: CombinedEntity[], filena
 /**
  * Export customers to JSON format
  */
-export function exportCustomersToJSON(customers: CombinedEntity[], filename?: string): void {
+export function exportCustomersToJSON(customers: CompanyApiResponse[], filename?: string): void {
   if (customers.length === 0) {
     alert('No customers to export');
     return;
@@ -116,12 +117,13 @@ export function exportCustomersToJSON(customers: CombinedEntity[], filename?: st
     customers: customers.map(customer => ({
       id: customer.id,
       name: customer.name,
-      type: customer.type,
-      designation: customer.designation,
-      phoneNumber: customer.phoneNumber,
-      emailId: customer.emailId,
+      type: customer.type ?? 'company',
+      website: customer.website,
+      industry: customer.industry,
       createdAt: customer.createdAt,
-      locations: customer.locations,
+      createdBy: customer.createdBy,
+      offices: customer.offices,
+      plants: customer.plants,
       contactPersons: customer.contactPersons,
     })),
   };

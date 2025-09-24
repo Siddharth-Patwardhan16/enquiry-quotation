@@ -16,8 +16,15 @@ type UnifiedTask = {
 };
 
 export const tasksRouter = createTRPCRouter({
-  // This procedure fetches all actionable tasks
-  getUpcoming: publicProcedure.query(async () => {
+  // This procedure fetches all actionable tasks with filtering support
+  getUpcoming: publicProcedure
+    .input(z.object({
+      search: z.string().optional(),
+      type: z.enum(['QUOTATION', 'COMMUNICATION']).optional(),
+      status: z.enum(['overdue', 'today', 'upcoming']).optional(),
+      priority: z.enum(['high', 'medium', 'low']).optional(),
+    }))
+    .query(async ({ input }) => {
     const today = new Date();
 
     // 1. Fetch active quotations (excluding completed ones)
@@ -142,10 +149,139 @@ export const tasksRouter = createTRPCRouter({
     });
 
     // 4. Merge and sort the tasks by due date
-    const allTasks = [...quotationTasks, ...communicationTasks];
+    let allTasks = [...quotationTasks, ...communicationTasks];
     allTasks.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
+    // 5. Apply filters
+    if (input.search) {
+      const searchLower = input.search.toLowerCase();
+      allTasks = allTasks.filter(task => 
+        task.customerName.toLowerCase().includes(searchLower) ||
+        task.taskDescription.toLowerCase().includes(searchLower) ||
+        task.status.toLowerCase().includes(searchLower) ||
+        task.type.toLowerCase().includes(searchLower)
+      );
+    }
+
+    if (input.type) {
+      allTasks = allTasks.filter(task => task.type === input.type);
+    }
+
+    if (input.priority) {
+      allTasks = allTasks.filter(task => task.priority === input.priority);
+    }
+
+    if (input.status) {
+      const today = new Date();
+      allTasks = allTasks.filter(task => {
+        const taskDate = new Date(task.dueDate);
+        const isOverdue = taskDate < today;
+        const isToday = taskDate.toDateString() === today.toDateString();
+        
+        switch (input.status) {
+          case 'overdue':
+            return isOverdue;
+          case 'today':
+            return isToday;
+          case 'upcoming':
+            return !isOverdue && !isToday;
+          default:
+            return true;
+        }
+      });
+    }
+
     return allTasks;
+  }),
+
+  // Get task statistics - moved from frontend calculations
+  getTaskStats: publicProcedure.query(async () => {
+    const today = new Date();
+    
+    // Get all tasks first
+    const allTasks = await db.$transaction(async (prisma) => {
+      // Get quotations
+      const activeQuotations = await prisma.quotation.findMany({
+        where: {
+          NOT: {
+            status: { in: ['WON', 'LOST'] },
+          },
+        },
+        select: {
+          id: true,
+          status: true,
+          validityPeriod: true,
+          createdAt: true,
+        },
+      });
+
+      // Get communications
+      const allCommunications = await prisma.communication.findMany({
+        where: {
+          nextCommunicationDate: {
+            not: null,
+          },
+        },
+        select: {
+          id: true,
+          nextCommunicationDate: true,
+        },
+      });
+
+      // Transform to unified format
+      const quotationTasks = activeQuotations.map(q => {
+        const dueDate = q.validityPeriod ?? q.createdAt;
+        const isOverdue = dueDate < today;
+        const isToday = dueDate.toDateString() === today.toDateString();
+        
+        let priority: 'high' | 'medium' | 'low' = 'medium';
+        if (q.status === 'DRAFT') priority = 'high';
+        else if (q.status === 'RECEIVED') priority = 'low';
+        
+        return {
+          type: 'QUOTATION' as const,
+          dueDate,
+          priority,
+          isOverdue,
+          isToday,
+        };
+      });
+
+      const communicationTasks = allCommunications.map(c => {
+        const dueDate = c.nextCommunicationDate!;
+        const isOverdue = dueDate < today;
+        const isToday = dueDate.toDateString() === today.toDateString();
+        
+        let priority: 'high' | 'medium' | 'low' = 'medium';
+        if (isOverdue) priority = 'high';
+        else if (isToday) priority = 'high';
+        else if (dueDate.getTime() - today.getTime() <= 7 * 24 * 60 * 60 * 1000) priority = 'medium';
+        else priority = 'low';
+        
+        return {
+          type: 'COMMUNICATION' as const,
+          dueDate,
+          priority,
+          isOverdue,
+          isToday,
+        };
+      });
+
+      return [...quotationTasks, ...communicationTasks];
+    });
+
+    // Calculate statistics
+    const total = allTasks.length;
+    const overdue = allTasks.filter(task => task.isOverdue).length;
+    const todayCount = allTasks.filter(task => task.isToday).length;
+    const upcoming = allTasks.filter(task => !task.isOverdue && !task.isToday).length;
+
+    return {
+      total,
+      overdue,
+      today: todayCount,
+      upcoming,
+    };
   }),
 
   // Keep existing endpoints for backward compatibility

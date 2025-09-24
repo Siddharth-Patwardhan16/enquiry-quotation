@@ -34,7 +34,7 @@ export function CommunicationList({
   const [filterCustomer, setFilterCustomer] = useState<string>('all');
   const [filterQuotation, setFilterQuotation] = useState<string>('all');
 
-  const { data: communications, isLoading, refetch } = api.communication.getAll.useQuery();
+  const { data: communications, isLoading, refetch } = api.communication.getAll.useQuery({});
   const { data: customers } = api.company.getAll.useQuery();
 
   const deleteCommunication = api.communication.delete.useMutation({
@@ -87,11 +87,11 @@ export function CommunicationList({
   };
 
   // Filter communications based on search and filters
-  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/prefer-nullish-coalescing */
   const filteredCommunications = communications?.filter((comm: any) => {
     const matchesSearch = 
-      comm.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      comm.customer?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (comm.subject ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (comm.customer?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (comm.contact?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (comm.description ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (comm.enquiry?.quotationNumber ?? '').toLowerCase().includes(searchTerm.toLowerCase());

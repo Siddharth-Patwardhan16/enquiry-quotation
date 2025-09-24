@@ -89,10 +89,10 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
     poHeatExchanger: entity.poHeatExchanger,
     poMiscellaneous: entity.poMiscellaneous,
     poWaterJetSteamJet: entity.poWaterJetSteamJet,
-    existingGraphiteSuppliers: entity.existingGraphiteSuppliers || '',
-    problemsFaced: entity.problemsFaced || '',
-    offices: entity.offices || [],
-    plants: entity.plants || [],
+    existingGraphiteSuppliers: entity.existingGraphiteSuppliers ?? '',
+    problemsFaced: entity.problemsFaced ?? '',
+    offices: entity.offices ?? [],
+    plants: entity.plants ?? [],
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -385,7 +385,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                             <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                             <input
                               type="text"
-                              value={office.address || ''}
+                              value={office.address ?? ''}
                               onChange={(e) => handleOfficeChange(_index, 'address', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
@@ -394,7 +394,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                             <label className="block text-sm font-medium text-gray-700 mb-1">Area</label>
                             <input
                               type="text"
-                              value={office.area || ''}
+                              value={office.area ?? ''}
                               onChange={(e) => handleOfficeChange(_index, 'area', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
@@ -433,7 +433,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                             <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code</label>
                             <input
                               type="text"
-                              value={office.pincode || ''}
+                              value={office.pincode ?? ''}
                               onChange={(e) => handleOfficeChange(_index, 'pincode', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
@@ -474,7 +474,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                                       <label className="block text-sm font-medium text-gray-700 mb-1">Designation</label>
                                       <input
                                         type="text"
-                                        value={contact.designation || ''}
+                                        value={contact.designation ?? ''}
                                         onChange={(e) => handleOfficeContactChange(_index, contactIndex, 'designation', e.target.value)}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                       />
@@ -483,7 +483,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                                       <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
                                       <input
                                         type="tel"
-                                        value={contact.phoneNumber || ''}
+                                        value={contact.phoneNumber ?? ''}
                                         onChange={(e) => handleOfficeContactChange(_index, contactIndex, 'phoneNumber', e.target.value)}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                       />
@@ -492,7 +492,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                                       <label className="block text-sm font-medium text-gray-700 mb-1">Email ID</label>
                                       <input
                                         type="email"
-                                        value={contact.emailId || ''}
+                                        value={contact.emailId ?? ''}
                                         onChange={(e) => handleOfficeContactChange(_index, contactIndex, 'emailId', e.target.value)}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                       />
@@ -545,7 +545,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                             <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                             <input
                               type="text"
-                              value={plant.address || ''}
+                              value={plant.address ?? ''}
                               onChange={(e) => handlePlantChange(_index, 'address', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             />
@@ -554,7 +554,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                             <label className="block text-sm font-medium text-gray-700 mb-1">Area</label>
                             <input
                               type="text"
-                              value={plant.area || ''}
+                              value={plant.area ?? ''}
                               onChange={(e) => handlePlantChange(_index, 'area', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             />
@@ -593,7 +593,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                             <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code</label>
                             <input
                               type="text"
-                              value={plant.pincode || ''}
+                              value={plant.pincode ?? ''}
                               onChange={(e) => handlePlantChange(_index, 'pincode', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             />
@@ -634,7 +634,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                                       <label className="block text-sm font-medium text-gray-700 mb-1">Designation</label>
                                       <input
                                         type="text"
-                                        value={contact.designation || ''}
+                                        value={contact.designation ?? ''}
                                         onChange={(e) => handlePlantContactChange(_index, contactIndex, 'designation', e.target.value)}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                                       />
@@ -643,7 +643,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                                       <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
                                       <input
                                         type="tel"
-                                        value={contact.phoneNumber || ''}
+                                        value={contact.phoneNumber ?? ''}
                                         onChange={(e) => handlePlantContactChange(_index, contactIndex, 'phoneNumber', e.target.value)}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                                       />
@@ -652,7 +652,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                                       <label className="block text-sm font-medium text-gray-700 mb-1">Email ID</label>
                                       <input
                                         type="email"
-                                        value={contact.emailId || ''}
+                                        value={contact.emailId ?? ''}
                                         onChange={(e) => handlePlantContactChange(_index, contactIndex, 'emailId', e.target.value)}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                                       />
@@ -709,16 +709,16 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                     </div>
                     <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
                       <div>
-                        <span className="font-medium">Address:</span> {location.address || 'Not provided'}
+                        <span className="font-medium">Address:</span> {location.address ?? 'Not provided'}
                       </div>
                       <div>
-                        <span className="font-medium">City:</span> {location.city || 'Not provided'}
+                        <span className="font-medium">City:</span> {location.city ?? 'Not provided'}
                       </div>
                       <div>
-                        <span className="font-medium">State:</span> {location.state || 'Not provided'}
+                        <span className="font-medium">State:</span> {location.state ?? 'Not provided'}
                       </div>
                       <div>
-                        <span className="font-medium">Country:</span> {location.country || 'Not provided'}
+                        <span className="font-medium">Country:</span> {location.country ?? 'Not provided'}
                       </div>
                       {location.receptionNumber && (
                         <div>

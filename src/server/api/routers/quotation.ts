@@ -135,6 +135,41 @@ export const quotationRouter = createTRPCRouter({
     });
   }),
 
+  // Get quotation statistics - moved from frontend calculations
+  getStats: publicProcedure.query(async () => {
+    const [total, draft, live, won, lost, received] = await Promise.all([
+      db.quotation.count(),
+      db.quotation.count({ where: { status: 'DRAFT' } }),
+      db.quotation.count({ where: { status: { in: ['LIVE', 'SUBMITTED'] } } }),
+      db.quotation.count({ where: { status: 'WON' } }),
+      db.quotation.count({ where: { status: 'LOST' } }),
+      db.quotation.count({ where: { status: 'RECEIVED' } })
+    ]);
+
+    // Calculate total value for live/submitted quotations
+    const liveTotalValue = await db.quotation.aggregate({
+      where: { status: { in: ['LIVE', 'SUBMITTED'] } },
+      _sum: { totalValue: true }
+    });
+
+    // Calculate total value for all active quotations (live, submitted, won, received)
+    const activeTotalValue = await db.quotation.aggregate({
+      where: { status: { in: ['LIVE', 'SUBMITTED', 'WON', 'RECEIVED'] } },
+      _sum: { totalValue: true }
+    });
+
+    return {
+      total,
+      draft,
+      live,
+      won,
+      lost,
+      received,
+      liveTotalValue: liveTotalValue._sum.totalValue ?? 0,
+      activeTotalValue: activeTotalValue._sum.totalValue ?? 0
+    };
+  }),
+
   // Check if quotation number already exists
   checkDuplicateNumber: publicProcedure
     .input(z.object({ quotationNumber: z.string() }))

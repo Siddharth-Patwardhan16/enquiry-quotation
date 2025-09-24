@@ -25,24 +25,79 @@ export interface Customer {
   contacts: Contact[];
 }
 
-// New combined entity type for displaying both customers and companies
-export interface CombinedEntity {
+// Company type from the API
+export interface Company {
   id: string;
   name: string;
   type: 'customer' | 'company';
-  designation?: string | null;
-  phoneNumber?: string | null;
-  emailId?: string | null;
+  isNew: boolean;
+  website?: string | null;
+  industry?: string | null;
   createdAt: Date;
   updatedAt: Date;
   createdBy?: {
     id: string;
     name: string;
     email: string;
-    role: string;
   } | null;
-  locations: Location[];
-  contactPersons: ContactPerson[];
+  poRuptureDiscs: boolean;
+  poThermowells: boolean;
+  poHeatExchanger: boolean;
+  poMiscellaneous: boolean;
+  poWaterJetSteamJet: boolean;
+  existingGraphiteSuppliers?: string | null;
+  problemsFaced?: string | null;
+  offices: Array<{
+    id: string;
+    name: string;
+    address: string | null;
+    area?: string | null;
+    city: string | null;
+    state: string | null;
+    country: string | null;
+    pincode?: string | null;
+    isHeadOffice: boolean;
+    contactPersons: Array<{
+      id: string;
+      name: string;
+      designation: string | null;
+      phoneNumber: string | null;
+      emailId: string | null;
+      isPrimary: boolean;
+    }>;
+  }>;
+  plants: Array<{
+    id: string;
+    name: string;
+    address: string | null;
+    area?: string | null;
+    city: string | null;
+    state: string | null;
+    country: string | null;
+    pincode?: string | null;
+    plantType?: string | null;
+    contactPersons: Array<{
+      id: string;
+      name: string;
+      designation: string | null;
+      phoneNumber: string | null;
+      emailId: string | null;
+      isPrimary: boolean;
+    }>;
+  }>;
+  contactPersons: Array<{
+    id: string;
+    name: string;
+    designation: string | null;
+    phoneNumber: string | null;
+    emailId: string | null;
+    isPrimary: boolean;
+    location?: {
+      id: string;
+      name: string;
+      type: 'OFFICE' | 'PLANT';
+    };
+  }>;
 }
 
 export interface ContactPerson {
@@ -115,8 +170,82 @@ export interface FilterState {
   filters: CustomerFilters;
 }
 
+// Type for the raw API response
+export type CompanyApiResponse = {
+  id: string;
+  name: string;
+  type?: 'customer' | 'company';
+  website?: string | null;
+  industry?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+  poRuptureDiscs: boolean;
+  poThermowells: boolean;
+  poHeatExchanger: boolean;
+  poMiscellaneous: boolean;
+  poWaterJetSteamJet: boolean;
+  existingGraphiteSuppliers?: string | null;
+  problemsFaced?: string | null;
+  offices: Array<{
+    id: string;
+    name: string;
+    address: string | null;
+    area?: string | null;
+    city: string | null;
+    state: string | null;
+    country: string | null;
+    pincode?: string | null;
+    isHeadOffice: boolean;
+    contactPersons: Array<{
+      id: string;
+      name: string;
+      designation: string | null;
+      phoneNumber: string | null;
+      emailId: string | null;
+      isPrimary: boolean;
+    }>;
+  }>;
+  plants: Array<{
+    id: string;
+    name: string;
+    address: string | null;
+    area?: string | null;
+    city: string | null;
+    state: string | null;
+    country: string | null;
+    pincode?: string | null;
+    plantType?: string | null;
+    contactPersons: Array<{
+      id: string;
+      name: string;
+      designation: string | null;
+      phoneNumber: string | null;
+      emailId: string | null;
+      isPrimary: boolean;
+    }>;
+  }>;
+  contactPersons: Array<{
+    id: string;
+    name: string;
+    designation: string | null;
+    phoneNumber: string | null;
+    emailId: string | null;
+    isPrimary: boolean;
+    location?: {
+      id: string;
+      name: string;
+      type: 'OFFICE' | 'PLANT';
+    };
+  }>;
+};
+
 export interface CustomerTableProps {
-  customers: CombinedEntity[];
+  customers: CompanyApiResponse[];
   isLoading: boolean;
   isFetching: boolean;
   error: Error | null;
@@ -144,7 +273,7 @@ export interface PaginationProps {
 }
 
 export interface CustomerRowProps {
-  customer: CombinedEntity;
+  customer: CompanyApiResponse;
 }
 
 export interface CustomerActionsProps {

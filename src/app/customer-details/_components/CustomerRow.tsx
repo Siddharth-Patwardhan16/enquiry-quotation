@@ -24,10 +24,8 @@ export const CustomerRow = memo(function CustomerRow({
   };
 
   // Get contact persons from the customer data
-  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
-  const contactPersons = (customer as any).contactPersons ?? [];
+  const contactPersons = customer.contactPersons ?? [];
   const hasContactPersons = contactPersons.length > 0;
-  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 
   return (
     <>
@@ -69,7 +67,6 @@ export const CustomerRow = memo(function CustomerRow({
               )}
               {hasContactPersons && (
                 <div className="text-xs text-blue-600 font-medium">
-                  {/* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */}
                   {contactPersons.length} contact person{contactPersons.length !== 1 ? 's' : ''}
                 </div>
               )}
@@ -107,8 +104,7 @@ export const CustomerRow = memo(function CustomerRow({
                 Contact Persons
               </h4>
               <div className="grid gap-3">
-                {/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */}
-                {contactPersons.map((contact: any, index: number) => (
+                {contactPersons.map((contact, index: number) => (
                   <div key={contact.id ?? index} className="bg-white p-4 rounded-lg border border-gray-200">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -158,7 +154,6 @@ export const CustomerRow = memo(function CustomerRow({
                     </div>
                   </div>
                 ))}
-                {/* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */}
               </div>
             </div>
           </td>

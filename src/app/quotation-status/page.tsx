@@ -10,6 +10,7 @@ type Quotation = inferRouterOutputs<AppRouter>['quotation']['getAll'][0];
 
 export default function QuotationStatusPage() {
   const { data: quotations, isLoading, error } = api.quotation.getAll.useQuery();
+  const { data: stats } = api.quotation.getStats.useQuery();
 
   if (error) {
     return (
@@ -29,19 +30,24 @@ export default function QuotationStatusPage() {
     );
   }
 
-  // Calculate stats
-      const stats = {
-      total: quotations?.length ?? 0,
-      draft: quotations?.filter((q: Quotation) => q.status === 'DRAFT').length ?? 0,
-      live: quotations?.filter((q: Quotation) => ['LIVE', 'SUBMITTED'].includes(q.status)).length ?? 0,
-      won: quotations?.filter((q: Quotation) => q.status === 'WON').length ?? 0,
-      lost: quotations?.filter((q: Quotation) => q.status === 'LOST').length ?? 0,
-      received: quotations?.filter((q: Quotation) => q.status === 'RECEIVED').length ?? 0
-    };
+  // Use backend stats if available, otherwise show loading
+  const displayStats = stats ? {
+    total: stats.total,
+    draft: stats.draft,
+    live: stats.live,
+    won: stats.won,
+    lost: stats.lost,
+    received: stats.received
+  } : {
+    total: 0,
+    draft: 0,
+    live: 0,
+    won: 0,
+    lost: 0,
+    received: 0
+  };
 
-  const totalValue = quotations
-    ?.filter((q: Quotation) => ['LIVE', 'SUBMITTED', 'WON', 'RECEIVED'].includes(q.status))
-          .reduce((sum: number, q: Quotation) => sum + (Number(q.totalValue) ?? 0), 0) ?? 0;
+  const displayTotalValue = stats?.activeTotalValue ?? 0;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -73,7 +79,7 @@ export default function QuotationStatusPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Total</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.total}</dd>
+                  <dd className="text-lg font-medium text-gray-900">{displayStats.total}</dd>
                 </dl>
               </div>
             </div>
@@ -91,7 +97,7 @@ export default function QuotationStatusPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Draft</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.draft}</dd>
+                  <dd className="text-lg font-medium text-gray-900">{displayStats.draft}</dd>
                 </dl>
               </div>
             </div>
@@ -109,7 +115,7 @@ export default function QuotationStatusPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Live</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.live}</dd>
+                  <dd className="text-lg font-medium text-gray-900">{displayStats.live}</dd>
                 </dl>
               </div>
             </div>
@@ -127,7 +133,7 @@ export default function QuotationStatusPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Won</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.won}</dd>
+                  <dd className="text-lg font-medium text-gray-900">{displayStats.won}</dd>
                 </dl>
               </div>
             </div>
@@ -145,7 +151,7 @@ export default function QuotationStatusPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Lost</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.lost}</dd>
+                  <dd className="text-lg font-medium text-gray-900">{displayStats.lost}</dd>
                 </dl>
               </div>
             </div>
@@ -163,7 +169,7 @@ export default function QuotationStatusPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Received</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.received}</dd>
+                  <dd className="text-lg font-medium text-gray-900">{displayStats.received}</dd>
                 </dl>
               </div>
             </div>
@@ -183,7 +189,7 @@ export default function QuotationStatusPage() {
             <div className="ml-5 w-0 flex-1">
               <dl>
                 <dt className="text-sm font-medium text-gray-500 truncate">Total Live Value</dt>
-                <dd className="text-2xl font-bold text-gray-900">{formatCurrency(totalValue)}</dd>
+                <dd className="text-2xl font-bold text-gray-900">{formatCurrency(Number(displayTotalValue))}</dd>
               </dl>
             </div>
           </div>

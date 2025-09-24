@@ -1,10 +1,10 @@
 import { useState, useCallback, useMemo } from 'react';
-import { CombinedEntity } from '../_types/customer.types';
+import { Company } from '../_types/customer.types';
 
 /**
  * Custom hook for managing customer selection state
  */
-export function useCustomerSelection(customers: CombinedEntity[]) {
+export function useCustomerSelection(customers: Company[]) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const toggleSelection = useCallback((id: string) => {

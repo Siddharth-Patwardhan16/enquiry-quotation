@@ -187,12 +187,12 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
       id: office.id,
       name: office.name,
       type: 'OFFICE'
-    })) || []),
+    })) ?? []),
     ...(companies?.find(c => c.id === selectedCustomerId)?.plants?.map(plant => ({
       id: plant.id,
       name: plant.name,
       type: 'PLANT'
-    })) || [])
+    })) ?? [])
   ] : [];
   
   const locations = isCompany ? companyLocations : customerLocations;
@@ -338,7 +338,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
               <input
                 type="hidden"
                 {...register('customerId')}
-                value={selectedCustomer?.id || ''}
+                value={selectedCustomer?.id ?? ''}
               />
 
               <div className="space-y-2">

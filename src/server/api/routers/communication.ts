@@ -21,10 +21,33 @@ const UpdateCommunicationSchema = CreateCommunicationSchema.extend({
 });
 
 export const communicationRouter = createTRPCRouter({
-  // Get all communications with related data
-  getAll: publicProcedure.query(async () => {
+  // Get all communications with related data and filtering support
+  getAll: publicProcedure
+    .input(z.object({
+      search: z.string().optional(),
+      type: z.enum(['TELEPHONIC', 'VIRTUAL_MEETING', 'EMAIL', 'PLANT_VISIT', 'OFFICE_VISIT']).optional(),
+      customerId: z.string().optional(),
+      hasQuotation: z.enum(['with', 'without']).optional(),
+    }))
+    .query(async ({ input }) => {
     try {
+      // Build where clause for filtering
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const where: any = {};
+      
+      if (input.type) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        where.type = input.type;
+      }
+      
+      if (input.customerId) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        where.customerId = input.customerId;
+      }
+
       const communications = await db.communication.findMany({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        where,
         orderBy: { createdAt: 'desc' },
         include: {
           customer: {
@@ -56,7 +79,7 @@ export const communicationRouter = createTRPCRouter({
       });
 
       // Fetch enquiry information for communications that have enquiryRelated
-      const communicationsWithEnquiry = await Promise.all(
+      let communicationsWithEnquiry = await Promise.all(
         communications.map(async (comm) => {
           if (comm.enquiryRelated) {
             const enquiry = await db.enquiry.findUnique({
@@ -78,6 +101,36 @@ export const communicationRouter = createTRPCRouter({
           };
         })
       );
+
+      // Apply client-side filters that require enquiry data
+      if (input.search) {
+        const searchLower = input.search.toLowerCase();
+        communicationsWithEnquiry = communicationsWithEnquiry.filter(comm => {
+          const subject: string = comm.subject ?? '';
+          const customerName: string = comm.customer?.name ?? '';
+          const contactName: string = comm.contact?.name ?? '';
+          const description: string = comm.description ?? '';
+          const quotationNumber: string = comm.enquiry?.quotationNumber ?? '';
+          
+          return subject.toLowerCase().includes(searchLower) ||
+                 customerName.toLowerCase().includes(searchLower) ||
+                 contactName.toLowerCase().includes(searchLower) ||
+                 description.toLowerCase().includes(searchLower) ||
+                 quotationNumber.toLowerCase().includes(searchLower);
+        });
+      }
+
+      if (input.hasQuotation) {
+        if (input.hasQuotation === 'with') {
+          communicationsWithEnquiry = communicationsWithEnquiry.filter(comm => 
+            comm.enquiry?.quotationNumber ?? false
+          );
+        } else if (input.hasQuotation === 'without') {
+          communicationsWithEnquiry = communicationsWithEnquiry.filter(comm => 
+            !comm.enquiry?.quotationNumber
+          );
+        }
+      }
 
       return communicationsWithEnquiry;
     } catch (error) {

@@ -12,6 +12,7 @@ type Quotation = inferRouterOutputs<AppRouter>['quotation']['getAll'][0];
 
 export default function QuotationsPage() {
   const { data: quotations, isLoading, error, refetch } = api.quotation.getAll.useQuery();
+  const { data: stats } = api.quotation.getStats.useQuery();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const deleteQuotationMutation = api.quotation.delete.useMutation({
@@ -34,18 +35,6 @@ export default function QuotationsPage() {
 
   if (error) return <div>Error: {error.message}</div>;
 
-  // Calculate stats
-      const stats = {
-      total: quotations?.length ?? 0,
-      draft: quotations?.filter((q: Quotation) => q.status === 'DRAFT').length ?? 0,
-      live: quotations?.filter((q: Quotation) => ['LIVE', 'SUBMITTED'].includes(q.status)).length ?? 0,
-      won: quotations?.filter((q: Quotation) => q.status === 'WON').length ?? 0
-    };
-
-  const totalValue = quotations
-    ?.filter((q: Quotation) => ['LIVE', 'SUBMITTED'].includes(q.status))
-          .reduce((sum: number, q: Quotation) => sum + (Number(q.totalValue) ?? 0), 0) ?? 0;
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -54,6 +43,21 @@ export default function QuotationsPage() {
       maximumFractionDigits: 0,
     }).format(amount);
   };
+
+  // Use backend stats if available, otherwise show loading
+  const displayStats = stats ? {
+    total: stats.total,
+    draft: stats.draft,
+    live: stats.live,
+    won: stats.won
+  } : {
+    total: 0,
+    draft: 0,
+    live: 0,
+    won: 0
+  };
+
+  const displayTotalValue = stats?.liveTotalValue ?? 0;
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -104,7 +108,7 @@ export default function QuotationsPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Total Quotations</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.total}</dd>
+                  <dd className="text-lg font-medium text-gray-900">{displayStats.total}</dd>
                 </dl>
               </div>
             </div>
@@ -122,7 +126,7 @@ export default function QuotationsPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Live Value</dt>
-                  <dd className="text-lg font-medium text-gray-900">{formatCurrency(totalValue)}</dd>
+                  <dd className="text-lg font-medium text-gray-900">{formatCurrency(Number(displayTotalValue))}</dd>
                 </dl>
               </div>
             </div>
@@ -140,7 +144,7 @@ export default function QuotationsPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Live</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.live}</dd>
+                  <dd className="text-lg font-medium text-gray-900">{displayStats.live}</dd>
                 </dl>
               </div>
             </div>
@@ -158,7 +162,7 @@ export default function QuotationsPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Won</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.won}</dd>
+                  <dd className="text-lg font-medium text-gray-900">{displayStats.won}</dd>
                 </dl>
               </div>
             </div>

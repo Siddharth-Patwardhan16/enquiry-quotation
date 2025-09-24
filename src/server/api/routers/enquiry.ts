@@ -88,6 +88,23 @@ export const enquiryRouter = createTRPCRouter({
     });
   }),
 
+  // Get enquiry statistics - moved from frontend calculations
+  getStats: publicProcedure.query(async () => {
+    const [total, newCount, inProgress, quoted] = await Promise.all([
+      db.enquiry.count(),
+      db.enquiry.count({ where: { status: 'NEW' } }),
+      db.enquiry.count({ where: { status: 'IN_PROGRESS' } }),
+      db.enquiry.count({ where: { status: 'QUOTED' } })
+    ]);
+
+    return {
+      total,
+      new: newCount,
+      inProgress,
+      quoted
+    };
+  }),
+
   // Procedure to get a single enquiry by ID
   getById: publicProcedure
     .input(z.object({ id: z.number() }))

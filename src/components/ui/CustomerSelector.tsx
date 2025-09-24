@@ -282,7 +282,7 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
                               )}
                               {customer.industry && (
                                 <>
-                                  {(customer.type || customer.location) && <span>•</span>}
+                                  {(customer.type ?? customer.location) && <span>•</span>}
                                   <span>{customer.industry}</span>
                                 </>
                               )}
