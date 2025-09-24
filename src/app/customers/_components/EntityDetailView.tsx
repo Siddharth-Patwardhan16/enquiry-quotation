@@ -16,9 +16,9 @@ interface Office {
   name: string;
   address: string | null;
   area?: string | null;
-  city: string;
-  state: string;
-  country: string;
+  city: string | null;
+  state: string | null;
+  country: string | null;
   pincode?: string | null;
   isHeadOffice: boolean;
   contactPersons: ContactPerson[];
@@ -29,11 +29,11 @@ interface Plant {
   name: string;
   address: string | null;
   area?: string | null;
-  city: string;
-  state: string;
-  country: string;
+  city: string | null;
+  state: string | null;
+  country: string | null;
   pincode?: string | null;
-  plantType: string;
+  plantType?: string | null;
   contactPersons: ContactPerson[];
 }
 

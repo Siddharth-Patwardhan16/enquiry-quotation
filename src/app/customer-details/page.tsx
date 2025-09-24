@@ -76,10 +76,9 @@ function CustomerDetailsContent() {
       ) || [])
     ],
   }));
-  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
 
   // Apply client-side filtering and pagination since we're only using companies
-  const filteredEntities = combinedEntities.filter((entity) => {
+  const filteredEntities = combinedEntities.filter(entity => {
     const searchTerm = debouncedSearchTerm.toLowerCase();
     if (!searchTerm) return true;
     

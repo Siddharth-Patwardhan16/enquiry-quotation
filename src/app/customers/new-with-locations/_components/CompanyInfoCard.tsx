@@ -5,9 +5,7 @@ import { useFormContext } from 'react-hook-form';
 import { Building2 } from 'lucide-react';
 import { CompanyFormData } from '../_types/company.types';
 
-interface CompanyInfoCardProps {}
-
-export function CompanyInfoCard({}: CompanyInfoCardProps) {
+export function CompanyInfoCard() {
   const { register, formState: { errors } } = useFormContext<CompanyFormData>();
 
   return (

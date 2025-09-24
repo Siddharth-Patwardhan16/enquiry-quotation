@@ -19,8 +19,75 @@ import {
 
 
 
-// Company type from the API - using any to match the actual API response structure
-type Company = any;
+// Company type from the API
+type Company = {
+  id: string;
+  name: string;
+  type: 'customer' | 'company';
+  isNew: boolean;
+  website?: string | null;
+  industry?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+  poRuptureDiscs: boolean;
+  poThermowells: boolean;
+  poHeatExchanger: boolean;
+  poMiscellaneous: boolean;
+  poWaterJetSteamJet: boolean;
+  existingGraphiteSuppliers?: string | null;
+  problemsFaced?: string | null;
+  offices: Array<{
+    id: string;
+    name: string;
+    address: string | null;
+    area?: string | null;
+    city: string | null;
+    state: string | null;
+    country: string | null;
+    pincode?: string | null;
+    isHeadOffice: boolean;
+    contactPersons: Array<{
+      id: string;
+      name: string;
+      designation: string | null;
+      phoneNumber: string | null;
+      emailId: string | null;
+      isPrimary: boolean;
+    }>;
+  }>;
+  plants: Array<{
+    id: string;
+    name: string;
+    address: string | null;
+    area?: string | null;
+    city: string | null;
+    state: string | null;
+    country: string | null;
+    pincode?: string | null;
+    plantType?: string | null;
+    contactPersons: Array<{
+      id: string;
+      name: string;
+      designation: string | null;
+      phoneNumber: string | null;
+      emailId: string | null;
+      isPrimary: boolean;
+    }>;
+  }>;
+  contactPersons: Array<{
+    id: string;
+    name: string;
+    designation: string | null;
+    phoneNumber: string | null;
+    emailId: string | null;
+    isPrimary: boolean;
+  }>;
+};
 
 export default function CustomersPage() {
   // Fetch companies only (new company-based structure)
@@ -66,7 +133,11 @@ export default function CustomersPage() {
   }, []);
 
   // Use companies directly (no need for combined entities since we only use company structure)
-  const companiesList: Company[] = companies ?? [];
+  const companiesList: Company[] = (companies ?? []).map(company => ({
+    ...company,
+    type: 'company' as const,
+    isNew: false // You can determine this based on your business logic
+  }));
 
   if (companiesError) {
     return <div>Error: {companiesError?.message}</div>;
@@ -82,9 +153,9 @@ export default function CustomersPage() {
   // Calculate stats
   const totalCompanies = companiesList.length;
   const activeRegions = new Set(
-    companiesList.flatMap((company: any) => {
-      const officeCountries = company.offices.map((office: any) => office.country).filter(Boolean);
-      const plantCountries = company.plants.map((plant: any) => plant.country).filter(Boolean);
+    companiesList.flatMap(company => {
+      const officeCountries = company.offices.map(office => office.country).filter(Boolean);
+      const plantCountries = company.plants.map(plant => plant.country).filter(Boolean);
       return [...officeCountries, ...plantCountries];
     })
   ).size;
@@ -233,7 +304,7 @@ export default function CustomersPage() {
                       </td>
                     </tr>
                   ) : filteredCompanies.length > 0 ? (
-                    filteredCompanies.map((company: Company) => (
+                    filteredCompanies.map(company => (
                       <tr key={company.id} className="hover:bg-gray-50 data-[state=selected]:bg-muted border-b transition-colors">
                         <td className="p-4 align-middle whitespace-nowrap">
                           <div>
@@ -245,7 +316,7 @@ export default function CustomersPage() {
                             </div>
                             {/* Show offices and plants */}
                             {company.offices && company.offices.length > 0 ? (
-                              company.offices.map((office: any) => (
+                              company.offices.map(office => (
                                 <div 
                                   key={office.id} 
                                   className="text-xs font-medium text-blue-600"
@@ -260,7 +331,7 @@ export default function CustomersPage() {
                               ))
                             ) : company.plants && company.plants.length > 0 ? (
                               <>
-                                {company.plants.map((plant: any) => (
+                                {company.plants.map(plant => (
                                   <div key={plant.id} className="text-xs font-medium text-green-600">
                                     🏭 {plant.name}
                                     {plant.city && plant.state && (

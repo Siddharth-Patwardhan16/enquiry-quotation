@@ -1,6 +1,44 @@
 'use client';
 
-
+// Type for enquiry from the API
+type Enquiry = {
+  id: number;
+  subject: string | null;
+  description: string | null;
+  requirements: string | null;
+  timeline: string | null;
+  enquiryDate: Date | null;
+  priority: string | null;
+  source: string | null;
+  notes: string | null;
+  quotationNumber: string | null;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  customerId: string | null;
+  companyId: string | null;
+  locationId: string | null;
+  officeId: string | null;
+  plantId: string | null;
+  marketingPersonId: string | null;
+  customer?: {
+    name: string;
+  } | null;
+  company?: {
+    name: string;
+  } | null;
+  office?: {
+    name: string;
+  } | null;
+  plant?: {
+    name: string;
+  } | null;
+  marketingPerson?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+};
 
 import { useState } from 'react';
 import { api } from '@/trpc/client';
@@ -71,8 +109,7 @@ export default function EnquiriesPage() {
   if (error) return <div>Error: {error.message}</div>;
 
   // Filter enquiries based on search and status
-  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
-  const filteredEnquiries = enquiries?.filter((enquiry: any) => {
+  const filteredEnquiries = enquiries?.filter((enquiry: Enquiry) => {
     const customerName = enquiry.customer?.name ?? '';
     const companyName = enquiry.company?.name ?? '';
     const entityName = companyName || customerName; // Prefer company name if available
@@ -86,17 +123,14 @@ export default function EnquiriesPage() {
     
     return matchesSearch && matchesStatus;
   }) ?? [];
-  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 
   // Calculate stats
-  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
   const stats = {
     total: enquiries?.length ?? 0,
-    new: enquiries?.filter((e: any) => e.status === 'NEW').length ?? 0,
-    inProgress: enquiries?.filter((e: any) => e.status === 'IN_PROGRESS').length ?? 0,
-    quoted: enquiries?.filter((e: any) => e.status === 'QUOTED').length ?? 0
+    new: enquiries?.filter(e => e.status === 'NEW').length ?? 0,
+    inProgress: enquiries?.filter(e => e.status === 'IN_PROGRESS').length ?? 0,
+    quoted: enquiries?.filter(e => e.status === 'QUOTED').length ?? 0
   };
-  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -120,8 +154,7 @@ export default function EnquiriesPage() {
   };
 
   const handleEditEnquiry = (enquiryId: number) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    const enquiry = enquiries?.find((e: any) => e.id === enquiryId);
+    const enquiry = enquiries?.find((e: Enquiry) => e.id === enquiryId);
     if (enquiry) {
       setEditingEnquiry(enquiryId);
       setEditData({
@@ -356,8 +389,7 @@ export default function EnquiriesPage() {
                         </td>
                       </tr>
                     ) : filteredEnquiries.length > 0 ? (
-                      /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
-                      filteredEnquiries.map((enquiry: any) => (
+                      filteredEnquiries.map((enquiry: Enquiry) => (
                         <tr key={enquiry.id} className="hover:bg-gray-50 data-[state=selected]:bg-muted border-b transition-colors">
                                                      <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900">
                              #{enquiry.id.toString().slice(-8)}
@@ -424,7 +456,6 @@ export default function EnquiriesPage() {
                           </td>
                         </tr>
                       ))
-                      /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
                     ) : (
                       <tr>
                         <td colSpan={8} className="text-center py-8">
@@ -586,8 +617,7 @@ export default function EnquiriesPage() {
                   </button>
                 </div>
                 {(() => {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-                  const enquiry = enquiries?.find((e: any) => e.id === viewingEnquiry);
+                  const enquiry = enquiries?.find((e: Enquiry) => e.id === viewingEnquiry);
                   if (!enquiry) return <div>Enquiry not found</div>;
                   
                   return (

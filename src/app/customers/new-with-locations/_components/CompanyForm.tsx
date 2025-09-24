@@ -57,7 +57,7 @@ export function CompanyForm() {
   });
 
   const createCompany = api.company.create.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       toast.success('Company created successfully!');
       
       // Invalidate and refetch company data
@@ -128,7 +128,6 @@ export function CompanyForm() {
                   >
                     <Building2 className="w-4 h-4 mr-2" />
                     Offices ({(() => {
-                      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                       const offices = methods.watch('offices');
                       return Array.isArray(offices) ? offices.length : 0;
                     })()})
@@ -144,7 +143,6 @@ export function CompanyForm() {
                   >
                     <MapPin className="w-4 h-4 mr-2" />
                     Plants ({(() => {
-                      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                       const plants = methods.watch('plants');
                       return Array.isArray(plants) ? plants.length : 0;
                     })()})

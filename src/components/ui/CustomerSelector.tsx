@@ -206,7 +206,7 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      handleClearSelection(e as any);
+                      handleClearSelection(e as unknown as React.MouseEvent);      
                     }
                   }}
                 >

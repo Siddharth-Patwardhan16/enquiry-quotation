@@ -18,9 +18,9 @@ interface Office {
   name: string;
   address: string | null;
   area?: string | null;
-  city: string;
-  state: string;
-  country: string;
+  city: string | null;
+  state: string | null;
+  country: string | null;
   pincode?: string | null;
   isHeadOffice: boolean;
   contactPersons: ContactPerson[];
@@ -31,11 +31,11 @@ interface Plant {
   name: string;
   address: string | null;
   area?: string | null;
-  city: string;
-  state: string;
-  country: string;
+  city: string | null;
+  state: string | null;
+  country: string | null;
   pincode?: string | null;
-  plantType: string;
+  plantType?: string | null;
   contactPersons: ContactPerson[];
 }
 
@@ -403,7 +403,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                             <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
                             <input
                               type="text"
-                              value={office.city}
+                              value={office.city ?? ''}
                               onChange={(e) => handleOfficeChange(_index, 'city', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               required
@@ -413,7 +413,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                             <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
                             <input
                               type="text"
-                              value={office.state}
+                              value={office.state ?? ''}
                               onChange={(e) => handleOfficeChange(_index, 'state', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               required
@@ -423,7 +423,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                             <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
                             <input
                               type="text"
-                              value={office.country}
+                              value={office.country ?? ''}
                               onChange={(e) => handleOfficeChange(_index, 'country', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               required
@@ -563,7 +563,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                             <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
                             <input
                               type="text"
-                              value={plant.city}
+                              value={plant.city ?? ''}
                               onChange={(e) => handlePlantChange(_index, 'city', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                               required
@@ -573,7 +573,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                             <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
                             <input
                               type="text"
-                              value={plant.state}
+                              value={plant.state ?? ''}
                               onChange={(e) => handlePlantChange(_index, 'state', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                               required
@@ -583,7 +583,7 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                             <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
                             <input
                               type="text"
-                              value={plant.country}
+                              value={plant.country ?? ''}
                               onChange={(e) => handlePlantChange(_index, 'country', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                               required

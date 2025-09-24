@@ -1,5 +1,60 @@
 'use client';
 
+// Type for company from the API
+type Company = {
+  id: string;
+  name: string;
+  website?: string | null;
+  industry?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+  offices: Array<{
+    id: string;
+    name: string;
+    address: string | null;
+    city: string | null;
+    state: string | null;
+    country: string | null;
+    contactPersons: Array<{
+      id: string;
+      name: string;
+      designation: string | null;
+      phoneNumber: string | null;
+      emailId: string | null;
+      isPrimary: boolean;
+    }>;
+  }>;
+  plants: Array<{
+    id: string;
+    name: string;
+    address: string | null;
+    city: string | null;
+    state: string | null;
+    country: string | null;
+    contactPersons: Array<{
+      id: string;
+      name: string;
+      designation: string | null;
+      phoneNumber: string | null;
+      emailId: string | null;
+      isPrimary: boolean;
+    }>;
+  }>;
+  contactPersons: Array<{
+    id: string;
+    name: string;
+    designation: string | null;
+    phoneNumber: string | null;
+    emailId: string | null;
+    isPrimary: boolean;
+  }>;
+};
+
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CreateEnquirySchema } from '@/lib/validators/enquiry';
@@ -46,12 +101,11 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
   
   // Combine customers and companies into a unified list with deduplication
   const allEntities: Customer[] = (() => {
-    /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
     const entities: Customer[] = [];
     const seenNames = new Set<string>();
     
     // First, add all companies (new structure takes priority)
-    (companies ?? []).forEach((company: any) => {
+    (companies ?? []).forEach((company: Company) => {
       const normalizedName = company.name.trim().toLowerCase();
       if (!seenNames.has(normalizedName)) {
         seenNames.add(normalizedName);
@@ -59,15 +113,15 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
           id: company.id,
           name: company.name,
           type: 'Company',
-          industry: company.industry,
-          website: company.website,
+          industry: company.industry ?? undefined,
+          website: company.website ?? undefined,
           location: company.offices?.[0] ? `${company.offices[0].city}, ${company.offices[0].state}` : undefined
         });
       }
     });
     
     // Then, add customers that don't have duplicate names
-    (customers ?? []).forEach((customer: any) => {
+    (customers ?? []).forEach((customer: Company) => {
       const normalizedName = customer.name.trim().toLowerCase();
       if (!seenNames.has(normalizedName)) {
         seenNames.add(normalizedName);
@@ -75,13 +129,12 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
           id: customer.id,
           name: customer.name,
           type: 'Customer',
-          location: customer.locations?.[0] ? `${customer.locations[0].city}, ${customer.locations[0].state}` : undefined
+          location: customer.offices?.[0] ? `${customer.offices[0].city}, ${customer.offices[0].state}` : undefined
         });
       }
     });
     
     return entities.sort((a, b) => a.name.localeCompare(b.name));
-    /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
   })();
   
   const isLoadingEntities = isLoadingCustomers || isLoadingCompanies;
