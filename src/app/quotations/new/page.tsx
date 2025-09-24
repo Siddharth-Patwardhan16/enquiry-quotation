@@ -270,7 +270,7 @@ export default function NewQuotationPage() {
                 <option value="">{isLoadingEnquiries ? "Loading..." : "Select Enquiry"}</option>
                 {enquiries?.map((e: Enquiry) => (
                   <option key={e.id} value={e.id}>
-                    {e.customer?.name} - {e.subject}
+                    {e.company?.name} - {e.subject}
                   </option>
                 ))}
               </select>

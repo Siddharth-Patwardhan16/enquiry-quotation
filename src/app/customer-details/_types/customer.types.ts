@@ -35,6 +35,12 @@ export interface CombinedEntity {
   emailId?: string | null;
   createdAt: Date;
   updatedAt: Date;
+  createdBy?: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+  } | null;
   locations: Location[];
   contactPersons: ContactPerson[];
 }

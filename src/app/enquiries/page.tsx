@@ -628,7 +628,7 @@ export default function EnquiriesPage() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Customer
                         </label>
-                        <p className="text-gray-900">{enquiry.customer?.name ?? 'Not specified'}</p>
+                        <p className="text-gray-900">{enquiry.company?.name ?? 'Not specified'}</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">

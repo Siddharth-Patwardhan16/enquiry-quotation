@@ -4,135 +4,23 @@ import { api } from '@/trpc/client';
 import { EntityDetailView } from './_components/EntityDetailView';
 import { EntityEditForm } from './_components/EntityEditForm';
 import { DeleteConfirmationDialog } from './_components/DeleteConfirmationDialog';
-// import { AddLocationModal } from './_components/AddLocationModal';
 import { ToastContainer, useToast } from '@/components/ui/toast';
 import { useState, useEffect } from 'react';
 import { 
   Search, 
-  Plus, 
+  Plus,
   Eye, 
   Edit, 
   Trash2,
   Filter,
-  Users,
   Building,
   MapPin
 } from 'lucide-react';
 
-interface Customer {
-  id: string;
-  name: string;
-  isNew: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  createdBy?: {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-  } | null;
-  poRuptureDiscs: boolean;
-  poThermowells: boolean;
-  poHeatExchanger: boolean;
-  poMiscellaneous: boolean;
-  poWaterJetSteamJet: boolean;
-  existingGraphiteSuppliers?: string | null;
-  problemsFaced?: string | null;
-  locations?: Array<{
-    id: string;
-    name: string;
-    type: 'OFFICE' | 'PLANT';
-    address?: string | null;
-    city?: string | null;
-    state?: string | null;
-    country?: string | null;
-    receptionNumber?: string | null;
-  }>;
-  contacts?: Array<{
-    id: string;
-    name: string;
-    designation?: string | null;
-    officialCellNumber?: string | null;
-    personalCellNumber?: string | null;
-    location?: {
-      id: string;
-      name: string;
-      type: 'OFFICE' | 'PLANT';
-    };
-  }>;
-}
 
 
-// Combined interface for display
-interface CombinedEntity {
-  id: string;
-  name: string;
-  type: 'customer' | 'company';
-  isNew: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  createdBy?: {
-    id: string;
-    name: string;
-    email: string;
-    role?: string;
-  } | null;
-  poRuptureDiscs: boolean;
-  poThermowells: boolean;
-  poHeatExchanger: boolean;
-  poMiscellaneous: boolean;
-  poWaterJetSteamJet: boolean;
-  existingGraphiteSuppliers?: string | null;
-  problemsFaced?: string | null;
-  locations?: Array<{
-    id: string;
-    name: string;
-    type: 'OFFICE' | 'PLANT';
-    address?: string | null;
-    city?: string | null;
-    state?: string | null;
-    country?: string | null;
-    receptionNumber?: string | null;
-  }>;
-  offices?: Array<{
-    id: string;
-    name: string;
-    address: string | null;
-    area?: string | null;
-    city: string;
-    state: string;
-    country: string;
-    pincode?: string | null;
-    isHeadOffice: boolean;
-    contactPersons: Array<{
-      id: string;
-      name: string;
-      designation: string | null;
-      phoneNumber: string | null;
-      emailId: string | null;
-      isPrimary: boolean;
-    }>;
-  }>;
-  plants?: Array<{
-    id: string;
-    name: string;
-    address: string | null;
-    area?: string | null;
-    city: string;
-    state: string;
-    country: string;
-    pincode?: string | null;
-    plantType: string;
-    contactPersons: Array<{
-      id: string;
-      name: string;
-      designation: string | null;
-      phoneNumber: string | null;
-      emailId: string | null;
-      isPrimary: boolean;
-    }>;
-  }>;
-}
+// Company type from the API - using any to match the actual API response structure
+type Company = any;
 
 export default function CustomersPage() {
   // Fetch companies only (new company-based structure)
@@ -142,16 +30,13 @@ export default function CustomersPage() {
   const [showForm, setShowForm] = useState(false);
   
   // State for modals
-  const [selectedCustomer, setSelectedCustomer] = useState<CombinedEntity | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Company | null>(null);
   const [showDetailView, setShowDetailView] = useState(false);
 
-  const [customerToEdit, setCustomerToEdit] = useState<CombinedEntity | null>(null);
+  const [customerToEdit, setCustomerToEdit] = useState<Company | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [customerToDelete, setCustomerToDelete] = useState<CombinedEntity | null>(null);
+  const [customerToDelete, setCustomerToDelete] = useState<Company | null>(null);
 
-  // State for AddLocationModal
-  const [showAddLocationModal, setShowAddLocationModal] = useState(false);
-  const [customerForLocation, setCustomerForLocation] = useState<CombinedEntity | null>(null);
 
   // Toast notifications
   const { toasts, success, error: showError, removeToast } = useToast();
@@ -180,92 +65,47 @@ export default function CustomersPage() {
     setShowForm(false);
   }, []);
 
-  // Combine customers and companies into a unified list with deduplication
-  const combinedEntities: CombinedEntity[] = (() => {
-    const allEntities: CombinedEntity[] = [];
-    const seenNames = new Set<string>();
-    
-    // First, add all companies (new structure takes priority)
-    /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
-    (companies ?? []).forEach((company: any) => {
-      const normalizedName = company.name.trim().toLowerCase();
-      if (!seenNames.has(normalizedName)) {
-        seenNames.add(normalizedName);
-        allEntities.push({
-          id: company.id,
-          name: company.name,
-          type: 'company',
-          isNew: true, // All companies are considered "new" for now
-          createdAt: company.createdAt,
-          updatedAt: company.updatedAt,
-          createdBy: company.createdBy,
-          poRuptureDiscs: company.poRuptureDiscs,
-          poThermowells: company.poThermowells,
-          poHeatExchanger: company.poHeatExchanger,
-          poMiscellaneous: company.poMiscellaneous,
-          poWaterJetSteamJet: company.poWaterJetSteamJet,
-          existingGraphiteSuppliers: company.existingGraphiteSuppliers,
-          problemsFaced: company.problemsFaced,
-          offices: company.offices,
-          plants: company.plants,
-        });
-      }
-    });
-    /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
-    
-    
-    return allEntities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  })();
+  // Use companies directly (no need for combined entities since we only use company structure)
+  const companiesList: Company[] = companies ?? [];
 
   if (companiesError) {
     return <div>Error: {companiesError?.message}</div>;
   }
 
-  // Filter entities based on search term
-  const filteredEntities = searchTerm.length > 0 
-    ? combinedEntities.filter(entity => 
-        entity.name.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter companies based on search term
+  const filteredCompanies = searchTerm.length > 0 
+    ? companiesList.filter(company => 
+        company.name.toLowerCase().includes(searchTerm.toLowerCase())
       )
-    : combinedEntities;
+    : companiesList;
 
   // Calculate stats
-  const totalEntities = combinedEntities.length;
-  const newEntities = combinedEntities.filter((e: CombinedEntity) => e.isNew).length;
+  const totalCompanies = companiesList.length;
   const activeRegions = new Set(
-    combinedEntities.flatMap((e: CombinedEntity) => {
-      if (e.type === 'customer' && e.locations) {
-        return e.locations.map(loc => loc.country).filter(Boolean);
-      } else if (e.type === 'company') {
-        const officeCountries = e.offices?.map(office => office.country).filter(Boolean) ?? [];
-        const plantCountries = e.plants?.map(plant => plant.country).filter(Boolean) ?? [];
-        return [...officeCountries, ...plantCountries];
-      }
-      return [];
+    companiesList.flatMap((company: any) => {
+      const officeCountries = company.offices.map((office: any) => office.country).filter(Boolean);
+      const plantCountries = company.plants.map((plant: any) => plant.country).filter(Boolean);
+      return [...officeCountries, ...plantCountries];
     })
   ).size;
 
   // Handle view customer
-  const handleViewCustomer = (entity: CombinedEntity) => {
-    setSelectedCustomer(entity);
+  const handleViewCustomer = (company: Company) => {
+    setSelectedCustomer(company);
     setShowDetailView(true);
   };
 
   // Handle edit customer
-  const handleEditCustomer = (entity: CombinedEntity) => {
-    setCustomerToEdit(entity);
+  const handleEditCustomer = (company: Company) => {
+    setCustomerToEdit(company);
   };
 
   // Handle delete customer
-  const handleDeleteCustomer = (entity: CombinedEntity) => {
-    setCustomerToDelete(entity);
+  const handleDeleteCustomer = (company: Company) => {
+    setCustomerToDelete(company);
     setShowDeleteDialog(true);
   };
 
-  // Handle add location
-  const handleAddLocation = (entity: CombinedEntity) => {
-    setCustomerForLocation(entity);
-    setShowAddLocationModal(true);
-  };
 
   // Confirm delete
   const confirmDelete = (entityId: string) => {
@@ -305,7 +145,7 @@ export default function CustomersPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total Companies</p>
-              <p className="text-2xl text-gray-900 mt-1 font-semibold">{totalEntities}</p>
+              <p className="text-2xl text-gray-900 mt-1 font-semibold">{totalCompanies}</p>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
               <Building className="w-6 h-6 text-blue-600" />
@@ -313,17 +153,6 @@ export default function CustomersPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">New Companies</p>
-              <p className="text-2xl text-gray-900 mt-1 font-semibold">{newEntities}</p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <Users className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
 
         <div className="bg-white rounded-xl border shadow-sm p-6">
           <div className="flex items-center justify-between">
@@ -403,53 +232,35 @@ export default function CustomersPage() {
                         </div>
                       </td>
                     </tr>
-                  ) : filteredEntities.length > 0 ? (
-                    filteredEntities.map((entity: CombinedEntity) => (
-                      <tr key={entity.id} className="hover:bg-gray-50 data-[state=selected]:bg-muted border-b transition-colors">
+                  ) : filteredCompanies.length > 0 ? (
+                    filteredCompanies.map((company: Company) => (
+                      <tr key={company.id} className="hover:bg-gray-50 data-[state=selected]:bg-muted border-b transition-colors">
                         <td className="p-4 align-middle whitespace-nowrap">
                           <div>
                             <div className="text-sm text-gray-900 font-medium flex items-center gap-2">
-                              {entity.name}
-                              <span className={`text-xs px-2 py-1 rounded-full ${
-                                entity.type === 'company' 
-                                  ? 'bg-blue-100 text-blue-800' 
-                                  : 'bg-gray-100 text-gray-800'
-                              }`}>
-                                {entity.type === 'company' ? 'Company' : 'Customer'}
+                              {company.name}
+                              <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
+                                Company
                               </span>
                             </div>
-                            {/* Show locations/offices/plants */}
-                            {entity.type === 'customer' && entity.locations && entity.locations.length > 0 ? (
-                              entity.locations.map((location) => (
+                            {/* Show offices and plants */}
+                            {company.offices && company.offices.length > 0 ? (
+                              company.offices.map((office: any) => (
                                 <div 
-                                  key={location.id} 
-                                  className={`text-xs font-medium ${
-                                    location.type === 'OFFICE' 
-                                      ? 'text-blue-600' 
-                                      : 'text-green-600'
-                                  }`}
+                                  key={office.id} 
+                                  className="text-xs font-medium text-blue-600"
                                 >
-                                  {location.type === 'OFFICE' ? '🏢' : '🏭'} {location.name}
-                                  {location.city && location.state && (
+                                  🏢 {office.name}
+                                  {office.city && office.state && (
                                     <span className="text-gray-500 ml-1">
-                                      ({location.city}, {location.state})
+                                      ({office.city}, {office.state})
                                     </span>
                                   )}
                                 </div>
                               ))
-                            ) : entity.type === 'company' && (entity.offices?.length || entity.plants?.length) ? (
+                            ) : company.plants && company.plants.length > 0 ? (
                               <>
-                                {entity.offices?.map((office) => (
-                                  <div key={office.id} className="text-xs font-medium text-blue-600">
-                                    🏢 {office.name}
-                                    {office.city && office.state && (
-                                      <span className="text-gray-500 ml-1">
-                                        ({office.city}, {office.state})
-                                      </span>
-                                    )}
-                                  </div>
-                                ))}
-                                {entity.plants?.map((plant) => (
+                                {company.plants.map((plant: any) => (
                                   <div key={plant.id} className="text-xs font-medium text-green-600">
                                     🏭 {plant.name}
                                     {plant.city && plant.state && (
@@ -461,97 +272,74 @@ export default function CustomersPage() {
                                 ))}
                               </>
                             ) : (
-                              <div className="text-xs text-gray-500">No locations added</div>
+                              <div className="text-xs text-gray-500">No offices or plants added</div>
                             )}
                           </div>
                         </td>
                         <td className="p-4 align-middle whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {entity.type === 'customer' && entity.locations && entity.locations.length > 0 ? (
+                            {company.offices && company.offices.length > 0 ? (
                               <>
-                                {entity.locations[0].city && entity.locations[0].state && (
-                                  <>{entity.locations[0].city}, {entity.locations[0].state}</>
-                                )}
-                                {!entity.locations[0].city && !entity.locations[0].state && (
-                                  <span className="text-gray-500">No address</span>
-                                )}
-                              </>
-                            ) : entity.type === 'company' && entity.offices && entity.offices.length > 0 ? (
-                              <>
-                                {entity.offices[0].city}, {entity.offices[0].state}
+                                {company.offices[0].city}, {company.offices[0].state}
                               </>
                             ) : (
                               <span className="text-gray-500">No address</span>
                             )}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {entity.type === 'customer' && entity.locations && entity.locations.length > 0 ? 
-                              entity.locations[0].country : 
-                              entity.type === 'company' && entity.offices && entity.offices.length > 0 ?
-                                entity.offices[0].country : 'No country'
+                            {company.offices && company.offices.length > 0 ? 
+                              company.offices[0].country : 'No country'
                             }
                           </div>
                         </td>
                         <td className="p-4 align-middle whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {entity.type === 'customer' && entity.locations && entity.locations.length > 0 ? 
-                              entity.locations[0].receptionNumber ?? 'No number' : 
-                              entity.type === 'company' && entity.offices && entity.offices.length > 0 ?
-                                'Contact available' : 'No number'
+                            {company.offices && company.offices.length > 0 ?
+                              'Contact available' : 'No number'
                             }
                           </div>
                         </td>
                         <td className="p-4 align-middle whitespace-nowrap">
                           <span className="inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 border-transparent bg-blue-100 text-blue-800">
-                            {entity.isNew ? 'New' : 'Existing'}
+                            New
                           </span>
                         </td>
                         <td className="p-4 align-middle whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {new Date(entity.createdAt).toLocaleDateString()}
+                            {new Date(company.createdAt).toLocaleDateString()}
                           </div>
-                          {entity.createdBy && (
+                          {company.createdBy && (
                             <div className="text-xs text-gray-500">
-                              by {entity.createdBy.name}
+                              by {company.createdBy.name}
                             </div>
                           )}
                         </td>
                         <td className="p-4 align-middle whitespace-nowrap">
                           <div className="flex items-center space-x-2">
-                            {/* Add Location Button - only for customers */}
-                            {entity.type === 'customer' && (
-                              <button 
-                                onClick={() => handleAddLocation(entity)}
-                                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all hover:bg-green-100 h-8 w-8 rounded-md text-green-600 hover:text-green-700"
-                                title="Add Office or Plant"
-                              >
-                                <Plus className="h-4 w-4" />
-                              </button>
-                            )}
                             
                             {/* View Button - for both customers and companies */}
                             <button 
-                              onClick={() => handleViewCustomer(entity)}
+                              onClick={() => handleViewCustomer(company)}
                               className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all hover:bg-blue-100 h-8 w-8 rounded-md text-blue-600 hover:text-blue-700"
-                              title={`View ${entity.type === 'company' ? 'Company' : 'Customer'} Details`}
+                              title="View Company Details"
                             >
                               <Eye className="h-4 w-4" />
                             </button>
                             
                             {/* Edit Button - for both customers and companies */}
                             <button 
-                              onClick={() => handleEditCustomer(entity)}
+                              onClick={() => handleEditCustomer(company)}
                               className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all hover:bg-yellow-100 h-8 w-8 rounded-md text-yellow-600 hover:text-yellow-700"
-                              title={`Edit ${entity.type === 'company' ? 'Company' : 'Customer'}`}
+                              title="Edit Company"
                             >
                               <Edit className="h-4 w-4" />
                             </button>
                             
                             {/* Delete Button - for both customers and companies */}
                             <button 
-                              onClick={() => handleDeleteCustomer(entity)}
+                              onClick={() => handleDeleteCustomer(company)}
                               className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all hover:bg-red-100 h-8 w-8 rounded-md text-red-600 hover:text-red-700"
-                              title={`Delete ${entity.type === 'company' ? 'Company' : 'Customer'}`}
+                              title="Delete Company"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -604,12 +392,12 @@ export default function CustomersPage() {
           )}
 
           {/* Pagination */}
-          {filteredEntities.length > 0 && (
+          {filteredCompanies.length > 0 && (
             <div className="flex items-center justify-between mt-6">
               <div className="text-sm text-gray-500">
                 {searchTerm.length > 0 
-                  ? `Found ${filteredEntities.length} matching companies`
-                  : `Showing ${filteredEntities.length} of ${combinedEntities.length} companies`
+                  ? `Found ${filteredCompanies.length} matching companies`
+                  : `Showing ${filteredCompanies.length} of ${companiesList.length} companies`
                 }
               </div>
             </div>
