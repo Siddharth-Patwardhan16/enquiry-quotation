@@ -81,7 +81,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
     // Filter contacts based on selected customer (unused for now)
   
   // Filter enquiries based on selected customer
-  const filteredEnquiries = enquiries?.filter((enquiry: { customerId: string; id: number; subject: string; quotationNumber?: string | null }) => enquiry.customerId === watchedCustomerId) ?? [];
+  const filteredEnquiries = enquiries?.filter((enquiry: { customerId: string | null; id: number; subject: string; quotationNumber?: string | null }) => enquiry.customerId === watchedCustomerId) ?? [];
 
   // Update customer info when selection changes
   useEffect(() => {

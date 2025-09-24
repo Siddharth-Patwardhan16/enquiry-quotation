@@ -5,7 +5,7 @@ interface RecentEnquiry {
   createdAt: Date;
   customer: {
     name: string;
-  };
+  } | null;
   marketingPerson: {
     name: string;
   } | null;
@@ -19,7 +19,7 @@ interface RecentQuotation {
   enquiry: {
     customer: {
       name: string;
-    };
+    } | null;
   };
 }
 
@@ -42,7 +42,7 @@ export function RecentEnquiries({ recentEnquiries, isLoadingEnquiries }: { recen
             <div key={enquiry.id} className="border-l-4 border-blue-500 pl-3 py-2">
               <p className="font-medium text-gray-900">{enquiry.subject}</p>
               <p className="text-sm text-gray-600">
-                Customer: {enquiry.customer.name} • 
+                Customer: {enquiry.customer?.name ?? 'Unknown'} • 
                 Status: {enquiry.status} • 
                 {new Date(enquiry.createdAt).toLocaleDateString()}
               </p>
@@ -75,7 +75,7 @@ export function RecentQuotations({ recentQuotations, isLoadingQuotations }: { re
             <div key={quotation.id} className="border-l-4 border-green-500 pl-3 py-2">
               <p className="font-medium text-gray-900">{quotation.quotationNumber}</p>
               <p className="text-sm text-gray-600">
-                Customer: {quotation.enquiry.customer.name} • 
+                Customer: {quotation.enquiry.customer?.name ?? 'Unknown'} • 
                 Status: {quotation.status} • 
                 {new Date(quotation.createdAt).toLocaleDateString()}
               </p>

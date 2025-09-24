@@ -182,7 +182,7 @@ export function QuotationStatusModal({
                     </div>
                     <div>
                       <span className="text-sm font-medium text-gray-700">Customer:</span>
-                      <p className="text-sm text-gray-900 font-medium">{quotation.enquiry.customer.name}</p>
+                      <p className="text-sm text-gray-900 font-medium">{quotation.enquiry.customer?.name ?? 'Unknown Customer'}</p>
                     </div>
                   </div>
 

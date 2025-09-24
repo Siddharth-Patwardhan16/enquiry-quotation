@@ -13,11 +13,36 @@ export const enquiryRouter = createTRPCRouter({
         where: { role: 'MARKETING' },
       });
       
+      // Determine if the location is an office or plant for companies
+      let officeId = null;
+      let plantId = null;
+      
+      if (input.entityType === 'company') {
+        // Check if the location is an office or plant
+        const office = await db.office.findUnique({
+          where: { id: input.locationId }
+        });
+        
+        if (office) {
+          officeId = input.locationId;
+        } else {
+          const plant = await db.plant.findUnique({
+            where: { id: input.locationId }
+          });
+          if (plant) {
+            plantId = input.locationId;
+          }
+        }
+      }
+      
       return db.enquiry.create({
         data: {
           subject: input.subject,
-          customerId: input.customerId,
-          locationId: input.locationId, // Link to the specific location
+          customerId: input.entityType === 'customer' ? input.customerId : null,
+          companyId: input.entityType === 'company' ? input.customerId : null,
+          locationId: input.entityType === 'customer' ? input.locationId : null, // Only for legacy customers
+          officeId: officeId, // For company offices
+          plantId: plantId, // For company plants
           description: input.description,
           requirements: input.requirements,
           timeline: input.timeline,
@@ -32,7 +57,7 @@ export const enquiryRouter = createTRPCRouter({
       });
     }),
 
-  // Procedure to get all enquiries with customer and location names
+  // Procedure to get all enquiries with customer, company, and location names
   getAll: publicProcedure.query(async () => {
     return db.enquiry.findMany({
       orderBy: { createdAt: 'desc' },
@@ -42,10 +67,25 @@ export const enquiryRouter = createTRPCRouter({
             name: true,
           },
         },
+        company: {
+          select: {
+            name: true,
+          },
+        },
         location: {
           select: {
             name: true,
             type: true,
+          },
+        },
+        office: {
+          select: {
+            name: true,
+          },
+        },
+        plant: {
+          select: {
+            name: true,
           },
         },
         marketingPerson: {

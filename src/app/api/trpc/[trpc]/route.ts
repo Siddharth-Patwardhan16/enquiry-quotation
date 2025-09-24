@@ -29,7 +29,7 @@ const handler = async (req: Request) => {
             );
           }
         : undefined,
-  });
+  }) as Response;
 
   // Add CORS headers to the response
   response.headers.set('Access-Control-Allow-Origin', '*');

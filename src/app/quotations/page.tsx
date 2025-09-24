@@ -197,7 +197,7 @@ export default function QuotationsPage() {
                                      {quotations?.map((q: Quotation) => (
                     <tr key={q.id} className="border-b last:border-none hover:bg-gray-50">
                       <td className="p-4 font-medium text-gray-900">{q.quotationNumber}</td>
-                      <td className="p-4 text-gray-900">{q.enquiry.customer.name}</td>
+                      <td className="p-4 text-gray-900">{q.enquiry.company?.name ?? q.enquiry.customer?.name ?? 'Unknown Customer'}</td>
                       <td className="p-4 text-gray-500">
                         {new Date(q.quotationDate ?? q.createdAt).toLocaleDateString()}
                       </td>

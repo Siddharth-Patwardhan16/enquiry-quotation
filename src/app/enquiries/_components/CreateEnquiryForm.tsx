@@ -7,7 +7,7 @@ import type { z } from 'zod';
 import { api } from '@/trpc/client';
 import { useRouter } from 'next/navigation';
 import { useToastContext } from '@/components/providers/ToastProvider';
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFormConfirmation } from '@/hooks/useFormConfirmation';
 import { 
   Save, 
@@ -15,6 +15,7 @@ import {
   Building, 
   FileText
 } from 'lucide-react';
+import CustomerSelector, { type Customer } from '@/components/ui/CustomerSelector';
 
 type FormData = z.infer<typeof CreateEnquirySchema>;
 
@@ -36,16 +37,61 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
   const { success, error: showError } = useToastContext();
   const utils = api.useUtils();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const { confirmFormClose } = useFormConfirmation();
   
-  // Fetch the list of customers to populate the dropdown
+  // Fetch both customers and companies to populate the dropdown
   const { data: customers, isLoading: isLoadingCustomers } = api.customer.getAll.useQuery();
+  const { data: companies, isLoading: isLoadingCompanies } = api.company.getAll.useQuery();
+  
+  // Combine customers and companies into a unified list with deduplication
+  const allEntities: Customer[] = (() => {
+    /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
+    const entities: Customer[] = [];
+    const seenNames = new Set<string>();
+    
+    // First, add all companies (new structure takes priority)
+    (companies ?? []).forEach((company: any) => {
+      const normalizedName = company.name.trim().toLowerCase();
+      if (!seenNames.has(normalizedName)) {
+        seenNames.add(normalizedName);
+        entities.push({
+          id: company.id,
+          name: company.name,
+          type: 'Company',
+          industry: company.industry,
+          website: company.website,
+          location: company.offices?.[0] ? `${company.offices[0].city}, ${company.offices[0].state}` : undefined
+        });
+      }
+    });
+    
+    // Then, add customers that don't have duplicate names
+    (customers ?? []).forEach((customer: any) => {
+      const normalizedName = customer.name.trim().toLowerCase();
+      if (!seenNames.has(normalizedName)) {
+        seenNames.add(normalizedName);
+        entities.push({
+          id: customer.id,
+          name: customer.name,
+          type: 'Customer',
+          location: customer.locations?.[0] ? `${customer.locations[0].city}, ${customer.locations[0].state}` : undefined
+        });
+      }
+    });
+    
+    return entities.sort((a, b) => a.name.localeCompare(b.name));
+    /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
+  })();
+  
+  const isLoadingEntities = isLoadingCustomers || isLoadingCompanies;
 
   const {
     register,
     handleSubmit,
     reset,
     control,
+    setValue,
     formState: { errors, isValid },
   } = useForm<FormData>({
     resolver: zodResolver(CreateEnquirySchema),
@@ -60,12 +106,44 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
 
   // Watch for changes in the customer dropdown
   const selectedCustomerId = useWatch({ control, name: 'customerId' });
+  
+  // Sync selectedCustomer with form state
+  useEffect(() => {
+    if (selectedCustomerId && selectedCustomer?.id !== selectedCustomerId) {
+      const entity = allEntities.find(e => e.id === selectedCustomerId);
+      if (entity) {
+        setSelectedCustomer(entity);
+      }
+    } else if (!selectedCustomerId && selectedCustomer) {
+      setSelectedCustomer(null);
+    }
+  }, [selectedCustomerId, selectedCustomer, allEntities]);
+  
+  // Find the selected entity to determine its type
+  const isCompany = selectedCustomer?.type === 'Company';
 
-  // Fetch locations for the selected customer
-  const { data: locations, isLoading: isLoadingLocations } = api.location.getByCustomerId.useQuery(
+  // Fetch locations for the selected customer (legacy)
+  const { data: customerLocations, isLoading: isLoadingCustomerLocations } = api.location.getByCustomerId.useQuery(
     { customerId: selectedCustomerId! },
-    { enabled: !!selectedCustomerId } // Only run this query if selectedCustomerId is not null
+    { enabled: !!selectedCustomerId && !isCompany } // Only run for customers
   );
+  
+  // For companies, we'll use offices and plants as locations
+  const companyLocations = isCompany && selectedCustomer ? [
+    ...(companies?.find(c => c.id === selectedCustomerId)?.offices?.map(office => ({
+      id: office.id,
+      name: office.name,
+      type: 'OFFICE'
+    })) || []),
+    ...(companies?.find(c => c.id === selectedCustomerId)?.plants?.map(plant => ({
+      id: plant.id,
+      name: plant.name,
+      type: 'PLANT'
+    })) || [])
+  ] : [];
+  
+  const locations = isCompany ? companyLocations : customerLocations;
+  const isLoadingLocations = isCompany ? false : isLoadingCustomerLocations;
 
   const createEnquiry = api.enquiry.create.useMutation({
     onSuccess: () => {
@@ -109,14 +187,31 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
     },
   });
 
+  // Handle customer selection
+  const handleCustomerSelect = (customer: Customer | null) => {
+    setSelectedCustomer(customer);
+    // Update form field
+    if (customer) {
+      setValue('customerId', customer.id);
+    } else {
+      setValue('customerId', '');
+    }
+  };
+
   const onSubmit = (data: FormData) => {
     if (!isValid) {
       showError('Validation Error', 'Please fill in all required fields correctly.');
       return;
     }
     
+    // Use selectedCustomer to determine entity type
+    const entityType = selectedCustomer?.type === 'Company' ? 'company' : 'customer';
+    
     setIsSubmitting(true);
-    createEnquiry.mutate(data);
+    createEnquiry.mutate({
+      ...data,
+      entityType: entityType as 'customer' | 'company'
+    });
   };
 
   const handleCancel = () => {
@@ -174,31 +269,24 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
               <p className="text-gray-600 text-sm">Select the customer for this enquiry</p>
             </div>
             <div className="px-6 pb-6 space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="customerId" className="block text-sm font-medium text-gray-900">
-                  Customer <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="customerId"
-                  {...register('customerId')}
-                  className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md text-black bg-white ${
-                    errors.customerId ? 'border-red-300' : ''
-                  }`}
-                  disabled={isLoadingCustomers}
-                >
-                  <option value="" className="text-black bg-white">
-                    {isLoadingCustomers ? 'Loading customers...' : 'Select a customer'}
-                  </option>
-                  {customers?.map((customer: { id: string; name: string }) => (
-                    <option key={customer.id} value={customer.id} className="text-black bg-white">
-                      {customer.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.customerId && (
-                  <p className="mt-2 text-sm text-red-600">{errors.customerId.message}</p>
-                )}
-              </div>
+              <CustomerSelector
+                customers={allEntities}
+                selectedCustomer={selectedCustomer}
+                onCustomerSelect={handleCustomerSelect}
+                loading={isLoadingEntities}
+                required
+                error={errors.customerId?.message}
+                placeholder="Search and select a customer..."
+                emptyMessage="No customers found"
+                loadingMessage="Loading customers..."
+              />
+              
+              {/* Hidden input for form validation */}
+              <input
+                type="hidden"
+                {...register('customerId')}
+                value={selectedCustomer?.id || ''}
+              />
 
               <div className="space-y-2">
                 <label htmlFor="locationId" className="block text-sm font-medium text-gray-900">

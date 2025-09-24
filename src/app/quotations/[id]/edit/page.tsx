@@ -144,7 +144,7 @@ export default function EditQuotationPage() {
               Edit Quotation {quotation.quotationNumber}
             </h1>
             <p className="text-gray-600 mt-1">
-              For {quotation.enquiry.customer.name}
+              For {quotation.enquiry.customer?.name ?? 'Unknown Customer'}
             </p>
           </div>
         </div>

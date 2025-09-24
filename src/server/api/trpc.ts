@@ -1,4 +1,4 @@
-import { initTRPC, TRPCError } from "@trpc/server";
+import { initTRPC } from "@trpc/server";
 import superjson from "superjson";
 
 import { type TRPCContext } from "./context";
@@ -14,15 +14,5 @@ export const createTRPCRouter = t.router;
 
 export const publicProcedure = t.procedure;
 
-const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
-  if (!ctx.session) {
-    throw new TRPCError({ code: "UNAUTHORIZED" });
-  }
-  return next({
-    ctx: {
-      session: ctx.session,
-    },
-  });
-});
-
-export const protectedProcedure = t.procedure.use(enforceUserIsAuthed);
+// Single user system - no authentication needed
+export const protectedProcedure = t.procedure;

@@ -44,9 +44,62 @@ function CustomerDetailsContent() {
     searchTerm: debouncedSearchTerm,
   });
 
+  // Also fetch companies to show in the same list
+  const { data: companiesData } = api.company.getAll.useQuery();
+
+  // Combine customers and companies data
   const customers = data?.customers ?? [];
-  const totalCount = data?.totalCount ?? 0;
-  const totalPages = data?.totalPages ?? 0;
+  const companies = companiesData ?? [];
+  
+  // Create combined entities for display
+  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
+  const combinedEntities = [
+    // Convert old customers to combined format
+    ...customers.map((customer: any) => ({
+      ...customer,
+      type: 'customer' as const,
+      contactPersons: customer.contacts || [],
+    })),
+    // Convert new companies to combined format
+    ...companies.map((company: any) => ({
+      id: company.id,
+      name: company.name,
+      type: 'company' as const,
+      designation: null,
+      phoneNumber: null,
+      emailId: null,
+      createdAt: company.createdAt,
+      updatedAt: company.updatedAt,
+      locations: company.offices?.map((office: any) => ({
+        id: office.id,
+        name: office.name,
+        type: 'OFFICE' as const,
+        address: office.address,
+        city: office.city,
+        state: office.state,
+        country: office.country,
+        receptionNumber: office.receptionNumber,
+      })) || [],
+      contactPersons: [
+        ...(company.offices?.flatMap((office: any) => 
+          office.contactPersons?.map((contact: any) => ({
+            ...contact,
+            location: { id: office.id, name: office.name, type: 'OFFICE' as const }
+          })) || []
+        ) || []),
+        ...(company.plants?.flatMap((plant: any) => 
+          plant.contactPersons?.map((contact: any) => ({
+            ...contact,
+            location: { id: plant.id, name: plant.name, type: 'PLANT' as const }
+          })) || []
+        ) || [])
+      ],
+    }))
+  ];
+  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
+
+  const totalCount = combinedEntities.length;
+  const totalPages = Math.ceil(totalCount / (queryParams.pageSize || 20));
 
   // Customer selection management
   const {
@@ -56,7 +109,7 @@ function CustomerDetailsContent() {
     toggleSelection,
     selectAll,
     clearSelection,
-  } = useCustomerSelection(customers);
+  } = useCustomerSelection(combinedEntities);
 
   // Event handlers
   const handleSearchChange = useCallback((searchTerm: string) => {
@@ -170,7 +223,7 @@ function CustomerDetailsContent() {
 
         {/* Customer Table */}
         <CustomerTable
-          customers={customers}
+          customers={combinedEntities}
           isLoading={isLoading}
           isFetching={isFetching}
           error={error as Error | null}

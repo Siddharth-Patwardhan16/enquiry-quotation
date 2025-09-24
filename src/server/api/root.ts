@@ -1,6 +1,7 @@
 import { authRouter } from './routers/auth';
 import { adminRouter } from './routers/admin';
 import { customerRouter } from './routers/customer';
+import { companyRouter } from './routers/company';
 import { contactRouter } from './routers/contact';
 import { enquiryRouter } from './routers/enquiry';
 import { quotationRouter } from './routers/quotation';
@@ -14,6 +15,7 @@ export const appRouter = createTRPCRouter({
   auth: authRouter,
   admin: adminRouter,
   customer: customerRouter,
+  company: companyRouter,
   contact: contactRouter,
   enquiry: enquiryRouter,
   quotation: quotationRouter,

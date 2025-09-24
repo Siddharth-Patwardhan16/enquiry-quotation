@@ -117,6 +117,9 @@ export const quotationRouter = createTRPCRouter({
             customer: {
               select: { name: true },
             },
+            company: {
+              select: { name: true },
+            },
           },
         },
         items: true, // Also include the line items

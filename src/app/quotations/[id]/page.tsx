@@ -129,7 +129,7 @@ export default function QuotationDetailPage() {
       
       // Right column
       let rightY = 35;
-      rightY = addText(`Customer: ${quotation.enquiry.customer.name}`, rightX, rightY, 80);
+      rightY = addText(`Customer: ${quotation.enquiry.customer?.name ?? 'Unknown Customer'}`, rightX, rightY, 80);
       rightY = addText(`Currency: ${quotation.currency || 'INR'}`, rightX, rightY, 80);
       rightY = addText(`Status: ${quotation.status}`, rightX, rightY, 80);
 
@@ -281,7 +281,7 @@ export default function QuotationDetailPage() {
               Quotation {quotation.quotationNumber}
             </h1>
             <p className="text-gray-600 mt-1">
-              For {quotation.enquiry.customer.name}
+              For {quotation.enquiry.customer?.name ?? 'Unknown Customer'}
             </p>
           </div>
         </div>

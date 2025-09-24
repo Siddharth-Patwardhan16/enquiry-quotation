@@ -167,11 +167,11 @@ export const authRouter = createTRPCRouter({
     return { success: true };
   }),
 
-  getSession: publicProcedure.query(async ({ ctx }) => {
+  getSession: publicProcedure.query(async ({ ctx: _ctx }) => {
     try {
       // Test database connection
       await db.$queryRaw`SELECT 1`;
-      return ctx.session;
+      return null; // Single user system - no session needed
     } catch (error) {
       console.error('Database connection failed:', error);
       throw new TRPCError({ 

@@ -1,22 +1,13 @@
 import { prisma } from "../db";
 
-type CreateContextOptions = {
-  session: unknown | null;
-};
-
-const createInnerTRPCContext = (opts: CreateContextOptions) => {
+const createInnerTRPCContext = () => {
   return {
-    session: opts.session,
     prisma,
   };
 };
 
 export const createTRPCContext = () => {
-  // For now, return a basic context without auth
-  // You can implement proper auth later
-  return createInnerTRPCContext({
-    session: null,
-  });
+  return createInnerTRPCContext();
 };
 
 export type TRPCContext = Awaited<ReturnType<typeof createTRPCContext>>;

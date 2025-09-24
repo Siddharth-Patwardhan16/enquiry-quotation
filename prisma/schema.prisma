@@ -20,6 +20,7 @@ model Employee {
   enquiries      Enquiry[]
   communications Communication[]
   createdCustomers Customer[] @relation("CustomerCreatedBy")
+  createdCompanies Company[] @relation("CompanyCreatedBy")
 }
 
 // Cleaned-up Customer model - no address fields
@@ -54,6 +55,109 @@ model Customer {
   locations Location[]
   contacts  Contact[]
   enquiries Enquiry[]
+  communications Communication[]
+}
+
+// Company model - new structure
+model Company {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  website   String?
+  industry  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Track who created this company
+  createdById String?
+  createdBy   Employee? @relation("CompanyCreatedBy", fields: [createdById], references: [id])
+
+  // PO Information
+  poRuptureDiscs     Boolean @default(false)
+  poThermowells      Boolean @default(false)
+  poHeatExchanger    Boolean @default(false)
+  poMiscellaneous    Boolean @default(false)
+  poWaterJetSteamJet Boolean @default(false)
+  
+  // Supplier Information
+  existingGraphiteSuppliers String?
+  problemsFaced             String?
+
+  // Relations
+  offices         Office[]
+  plants          Plant[]
+  contactPersons  ContactPerson[]
+  enquiries       Enquiry[]
+  communications  Communication[]
+}
+
+// Office model
+model Office {
+  id        String   @id @default(uuid())
+  name      String
+  address   String?
+  area      String?
+  city      String?
+  state     String?
+  country   String?
+  pincode   String?
+  isHeadOffice Boolean @default(false)
+  receptionNumber String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  contactPersons ContactPerson[]
+  enquiries      Enquiry[]
+}
+
+// Plant model
+model Plant {
+  id        String   @id @default(uuid())
+  name      String
+  address   String?
+  area      String?
+  city      String?
+  state     String?
+  country   String?
+  pincode   String?
+  plantType String?  // e.g., "Manufacturing", "Processing", "Assembly"
+  receptionNumber String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  contactPersons ContactPerson[]
+  enquiries      Enquiry[]
+}
+
+// Contact Person model
+model ContactPerson {
+  id          String   @id @default(uuid())
+  name        String
+  designation String?
+  phoneNumber String?
+  emailId     String?
+  isPrimary   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Polymorphic relations - can belong to either office or plant
+  officeId String?
+  office   Office? @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  
+  plantId String?
+  plant   Plant? @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  
+  // Direct relation to company
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   communications Communication[]
 }
 
@@ -115,17 +219,28 @@ model Enquiry {
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
-  // An enquiry originates from one location
-  locationId        String
-  location          Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  // An enquiry originates from one location (legacy)
+  locationId        String?
+  location          Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  // New structure - can originate from office or plant
+  officeId          String?
+  office            Office? @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  
+  plantId           String?
+  plant             Plant? @relation(fields: [plantId], references: [id], onDelete: Cascade)
 
   // It is created by one employee
   marketingPersonId String?
   marketingPerson   Employee? @relation(fields: [marketingPersonId], references: [id])
 
-  // Keep the customer relation for easier querying
-  customerId        String
-  customer          Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  // Keep the customer relation for easier querying (legacy)
+  customerId        String?
+  customer          Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  // New structure - company relation
+  companyId         String?
+  company           Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   documents         Document[]
   quotations        Quotation[]
@@ -184,12 +299,20 @@ model Communication {
   proposedNextAction    String?
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
-  customerId            String
+  
+  // Legacy relations
+  customerId            String?
   contactId             String?
   employeeId            String?
   contact               Contact?              @relation(fields: [contactId], references: [id])
-  customer              Customer              @relation(fields: [customerId], references: [id])
+  customer              Customer?             @relation(fields: [customerId], references: [id])
   employee              Employee?             @relation(fields: [employeeId], references: [id])
+  
+  // New structure relations
+  companyId             String?
+  company               Company?              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contactPersonId       String?
+  contactPerson         ContactPerson?        @relation(fields: [contactPersonId], references: [id], onDelete: Cascade)
 }
 
 model Document {

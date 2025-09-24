@@ -12,6 +12,7 @@ export const CreateEnquirySchema = z.object({
   source: z.enum(['Website', 'Email', 'Phone', 'Referral', 'Trade Show', 'Social Media']),
   notes: z.string().optional(),
   quotationNumber: z.string().min(1, 'Quotation number is required'),
+  entityType: z.enum(['customer', 'company']).optional(), // Track whether it's a customer or company
 });
 
 export const UpdateEnquirySchema = z.object({
