@@ -6,7 +6,7 @@ import { api } from '@/trpc/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, AlertCircle, CheckCircle, FileText, MessageSquare, Settings } from 'lucide-react';
+import { Calendar, Clock, AlertCircle, CheckCircle, FileText, MessageSquare, Settings, Search, X } from 'lucide-react';
 import { MeetingManagementModal } from './_components/MeetingManagementModal';
 import { QuotationStatusModal } from './_components/QuotationStatusModal';
 import { CommunicationStatusModal } from './_components/CommunicationStatusModal';
@@ -35,6 +35,9 @@ export default function TasksPage() {
   const [filterType, setFilterType] = useState<'all' | 'QUOTATION' | 'COMMUNICATION'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'overdue' | 'today' | 'upcoming'>('all');
   const [filterPriority, setFilterPriority] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  
+  // State for search
+  const [searchTerm, setSearchTerm] = useState('');
 
   const queryResult = api.tasks.getUpcoming.useQuery();
   const tasks = queryResult.data as Task[] | undefined;
@@ -163,8 +166,20 @@ export default function TasksPage() {
     void queryResult.refetch();
   };
 
-  // Filter tasks based on current filters
+  // Filter tasks based on current filters and search term
   const filteredTasks: Task[] = tasks ? tasks.filter((task: Task) => {
+    // Filter by search term
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = 
+        task.customerName.toLowerCase().includes(searchLower) ||
+        task.taskDescription.toLowerCase().includes(searchLower) ||
+        task.status.toLowerCase().includes(searchLower) ||
+        task.type.toLowerCase().includes(searchLower);
+      
+      if (!matchesSearch) return false;
+    }
+    
     // Filter by type
     if (filterType !== 'all' && task.type !== filterType) return false;
     
@@ -210,9 +225,31 @@ export default function TasksPage() {
         </p>
       </div>
 
-      {/* Filter Controls */}
+      {/* Search and Filter Controls */}
       <div className="mb-6 bg-white rounded-lg border p-4">
         <div className="space-y-4">
+          {/* Search Bar */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search tasks by customer, description, status, or type..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
           {/* Mobile-first responsive grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-1">
@@ -264,10 +301,11 @@ export default function TasksPage() {
                     setFilterType('all');
                     setFilterStatus('all');
                     setFilterPriority('all');
+                    setSearchTerm('');
                   }}
                   className="flex-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                 >
-                  Clear
+                  Clear All
                 </button>
               </div>
             </div>
@@ -276,7 +314,11 @@ export default function TasksPage() {
           {/* Results count - full width on mobile */}
           <div className="flex justify-between items-center pt-2 border-t border-gray-200">
             <div className="text-sm text-gray-600">
-              Showing {filteredTasks.length} of {tasks?.length ?? 0} tasks
+              {searchTerm ? (
+                <>Showing {filteredTasks.length} of {tasks?.length ?? 0} tasks matching &ldquo;{searchTerm}&rdquo;</>
+              ) : (
+                <>Showing {filteredTasks.length} of {tasks?.length ?? 0} tasks</>
+              )}
             </div>
           </div>
         </div>
