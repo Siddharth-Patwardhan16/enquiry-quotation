@@ -11,6 +11,7 @@ import {
   RecentEnquiries, 
   RecentQuotations
 } from '../../components/dashboard';
+import { DashboardSkeleton } from '../../components/ui/loading-skeleton';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -24,11 +25,16 @@ export default function DashboardPage() {
   const { data: monthlyTrends, isLoading: isLoadingTrends } = api.dashboard.getMonthlyEnquiryTrends.useQuery();
   const { data: quotationValueData, isLoading: isLoadingQuotationValue } = api.dashboard.getQuotationValueVsLive.useQuery();
 
+  // Show loading skeleton while data is loading
+  if (isLoadingStats || isLoadingReasons || isLoadingEnquiries || isLoadingQuotations || isLoadingTrends || isLoadingQuotationValue) {
+    return <DashboardSkeleton />;
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-                    <p className="text-gray-600 mt-2">Welcome back, {user?.name ?? 'User'}!</p>
+        <p className="text-gray-600 mt-2">Welcome back, {user?.name ?? 'User'}!</p>
       </div>
 
       {/* Stat Cards */}

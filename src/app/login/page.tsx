@@ -55,7 +55,7 @@ export default function LoginPage() {
     },
     onError: (error) => {
       setError(error.message);
-      console.error('Login failed:', error.message);
+      // Login failed
     },
   });
 
@@ -72,7 +72,7 @@ export default function LoginPage() {
     },
     onError: (error) => {
       setError(error.message);
-      console.error('Signup failed:', error.message);
+      // Signup failed
     },
   });
 

@@ -5,6 +5,7 @@ import { useAuth } from '../../components/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { NavigationLayout } from '../../components/layout/NavigationLayout';
+import { NavigationSkeleton } from '../../components/ui/loading-skeleton';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -19,14 +20,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // If still loading, show a loading state
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <NavigationSkeleton />;
   }
 
   // If authenticated, render the navigation layout with page content

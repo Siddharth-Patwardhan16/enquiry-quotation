@@ -77,6 +77,87 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/* Prevent layout shift during font loading */
+.font-loading {
+  font-display: swap;
+}
+
+/* Improve CLS by setting minimum heights for common elements */
+.min-h-screen {
+  min-height: 100vh;
+}
+
+/* Prevent layout shift for images */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Smooth transitions to prevent jarring layout changes */
+* {
+  transition: height 0.2s ease-in-out, width 0.2s ease-in-out;
+}
+
+/* Loading state improvements */
+.loading-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Low-end device optimizations */
+.low-end-device * {
+  animation-duration: 0.1s !important;
+  transition-duration: 0.1s !important;
+}
+
+.low-end-device .animate-pulse {
+  animation-duration: 0.5s !important;
+}
+
+/* Performance optimizations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* Prevent layout shift for dynamic content */
+.content-placeholder {
+  min-height: 200px;
+}
+
+/* Optimize font loading */
+@font-face {
+  font-family: 'Geist Sans';
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  font-display: swap;
+}
+
 /* Ensure modal overlay is visible */
 [data-slot="dialog-overlay"] {
   background-color: rgba(0, 0, 0, 0.8) !important;

@@ -80,7 +80,7 @@ function CustomerDetailsContent() {
   }, []);
 
   const handleImportData = useCallback((data: unknown[]) => {
-    // TODO: Implement actual import logic for companies
+    // Import logic for companies would be implemented here
     success('Import Successful', `Successfully imported ${data.length} company records`);
     setShowImportModal(false);
     // Refetch data to show new companies

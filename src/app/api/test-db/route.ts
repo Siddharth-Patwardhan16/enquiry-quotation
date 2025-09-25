@@ -12,7 +12,7 @@ export async function GET() {
       customerCount
     });
   } catch (error) {
-    console.error('Database connection error:', error);
+    // Database connection error
     return NextResponse.json({
       success: false,
       message: 'Database connection failed',

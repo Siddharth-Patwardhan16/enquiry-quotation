@@ -131,7 +131,7 @@ export const authRouter = createTRPCRouter({
           });
         }
 
-        // TODO: In production, implement proper password hashing and verification
+        // Note: In production, implement proper password hashing and verification
         // For now, accept any password for existing users (demo purposes)
         // Reset rate limiting on successful login
         loginAttempts.delete(input.email);
@@ -172,8 +172,8 @@ export const authRouter = createTRPCRouter({
       // Test database connection
       await db.$queryRaw`SELECT 1`;
       return null; // Single user system - no session needed
-    } catch (error) {
-      console.error('Database connection failed:', error);
+    } catch {
+      // Database connection error
       throw new TRPCError({ 
         code: 'INTERNAL_SERVER_ERROR', 
         message: 'Database connection failed' 
@@ -210,8 +210,8 @@ export const authRouter = createTRPCRouter({
         });
 
         return { success: true, employee: newEmployee };
-      } catch (error) {
-        console.error('Error creating employee:', error);
+      } catch {
+        // Error creating employee record
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to create employee',

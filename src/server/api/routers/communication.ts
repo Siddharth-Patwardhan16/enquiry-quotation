@@ -133,8 +133,8 @@ export const communicationRouter = createTRPCRouter({
       }
 
       return communicationsWithEnquiry;
-    } catch (error) {
-      console.error('Error fetching communications:', error);
+    } catch {
+      // Error fetching communications
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to fetch communications',
@@ -189,7 +189,7 @@ export const communicationRouter = createTRPCRouter({
       } catch (error) {
         if (error instanceof TRPCError) throw error;
         
-        console.error('Error fetching communication:', error);
+        // Error fetching communication
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to fetch communication',
@@ -250,7 +250,7 @@ export const communicationRouter = createTRPCRouter({
 
         return communication;
       } catch (error) {
-        console.error('Error creating communication:', error);
+        // Error creating communication
         
         // Provide more specific error messages
         if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
@@ -323,8 +323,8 @@ export const communicationRouter = createTRPCRouter({
         });
 
         return communication;
-      } catch (error) {
-        console.error('Error updating communication:', error);
+      } catch {
+        // Error updating communication
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to update communication',
@@ -342,8 +342,8 @@ export const communicationRouter = createTRPCRouter({
         });
 
         return { success: true };
-      } catch (error) {
-        console.error('Error deleting communication:', error);
+      } catch {
+        // Error deleting communication
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to delete communication',
@@ -387,8 +387,8 @@ export const communicationRouter = createTRPCRouter({
             },
           },
         });
-      } catch (error) {
-        console.error('Error fetching customer communications:', error);
+      } catch {
+        // Error fetching customer communications
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to fetch customer communications',
@@ -434,8 +434,8 @@ export const communicationRouter = createTRPCRouter({
             },
           },
         });
-      } catch (error) {
-        console.error('Error fetching communications by type:', error);
+      } catch {
+        // Error fetching communications by type
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to fetch communications by type',
@@ -484,8 +484,8 @@ export const communicationRouter = createTRPCRouter({
           },
         },
       });
-    } catch (error) {
-      console.error('Error fetching upcoming communications:', error);
+    } catch {
+      // Error fetching upcoming communications
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to fetch upcoming communications',
@@ -522,8 +522,8 @@ export const communicationRouter = createTRPCRouter({
         });
 
         return updatedCommunication;
-      } catch (error) {
-        console.error('Error updating communication status:', error);
+      } catch {
+        // Error updating communication status
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to update communication status',

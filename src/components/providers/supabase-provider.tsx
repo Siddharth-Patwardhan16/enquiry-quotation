@@ -47,7 +47,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
         const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession()
         
         if (sessionError) {
-          console.warn('Session error during initialization:', sessionError)
+          // Session error during initialization
         }
 
         if (mounted) {
@@ -57,8 +57,8 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
           }
           setLoading(false)
         }
-      } catch (error) {
-        console.error('Error during auth initialization:', error)
+      } catch {
+        // Error during auth initialization
         if (mounted) {
           setLoading(false)
         }
@@ -102,8 +102,8 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
                 setSession(session)
               }
           }
-        } catch (error) {
-          console.error('Error handling auth state change:', error)
+        } catch {
+          // Error handling auth state change
         }
       }
     )
@@ -121,8 +121,8 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       setUser(null)
       setSession(null)
       router.push('/login')
-    } catch (error) {
-      console.error('Error signing out:', error)
+    } catch {
+      // Error signing out
     }
   }
 

@@ -4,17 +4,7 @@ import { memo } from 'react';
 import { Users, Loader2 } from 'lucide-react';
 import { CustomerTableProps } from '../_types/customer.types';
 import { CustomerRow } from './CustomerRow';
-
-// Skeleton loader component
-const CustomerTableSkeleton = memo(function CustomerTableSkeleton() {
-  return (
-    <div className="space-y-2">
-      {Array.from({ length: 10 }).map((_, i) => (
-        <div key={i} className="h-16 bg-gray-100 animate-pulse rounded" />
-      ))}
-    </div>
-  );
-});
+import { TableSkeleton } from '../../../components/ui/loading-skeleton';
 
 // Error component
 const ErrorState = memo(function ErrorState({ 
@@ -66,13 +56,7 @@ export const CustomerTable = memo(function CustomerTable({
 
   // Show loading state
   if (isLoading && customers.length === 0) {
-    return (
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-        <div className="p-6">
-          <CustomerTableSkeleton />
-        </div>
-      </div>
-    );
+    return <TableSkeleton rows={10} />;
   }
 
   // Show error state

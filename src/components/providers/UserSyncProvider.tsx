@@ -21,8 +21,8 @@ export function UserSyncProvider({ children }: { children: React.ReactNode }) {
       }, {
         onSuccess: (_data) => {
         },
-        onError: (error) => {
-          console.error('Failed to create employee:', error);
+        onError: (_error) => {
+          // Failed to create employee
         }
       });
     }

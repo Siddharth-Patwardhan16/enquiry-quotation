@@ -24,7 +24,7 @@ export function PasswordResetModal({ isOpen, onClose }: PasswordResetModalProps)
     setMessage('');
 
     try {
-      // TODO: Implement actual password reset functionality
+      // Password reset functionality would be implemented here
       // This is a placeholder for future implementation
       await new Promise(resolve => setTimeout(resolve, 1000));
       

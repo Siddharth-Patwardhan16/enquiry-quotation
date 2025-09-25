@@ -29,8 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (savedUser) {
       try {
         setUser(JSON.parse(savedUser));
-      } catch (error) {
-        console.error('Error parsing saved user:', error);
+      } catch {
+        // Invalid user data in localStorage, clearing it
         localStorage.removeItem('user');
       }
     }

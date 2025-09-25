@@ -141,7 +141,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
       onSuccess?.();
     },
     onError: (error) => {
-      console.error('Communication creation error:', error);
+      // Communication creation error
       setIsSubmitting(false);
       
       // Handle validation errors specifically
@@ -176,7 +176,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
       onSuccess?.();
     },
     onError: (error) => {
-      console.error('Communication update error:', error);
+      // Communication update error
       setIsSubmitting(false);
       
       // Handle validation errors specifically

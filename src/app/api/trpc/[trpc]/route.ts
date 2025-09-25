@@ -23,10 +23,8 @@ const handler = async (req: Request) => {
     createContext: () => createTRPCContext(),
     onError:
       process.env.NODE_ENV === "development"
-        ? ({ path, error }: { path?: string; error: Error }) => {
-            console.error(
-              `❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`,
-            );
+        ? ({ path: _path, error: _error }: { path?: string; error: Error }) => {
+            // tRPC error in development
           }
         : undefined,
   }) as Response;

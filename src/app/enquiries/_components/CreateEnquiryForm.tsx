@@ -212,7 +212,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
       }
     },
     onError: (error) => {
-      console.error('Enquiry creation error:', error);
+      // Enquiry creation error
       
       // Handle validation errors specifically
       if (error.data?.code === 'BAD_REQUEST') {

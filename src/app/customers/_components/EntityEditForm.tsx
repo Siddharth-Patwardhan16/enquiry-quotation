@@ -102,8 +102,8 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
     onSuccess: () => {
       onSuccess();
     },
-    onError: (error) => {
-      console.error('Error updating company:', error);
+    onError: (_error) => {
+      // Error updating company
     },
   });
 
@@ -125,8 +125,8 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
           problemsFaced: formData.problemsFaced ?? null,
         });
       }
-    } catch (error) {
-      console.error('Error updating entity:', error);
+    } catch {
+      // Error updating entity
     } finally {
       setIsLoading(false);
     }

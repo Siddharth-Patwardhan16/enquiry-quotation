@@ -88,7 +88,7 @@ export const quotationRouter = createTRPCRouter({
           return newQuotation;
         });
       } catch (error) {
-        console.error(error);
+        // Error in quotation operation
         
         // Check if it's a Prisma constraint violation error
         if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002' && 
@@ -230,8 +230,8 @@ export const quotationRouter = createTRPCRouter({
             items: true,
           },
         });
-      } catch (error) {
-        console.error(error);
+      } catch {
+        // Error in quotation operation
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to fetch quotation. Please try again.',
@@ -324,8 +324,8 @@ export const quotationRouter = createTRPCRouter({
 
           return updatedQuotation;
         });
-      } catch (error) {
-        console.error(error);
+      } catch {
+        // Error in quotation operation
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to update quotation. Please try again.',
@@ -348,8 +348,8 @@ export const quotationRouter = createTRPCRouter({
             where: { id: input.id },
           });
         });
-      } catch (error) {
-        console.error(error);
+      } catch {
+        // Error in quotation operation
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to delete quotation. Please try again.',

@@ -165,7 +165,7 @@ export default function NewQuotationPage() {
       router.push('/quotations');
     },
     onError: (error) => {
-      console.error('Quotation creation error:', error);
+      // Quotation creation error
       
       // Handle validation errors specifically
       if (error.data?.code === 'BAD_REQUEST') {

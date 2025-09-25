@@ -229,8 +229,8 @@ export default function QuotationDetailPage() {
 
       // Save the PDF
       pdf.save(`quotation-${quotation.quotationNumber}.pdf`);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
+    } catch {
+      // Error generating PDF
       alert('Failed to generate PDF. Please try again.');
     }
   };

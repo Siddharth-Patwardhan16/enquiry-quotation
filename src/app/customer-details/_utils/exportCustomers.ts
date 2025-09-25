@@ -35,7 +35,7 @@ export function exportCustomersToCSV(customers: CompanyApiResponse[], filename?:
   const url = URL.createObjectURL(blob);
   
   link.setAttribute('href', url);
-    link.setAttribute('download', filename ?? `customers-export-${new Date().toISOString().split('T')[0]}.csv`);
+  link.setAttribute('download', filename ?? `customers-export-${new Date().toISOString().split('T')[0]}.csv`);
   link.style.visibility = 'hidden';
   
   document.body.appendChild(link);
@@ -96,8 +96,8 @@ export async function exportCustomersToExcel(customers: CompanyApiResponse[], fi
     document.body.removeChild(link);
     
     URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error('Error exporting to Excel:', error);
+  } catch {
+    // Error handling for Excel export
     alert('Error exporting to Excel. Please try CSV export instead.');
   }
 }
@@ -134,7 +134,7 @@ export function exportCustomersToJSON(customers: CompanyApiResponse[], filename?
   const url = URL.createObjectURL(blob);
   
   link.setAttribute('href', url);
-    link.setAttribute('download', filename ?? `customers-export-${new Date().toISOString().split('T')[0]}.json`);
+  link.setAttribute('download', filename ?? `customers-export-${new Date().toISOString().split('T')[0]}.json`);
   link.style.visibility = 'hidden';
   
   document.body.appendChild(link);

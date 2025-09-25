@@ -13,9 +13,7 @@ const getCurrentUser = async () => {
     });
     
     // If Siddharth doesn't exist, create him
-    if (!employee) {
-      console.log('Siddharth not found, creating Siddharth user...');
-      employee = await prisma.employee.create({
+    employee ??= await prisma.employee.create({
         data: {
           id: 'siddharth-user-1',
           name: 'Siddharth',
@@ -23,12 +21,11 @@ const getCurrentUser = async () => {
           role: 'MARKETING'
         }
       });
-      console.log('Created Siddharth user:', employee);
-    }
+      // Default user created successfully
     
     return employee;
-  } catch (error) {
-    console.error('Error getting current user:', error);
+  } catch {
+    // Error handling for user context creation
     // Return a fallback user object if database operations fail
     return {
       id: 'fallback-user-1',

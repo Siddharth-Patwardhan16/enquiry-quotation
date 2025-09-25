@@ -35,8 +35,8 @@ export const contactRouter = createTRPCRouter({
           },
         },
       });
-    } catch (error) {
-      console.error('Error fetching contacts:', error);
+    } catch {
+      // Error fetching contacts
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to fetch contacts',
@@ -75,7 +75,7 @@ export const contactRouter = createTRPCRouter({
       } catch (error) {
         if (error instanceof TRPCError) throw error;
         
-        console.error('Error fetching contact:', error);
+        // Error fetching contact
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to fetch contact',
@@ -103,8 +103,8 @@ export const contactRouter = createTRPCRouter({
             },
           },
         });
-      } catch (error) {
-        console.error('Error fetching customer contacts:', error);
+      } catch {
+        // Error fetching customer contacts
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to fetch customer contacts',
@@ -140,8 +140,8 @@ export const contactRouter = createTRPCRouter({
         });
 
         return contact;
-      } catch (error) {
-        console.error('Error creating contact:', error);
+      } catch {
+        // Error creating contact
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to create contact',
@@ -180,8 +180,8 @@ export const contactRouter = createTRPCRouter({
         });
 
         return contact;
-      } catch (error) {
-        console.error('Error updating contact:', error);
+      } catch {
+        // Error updating contact
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to update contact',
@@ -199,8 +199,8 @@ export const contactRouter = createTRPCRouter({
         });
 
         return { success: true };
-      } catch (error) {
-        console.error('Error deleting contact:', error);
+      } catch {
+        // Error deleting contact
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to delete contact',
