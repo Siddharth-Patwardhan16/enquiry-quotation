@@ -198,7 +198,7 @@ export const dashboardRouter = createTRPCRouter({
     const quotationTasks = await db.quotation.findMany({
       where: {
         status: {
-          in: ['DRAFT', 'LIVE']
+          in: ['LIVE']
         },
         validityPeriod: {
           gte: now,

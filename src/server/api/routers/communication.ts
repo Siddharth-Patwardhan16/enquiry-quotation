@@ -5,11 +5,11 @@ import { db } from '../../db';
 
 // Validation schemas
 const CreateCommunicationSchema = z.object({
-  date: z.string(),
-  customerId: z.string(),
-  subject: z.string(),
+  date: z.string().optional(),
+  companyId: z.string().optional(),
+  subject: z.string().optional(),
   enquiryRelated: z.string().optional(),
-  description: z.string(),
+  description: z.string().optional(),
   type: z.enum(['TELEPHONIC', 'VIRTUAL_MEETING', 'EMAIL', 'PLANT_VISIT', 'OFFICE_VISIT']),
   nextCommunicationDate: z.string().optional(),
   proposedNextAction: z.string().optional(),
@@ -42,7 +42,7 @@ export const communicationRouter = createTRPCRouter({
       
       if (input.customerId) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        where.customerId = input.customerId;
+        where.companyId = input.customerId;
       }
 
       const communications = await db.communication.findMany({
@@ -50,22 +50,21 @@ export const communicationRouter = createTRPCRouter({
         where,
         orderBy: { createdAt: 'desc' },
         include: {
-          customer: {
+          company: {
             select: {
               id: true,
               name: true,
-              isNew: true,
               createdAt: true,
               updatedAt: true,
             },
           },
-          contact: {
+          contactPerson: {
             select: {
               id: true,
               name: true,
               designation: true,
-              officialCellNumber: true,
-              personalCellNumber: true,
+              phoneNumber: true,
+              emailId: true,
             },
           },
           employee: {
@@ -88,6 +87,38 @@ export const communicationRouter = createTRPCRouter({
                 id: true,
                 quotationNumber: true,
                 subject: true,
+                office: {
+                  select: {
+                    id: true,
+                    name: true,
+                    contactPersons: {
+                      select: {
+                        id: true,
+                        name: true,
+                        designation: true,
+                        phoneNumber: true,
+                        emailId: true,
+                        isPrimary: true,
+                      },
+                    },
+                  },
+                },
+                plant: {
+                  select: {
+                    id: true,
+                    name: true,
+                    contactPersons: {
+                      select: {
+                        id: true,
+                        name: true,
+                        designation: true,
+                        phoneNumber: true,
+                        emailId: true,
+                        isPrimary: true,
+                      },
+                    },
+                  },
+                },
               },
             });
             return {
@@ -107,8 +138,10 @@ export const communicationRouter = createTRPCRouter({
         const searchLower = input.search.toLowerCase();
         communicationsWithEnquiry = communicationsWithEnquiry.filter(comm => {
           const subject: string = comm.subject ?? '';
-          const customerName: string = comm.customer?.name ?? '';
-          const contactName: string = comm.contact?.name ?? '';
+          const customerName: string = comm.company?.name ?? '';
+          const contactName: string = comm.contactPerson?.name ?? 
+            comm.enquiry?.office?.contactPersons?.[0]?.name ?? 
+            comm.enquiry?.plant?.contactPersons?.[0]?.name ?? '';
           const description: string = comm.description ?? '';
           const quotationNumber: string = comm.enquiry?.quotationNumber ?? '';
           
@@ -150,11 +183,10 @@ export const communicationRouter = createTRPCRouter({
         const communication = await db.communication.findUnique({
           where: { id: input.id },
           include: {
-            customer: {
+            company: {
               select: {
                 id: true,
                 name: true,
-                isNew: true,
                 createdAt: true,
                 updatedAt: true,
               },
@@ -209,22 +241,21 @@ export const communicationRouter = createTRPCRouter({
 
         const communication = await db.communication.create({
           data: {
-            subject: input.subject,
-            description: input.description,
+            subject: input.subject ?? '',
+            description: input.description ?? '',
             type: input.type,
             enquiryRelated: input.enquiryRelated,
             nextCommunicationDate: input.nextCommunicationDate ? new Date(input.nextCommunicationDate) : null,
             proposedNextAction: input.proposedNextAction,
-            customerId: input.customerId,
+            companyId: input.companyId,
             ...(input.contactId && { contactId: input.contactId }),
             employeeId: employee?.id ?? null,
           },
           include: {
-            customer: {
+            company: {
               select: {
                 id: true,
                 name: true,
-                isNew: true,
                 createdAt: true,
                 updatedAt: true,
               },
@@ -290,15 +321,14 @@ export const communicationRouter = createTRPCRouter({
             enquiryRelated: updateData.enquiryRelated,
             nextCommunicationDate: updateData.nextCommunicationDate ? new Date(updateData.nextCommunicationDate) : null,
             proposedNextAction: updateData.proposedNextAction,
-            customerId: updateData.customerId,
+            companyId: updateData.companyId,
             contactId: updateData.contactId ?? null, // Handle optional contactId
           },
           include: {
-            customer: {
+            company: {
               select: {
                 id: true,
                 name: true,
-                isNew: true,
                 createdAt: true,
                 updatedAt: true,
               },
@@ -360,11 +390,10 @@ export const communicationRouter = createTRPCRouter({
           where: { customerId: input.customerId },
           orderBy: { createdAt: 'desc' },
           include: {
-            customer: {
+            company: {
               select: {
                 id: true,
                 name: true,
-                isNew: true,
                 createdAt: true,
                 updatedAt: true,
               },
@@ -407,11 +436,10 @@ export const communicationRouter = createTRPCRouter({
           where: { type: input.type },
           orderBy: { createdAt: 'desc' },
           include: {
-            customer: {
+            company: {
               select: {
                 id: true,
                 name: true,
-                isNew: true,
                 createdAt: true,
                 updatedAt: true,
               },
@@ -466,13 +494,13 @@ export const communicationRouter = createTRPCRouter({
               updatedAt: true,
             },
           },
-          contact: {
+          contactPerson: {
             select: {
               id: true,
               name: true,
               designation: true,
-              officialCellNumber: true,
-              personalCellNumber: true,
+              phoneNumber: true,
+              emailId: true,
             },
           },
           employee: {

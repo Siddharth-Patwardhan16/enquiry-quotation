@@ -9,7 +9,7 @@ export const CreateEnquirySchema = z.object({
   timeline: z.string().optional(),
   enquiryDate: z.string(),
   priority: z.enum(['Low', 'Medium', 'High', 'Urgent']),
-  source: z.enum(['Website', 'Email', 'Phone', 'Referral', 'Trade Show', 'Social Media']),
+  source: z.enum(['Website', 'Email', 'Phone', 'Referral', 'Trade Show', 'Social Media', 'Visit']),
   notes: z.string().optional(),
   quotationNumber: z.string().min(1, 'Quotation number is required'),
   entityType: z.enum(['customer', 'company']).optional(), // Track whether it's a customer or company
@@ -27,6 +27,6 @@ export const UpdateEnquiryFullSchema = z.object({
   requirements: z.string().optional(),
   timeline: z.string().optional(),
   priority: z.enum(['Low', 'Medium', 'High', 'Urgent']).optional(),
-  source: z.enum(['Website', 'Email', 'Phone', 'Referral', 'Trade Show', 'Social Media']).optional(),
+  source: z.enum(['Website', 'Email', 'Phone', 'Referral', 'Trade Show', 'Social Media', 'Visit']).optional(),
   notes: z.string().optional(),
 });

@@ -97,6 +97,14 @@ export interface Company {
       name: string;
       type: 'OFFICE' | 'PLANT';
     };
+    office?: {
+      id: string;
+      name: string;
+    } | null;
+    plant?: {
+      id: string;
+      name: string;
+    } | null;
   }>;
 }
 
@@ -241,6 +249,14 @@ export type CompanyApiResponse = {
       name: string;
       type: 'OFFICE' | 'PLANT';
     };
+    office?: {
+      id: string;
+      name: string;
+    } | null;
+    plant?: {
+      id: string;
+      name: string;
+    } | null;
   }>;
 };
 

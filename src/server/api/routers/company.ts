@@ -20,17 +20,12 @@ export const companyRouter = createTRPCRouter({
         const company = await prisma.company.create({
           data: {
             name: input.companyName,
-            website: input.website ?? null,
-            industry: input.industry ?? null,
             // Purchase Order fields
             poRuptureDiscs: input.poRuptureDiscs,
             poThermowells: input.poThermowells,
             poHeatExchanger: input.poHeatExchanger,
             poMiscellaneous: input.poMiscellaneous,
             poWaterJetSteamJet: input.poWaterJetSteamJet,
-            // Additional Information fields
-            existingGraphiteSuppliers: input.existingGraphiteSuppliers ?? null,
-            problemsFaced: input.problemsFaced ?? null,
             // Track who created this company
             createdById: ctx.currentUser?.id ?? null
           }
@@ -118,7 +113,12 @@ export const companyRouter = createTRPCRouter({
               contactPersons: true
             }
           },
-          contactPersons: true,
+          contactPersons: {
+            include: {
+              office: true,
+              plant: true
+            }
+          },
           createdBy: {
             select: {
               id: true,

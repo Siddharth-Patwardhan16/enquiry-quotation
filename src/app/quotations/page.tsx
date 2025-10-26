@@ -47,29 +47,32 @@ export default function QuotationsPage() {
   // Use backend stats if available, otherwise show loading
   const displayStats = stats ? {
     total: stats.total,
-    draft: stats.draft,
     live: stats.live,
-    won: stats.won
+    won: stats.won,
+    lost: stats.lost,
+    budgetary: stats.budgetary,
+    dead: stats.dead
   } : {
     total: 0,
-    draft: 0,
     live: 0,
-    won: 0
+    won: 0,
+    lost: 0,
+    budgetary: 0,
+    dead: 0
   };
 
   const displayTotalValue = stats?.liveTotalValue ?? 0;
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      'DRAFT': { color: 'bg-gray-100 text-gray-800', label: 'Draft' },
       'LIVE': { color: 'bg-yellow-100 text-yellow-800', label: 'Live' },
-      'SUBMITTED': { color: 'bg-blue-100 text-blue-800', label: 'Submitted' },
       'WON': { color: 'bg-green-100 text-green-800', label: 'Won' },
       'LOST': { color: 'bg-red-100 text-red-800', label: 'Lost' },
-      'RECEIVED': { color: 'bg-purple-100 text-purple-800', label: 'Received' }
+      'BUDGETARY': { color: 'bg-orange-100 text-orange-800', label: 'Budgetary' },
+      'DEAD': { color: 'bg-gray-100 text-gray-800', label: 'Dead' }
     };
     
-          const config = statusConfig[status as keyof typeof statusConfig] ?? statusConfig['DRAFT'];
+          const config = statusConfig[status as keyof typeof statusConfig] ?? statusConfig['LIVE'];
     
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>
@@ -191,9 +194,9 @@ export default function QuotationsPage() {
                   <tr className="bg-gray-50 border-b">
                     <th className="p-4 font-medium text-gray-900">Quotation #</th>
                     <th className="p-4 font-medium text-gray-900">Customer</th>
-                    <th className="p-4 font-medium text-gray-900">Created by</th>
                     <th className="p-4 font-medium text-gray-900">Date</th>
                     <th className="p-4 font-medium text-gray-900">Total Value</th>
+                    <th className="p-4 font-medium text-gray-900">PO Number</th>
                     <th className="p-4 font-medium text-gray-900">Status</th>
                     <th className="p-4 font-medium text-gray-900 text-right">Actions</th>
                   </tr>
@@ -203,28 +206,14 @@ export default function QuotationsPage() {
                     <tr key={q.id} className="border-b last:border-none hover:bg-gray-50">
                       <td className="p-4 font-medium text-gray-900">{q.quotationNumber}</td>
                       <td className="p-4 text-gray-900">{q.enquiry.company?.name ?? q.enquiry.customer?.name ?? 'Unknown Customer'}</td>
-                      <td className="p-4 text-gray-900">
-                        {q.createdBy ? (
-                          <div className="flex items-center">
-                            <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center mr-3">
-                              <span className="text-xs font-medium text-gray-600">
-                                {q.createdBy.name.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                            <div>
-                              <div className="font-medium text-gray-900">{q.createdBy.name}</div>
-                              <div className="text-xs text-gray-500">{q.createdBy.email}</div>
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 italic">Unknown</span>
-                        )}
-                      </td>
                       <td className="p-4 text-gray-500">
                         {new Date(q.quotationDate ?? q.createdAt).toLocaleDateString()}
                       </td>
                       <td className="p-4 text-gray-900">
                         {formatCurrency(Number(q.totalValue) ?? 0)}
+                      </td>
+                      <td className="p-4 text-gray-900">
+                        {q.purchaseOrderNumber || '-'}
                       </td>
                       <td className="p-4">{getStatusBadge(q.status)}</td>
                       <td className="p-4 text-right">

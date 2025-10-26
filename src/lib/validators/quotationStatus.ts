@@ -4,12 +4,11 @@ import { z } from 'zod';
 export const UpdateQuotationStatusSchema = z.object({
   quotationId: z.string().uuid(),
   status: z.enum([
-    'DRAFT',
     'LIVE',
-    'SUBMITTED',
     'WON',
     'LOST',
-    'RECEIVED',
+    'BUDGETARY',
+    'DEAD',
   ]),
   // Optional fields that are only required for specific statuses
   lostReason: z.enum([
@@ -19,5 +18,6 @@ export const UpdateQuotationStatusSchema = z.object({
     'OTHER'
   ]).optional(),
   purchaseOrderNumber: z.string().optional(),
+  poValue: z.number().optional(),
   // Add other fields like 'OA No' and 'Total Basic Price' if needed
 });

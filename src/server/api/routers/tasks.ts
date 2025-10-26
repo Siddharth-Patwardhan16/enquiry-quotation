@@ -92,8 +92,8 @@ export const tasksRouter = createTRPCRouter({
     const quotationTasks: UnifiedTask[] = activeQuotations.map(q => {
       // Determine priority based on status and age
       let priority: 'high' | 'medium' | 'low' = 'medium';
-      if (q.status === 'DRAFT') priority = 'high';
-      else if (q.status === 'RECEIVED') priority = 'low';
+      if (q.status === 'LIVE') priority = 'high';
+      else if (q.status === 'DEAD') priority = 'low';
       
       // Use validity period or creation date as due date
       const dueDate = q.validityPeriod ?? q.createdAt;
@@ -235,8 +235,8 @@ export const tasksRouter = createTRPCRouter({
         const isToday = dueDate.toDateString() === today.toDateString();
         
         let priority: 'high' | 'medium' | 'low' = 'medium';
-        if (q.status === 'DRAFT') priority = 'high';
-        else if (q.status === 'RECEIVED') priority = 'low';
+        if (q.status === 'LIVE') priority = 'high';
+        else if (q.status === 'DEAD') priority = 'low';
         
         return {
           type: 'QUOTATION' as const,
@@ -319,7 +319,7 @@ export const tasksRouter = createTRPCRouter({
       const quotationTasks = await db.quotation.findMany({
         where: {
           status: {
-            in: ['DRAFT', 'LIVE']
+            in: ['LIVE']
           },
           validityPeriod: {
             gte: now,
@@ -377,7 +377,7 @@ export const tasksRouter = createTRPCRouter({
           type: 'quotation' as const,
           dueDate: quotation.validityPeriod ?? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
           priority: 'medium' as const,
-          status: quotation.status === 'DRAFT' ? 'pending' as const : 'in-progress' as const,
+          status: quotation.status === 'LIVE' ? 'pending' as const : 'in-progress' as const,
           customerName: quotation.enquiry.customer?.name ?? 'Unknown Customer',
           description: `Quotation ${quotation.status.toLowerCase()} - needs completion`,
           assignedTo: 'Marketing Team',
@@ -459,7 +459,7 @@ export const tasksRouter = createTRPCRouter({
       db.quotation.count({
         where: {
           status: {
-            in: ['DRAFT', 'LIVE']
+            in: ['LIVE']
           },
           validityPeriod: {
             gte: now,
@@ -505,11 +505,11 @@ export const tasksRouter = createTRPCRouter({
           }
         });
       } else if (sourceType === 'quotation') {
-        // Update quotation status to SUBMITTED
+        // Update quotation status to LIVE
         await db.quotation.update({
           where: { id: sourceId },
           data: { 
-            status: 'SUBMITTED',
+            status: 'LIVE',
             specialInstructions: input.notes ? `${input.notes}\n\nTask completed on ${new Date().toISOString()}` : undefined
           }
         });
@@ -530,13 +530,13 @@ export const tasksRouter = createTRPCRouter({
   updateQuotationStatus: publicProcedure
     .input(z.object({
       quotationId: z.string(),
-      status: z.enum(['DRAFT', 'LIVE', 'SUBMITTED', 'WON', 'LOST', 'RECEIVED']),
+      status: z.enum(['LIVE', 'WON', 'LOST', 'BUDGETARY', 'DEAD']),
       lostReason: z.string().optional(),
       purchaseOrderNumber: z.string().optional()
     }))
     .mutation(async ({ input }) => {
       const updateData: { 
-        status: 'DRAFT' | 'LIVE' | 'SUBMITTED' | 'WON' | 'LOST' | 'RECEIVED'; 
+        status: 'LIVE' | 'WON' | 'LOST' | 'BUDGETARY' | 'DEAD'; 
         lostReason?: string; 
         purchaseOrderNumber?: string; 
       } = { status: input.status };
@@ -545,7 +545,7 @@ export const tasksRouter = createTRPCRouter({
         updateData.lostReason = input.lostReason;
       }
       
-      if (input.status === 'RECEIVED' && input.purchaseOrderNumber) {
+      if (input.status === 'WON' && input.purchaseOrderNumber) {
         updateData.purchaseOrderNumber = input.purchaseOrderNumber;
       }
 

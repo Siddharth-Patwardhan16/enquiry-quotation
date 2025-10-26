@@ -130,11 +130,11 @@ export function CommunicationDetail({ communication, onBack, onEdit }: Communica
             <div className="space-y-2 text-sm">
               <div>
                 <span className="font-medium text-gray-700">Name: </span>
-                <span className="text-gray-900">{communication.customer?.name}</span>
+                <span className="text-gray-900">{communication.company?.name}</span>
               </div>
               <div>
-                <span className="font-medium text-gray-700">Status: </span>
-                <span className="text-gray-900">{communication.customer?.isNew ? 'New Customer' : 'Existing Customer'}</span>
+                <span className="font-medium text-gray-700">Type: </span>
+                <span className="text-gray-900">Company</span>
               </div>
             </div>
           </div>
@@ -148,24 +148,47 @@ export function CommunicationDetail({ communication, onBack, onEdit }: Communica
             <div className="space-y-2 text-sm">
               <div>
                 <span className="font-medium text-gray-700">Name: </span>
-                <span className="text-gray-900">{communication.contact?.name}</span>
+                <span className="text-gray-900">
+                  {communication.enquiry?.office?.contactPersons?.[0]?.name || 
+                   communication.enquiry?.plant?.contactPersons?.[0]?.name || 
+                   communication.contactPerson?.name || 
+                   'No contact person'}
+                </span>
               </div>
-              {communication.contact?.designation && (
+              {(communication.enquiry?.office?.contactPersons?.[0]?.designation || 
+                communication.enquiry?.plant?.contactPersons?.[0]?.designation || 
+                communication.contactPerson?.designation) && (
                 <div>
                   <span className="font-medium text-gray-700">Designation: </span>
-                  <span className="text-gray-900">{communication.contact.designation}</span>
+                  <span className="text-gray-900">
+                    {communication.enquiry?.office?.contactPersons?.[0]?.designation || 
+                     communication.enquiry?.plant?.contactPersons?.[0]?.designation || 
+                     communication.contactPerson?.designation}
+                  </span>
                 </div>
               )}
-              {communication.contact?.officialCellNumber && (
+              {(communication.enquiry?.office?.contactPersons?.[0]?.phoneNumber || 
+                communication.enquiry?.plant?.contactPersons?.[0]?.phoneNumber || 
+                communication.contactPerson?.phoneNumber) && (
                 <div>
-                  <span className="font-medium text-gray-700">Official Phone: </span>
-                  <span className="text-gray-900">{communication.contact.officialCellNumber}</span>
+                  <span className="font-medium text-gray-700">Phone: </span>
+                  <span className="text-gray-900">
+                    {communication.enquiry?.office?.contactPersons?.[0]?.phoneNumber || 
+                     communication.enquiry?.plant?.contactPersons?.[0]?.phoneNumber || 
+                     communication.contactPerson?.phoneNumber}
+                  </span>
                 </div>
               )}
-              {communication.contact?.personalCellNumber && (
+              {(communication.enquiry?.office?.contactPersons?.[0]?.emailId || 
+                communication.enquiry?.plant?.contactPersons?.[0]?.emailId || 
+                communication.contactPerson?.emailId) && (
                 <div>
-                  <span className="font-medium text-gray-700">Personal Phone: </span>
-                  <span className="text-gray-900">{communication.contact.personalCellNumber}</span>
+                  <span className="font-medium text-gray-700">Email: </span>
+                  <span className="text-gray-900">
+                    {communication.enquiry?.office?.contactPersons?.[0]?.emailId || 
+                     communication.enquiry?.plant?.contactPersons?.[0]?.emailId || 
+                     communication.contactPerson?.emailId}
+                  </span>
                 </div>
               )}
             </div>

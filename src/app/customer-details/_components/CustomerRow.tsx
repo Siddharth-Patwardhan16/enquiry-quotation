@@ -110,10 +110,12 @@ export const CustomerRow = memo(function CustomerRow({
                       <div className="flex-1">
                         <div className="flex items-center mb-2">
                           <div className="flex items-center">
-                            {contact.location?.type === 'OFFICE' ? (
+                            {contact.office ? (
                               <Building className="w-4 h-4 text-blue-500 mr-2" />
-                            ) : (
+                            ) : contact.plant ? (
                               <Factory className="w-4 h-4 text-green-500 mr-2" />
+                            ) : (
+                              <Building className="w-4 h-4 text-gray-500 mr-2" />
                             )}
                             <span className="text-sm font-medium text-gray-900">
                               {contact.name}
@@ -131,16 +133,18 @@ export const CustomerRow = memo(function CustomerRow({
                             <span className="font-medium">Designation:</span> {contact.designation ?? '-'}
                           </div>
                           <div>
-                            <span className="font-medium">Location:</span> {contact.location?.name ?? '-'}
+                            <span className="font-medium">Location:</span> {
+                              contact.office?.name ?? contact.plant?.name ?? '-'
+                            }
                           </div>
                           <div>
                             <span className="font-medium">Type:</span> 
                             <span className={`ml-1 px-2 py-1 text-xs rounded-full ${
-                              contact.location?.type === 'OFFICE' 
+                              contact.office 
                                 ? 'bg-blue-100 text-blue-800' 
                                 : 'bg-green-100 text-green-800'
                             }`}>
-                              {contact.location?.type ?? '-'}
+                              {contact.office ? 'Office' : contact.plant ? 'Plant' : '-'}
                             </span>
                           </div>
                           <div>

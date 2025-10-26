@@ -12,11 +12,11 @@ import { useToastContext } from '@/components/providers/ToastProvider';
 
 // Validation schema for communication form
 const CommunicationSchema = z.object({
-  date: z.string().min(1, 'Date is required'),
-  customerId: z.string().min(1, 'Customer is required'),
+  date: z.string().optional(),
+  companyId: z.string().optional(),
   contactId: z.string().optional(),
-  subject: z.string().min(1, 'Subject is required'),
-  description: z.string().min(1, 'Description is required'),
+  subject: z.string().optional(),
+  description: z.string().optional(),
   enquiryRelated: z.string().optional(), // Link to enquiry for tracking
   type: z.enum(['TELEPHONIC', 'VIRTUAL_MEETING', 'EMAIL', 'PLANT_VISIT', 'OFFICE_VISIT']),
   nextCommunicationDate: z.string().optional(),
@@ -87,7 +87,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
       date: new Date().toISOString().split('T')[0],
       type: 'TELEPHONIC',
       ...(initialData ? {
-        customerId: initialData.customerId,
+        companyId: initialData.companyId ?? undefined,
         subject: initialData.subject,
                 description: initialData.description,
         type: initialData.type,
@@ -98,21 +98,33 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
     },
   });
 
-  const watchedCustomerId = watch('customerId');
+  const watchedCompanyId = watch('companyId');
   const watchedEnquiryRelated = watch('enquiryRelated');
 
     // Filter contacts based on selected customer (unused for now)
   
-  // Filter enquiries based on selected customer
-  const filteredEnquiries = enquiries?.filter((enquiry: { customerId: string | null; id: number; subject: string; quotationNumber?: string | null }) => enquiry.customerId === watchedCustomerId) ?? [];
+  // Filter enquiries based on selected company
+  const filteredEnquiries = enquiries?.filter((enquiry: { companyId: string | null; id: number; subject: string; quotationNumber?: string | null }) => enquiry.companyId === watchedCompanyId) ?? [];
 
-  // Update customer info when selection changes
+  // Update company info when selection changes
   useEffect(() => {
-    if (watchedCustomerId) {
-      const customer = customers?.find((c: { id: string }) => c.id === watchedCustomerId);
-              setSelectedCustomer(customer ?? null);
+    if (watchedCompanyId) {
+      const company = customers?.find((c: { id: string }) => c.id === watchedCompanyId);
+              setSelectedCustomer(company ?? null);
     }
-  }, [watchedCustomerId, customers]);
+  }, [watchedCompanyId, customers]);
+
+  // Auto-populate subject when enquiry is selected
+  useEffect(() => {
+    if (watchedEnquiryRelated && filteredEnquiries.length > 0) {
+      const selectedEnquiry = filteredEnquiries.find((enquiry: { id: number; subject: string }) => 
+        enquiry.id === parseInt(watchedEnquiryRelated)
+      );
+      if (selectedEnquiry && selectedEnquiry.subject) {
+        setValue('subject', selectedEnquiry.subject);
+      }
+    }
+  }, [watchedEnquiryRelated, filteredEnquiries, setValue]);
 
   // Update selected communication type when form value changes
   useEffect(() => {
@@ -249,7 +261,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              1. Date <span className="text-red-500">*</span>
+              1. Date
             </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -270,16 +282,16 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                2.1 Customer Name <span className="text-red-500">*</span>
+                2.1 Customer Name
               </label>
               <div className="relative">
                 <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <select
-                  {...register('customerId')}
+                  {...register('companyId')}
                   className="pl-10 w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   disabled={loadingCustomers}
                 >
-                  <option value="">{loadingCustomers ? "Loading..." : "Select Customer"}</option>
+                  <option value="">{loadingCustomers ? "Loading..." : "Select Company"}</option>
                   {customers?.map((customer: { id: string; name: string }) => (
                     <option key={customer.id} value={customer.id}>
                       {customer.name}
@@ -287,7 +299,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
                   ))}
                 </select>
               </div>
-              {errors.customerId && <p className="text-red-500 text-sm mt-1">{errors.customerId.message}</p>}
+              {errors.companyId && <p className="text-red-500 text-sm mt-1">{errors.companyId.message}</p>}
             </div>
 
             <div>
@@ -314,7 +326,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              3. Subject <span className="text-red-500">*</span>
+              3. Subject
             </label>
             <input
               {...register('subject')}
@@ -332,7 +344,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
               <select
                 {...register('enquiryRelated')}
                 className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                disabled={!watchedCustomerId}
+                disabled={!watchedCompanyId}
               >
                 <option value="">Select Enquiry (Optional)</option>
                 {filteredEnquiries.map((enquiry: { id: number; subject: string; quotationNumber?: string | null }) => (
@@ -373,7 +385,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              3.3 Description of Communication <span className="text-red-500">*</span>
+              3.3 Description of Communication
             </label>
             <textarea
               {...register('description')}

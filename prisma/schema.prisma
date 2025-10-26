@@ -8,202 +8,155 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// Simplified Employee model - this is your user
 model Employee {
-  id        String @id @unique // Directly maps to Supabase auth.users.id
-  name      String
-  email     String @unique
-  role      Role
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  enquiries      Enquiry[]
-  communications Communication[]
-  createdCustomers Customer[] @relation("CustomerCreatedBy")
-  createdCompanies Company[] @relation("CompanyCreatedBy")
-  createdQuotations Quotation[] @relation("QuotationCreatedBy")
+  id                String          @id @unique
+  name              String
+  email             String          @unique
+  role              Role
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  communications    Communication[]
+  createdCompanies  Company[]       @relation("CompanyCreatedBy")
+  createdCustomers  Customer[]      @relation("CustomerCreatedBy")
+  enquiries         Enquiry[]
+  createdQuotations Quotation[]     @relation("QuotationCreatedBy")
 }
 
-// Cleaned-up Customer model - no address fields
 model Customer {
-  id        String     @id @default(uuid())
-  name      String     @unique
-  isNew     Boolean    @default(true)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  // Customer Contact Details
-  designation String?
-  phoneNumber String?
-  emailId     String?
-
-  // Track who created this customer
-  createdById String?
-  createdBy   Employee? @relation("CustomerCreatedBy", fields: [createdById], references: [id])
-
-  // PO Information
-  poRuptureDiscs     Boolean @default(false)
-  poThermowells      Boolean @default(false)
-  poHeatExchanger    Boolean @default(false)
-  poMiscellaneous    Boolean @default(false)
-  poWaterJetSteamJet Boolean @default(false)
-  
-  // Supplier Information
+  id                        String          @id @default(uuid())
+  name                      String          @unique
+  isNew                     Boolean         @default(true)
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+  designation               String?
+  phoneNumber               String?
+  emailId                   String?
+  createdById               String?
+  poRuptureDiscs            Boolean         @default(false)
+  poThermowells             Boolean         @default(false)
+  poHeatExchanger           Boolean         @default(false)
+  poMiscellaneous           Boolean         @default(false)
+  poWaterJetSteamJet        Boolean         @default(false)
   existingGraphiteSuppliers String?
   problemsFaced             String?
-
-  // A customer can have many locations and contacts
-  locations Location[]
-  contacts  Contact[]
-  enquiries Enquiry[]
-  communications Communication[]
+  communications            Communication[]
+  contacts                  Contact[]
+  createdBy                 Employee?       @relation("CustomerCreatedBy", fields: [createdById], references: [id])
+  enquiries                 Enquiry[]
+  locations                 Location[]
 }
 
-// Company model - new structure
 model Company {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  website   String?
-  industry  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Track who created this company
-  createdById String?
-  createdBy   Employee? @relation("CompanyCreatedBy", fields: [createdById], references: [id])
-
-  // PO Information
-  poRuptureDiscs     Boolean @default(false)
-  poThermowells      Boolean @default(false)
-  poHeatExchanger    Boolean @default(false)
-  poMiscellaneous    Boolean @default(false)
-  poWaterJetSteamJet Boolean @default(false)
-  
-  // Supplier Information
+  id                        String          @id @default(uuid())
+  name                      String          @unique
+  website                   String?
+  industry                  String?
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+  createdById               String?
+  poRuptureDiscs            Boolean         @default(false)
+  poThermowells             Boolean         @default(false)
+  poHeatExchanger           Boolean         @default(false)
+  poMiscellaneous           Boolean         @default(false)
+  poWaterJetSteamJet        Boolean         @default(false)
   existingGraphiteSuppliers String?
   problemsFaced             String?
+  communications            Communication[]
+  createdBy                 Employee?       @relation("CompanyCreatedBy", fields: [createdById], references: [id])
+  contactPersons            ContactPerson[]
+  enquiries                 Enquiry[]
+  offices                   Office[]
+  plants                    Plant[]
+}
 
-  // Relations
-  offices         Office[]
-  plants          Plant[]
+model Office {
+  id              String          @id @default(uuid())
+  name            String
+  address         String?
+  area            String?
+  city            String?
+  state           String?
+  country         String?
+  pincode         String?
+  isHeadOffice    Boolean         @default(false)
+  receptionNumber String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  companyId       String
   contactPersons  ContactPerson[]
   enquiries       Enquiry[]
-  communications  Communication[]
+  company         Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }
 
-// Office model
-model Office {
-  id        String   @id @default(uuid())
-  name      String
-  address   String?
-  area      String?
-  city      String?
-  state     String?
-  country   String?
-  pincode   String?
-  isHeadOffice Boolean @default(false)
-  receptionNumber String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  
-  contactPersons ContactPerson[]
-  enquiries      Enquiry[]
-}
-
-// Plant model
 model Plant {
-  id        String   @id @default(uuid())
-  name      String
-  address   String?
-  area      String?
-  city      String?
-  state     String?
-  country   String?
-  pincode   String?
-  plantType String?  // e.g., "Manufacturing", "Processing", "Assembly"
+  id              String          @id @default(uuid())
+  name            String
+  address         String?
+  area            String?
+  city            String?
+  state           String?
+  country         String?
+  pincode         String?
+  plantType       String?
   receptionNumber String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  
-  contactPersons ContactPerson[]
-  enquiries      Enquiry[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  companyId       String
+  contactPersons  ContactPerson[]
+  enquiries       Enquiry[]
+  company         Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }
 
-// Contact Person model
 model ContactPerson {
-  id          String   @id @default(uuid())
-  name        String
-  designation String?
-  phoneNumber String?
-  emailId     String?
-  isPrimary   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Polymorphic relations - can belong to either office or plant
-  officeId String?
-  office   Office? @relation(fields: [officeId], references: [id], onDelete: Cascade)
-  
-  plantId String?
-  plant   Plant? @relation(fields: [plantId], references: [id], onDelete: Cascade)
-  
-  // Direct relation to company
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
+  id             String          @id @default(uuid())
+  name           String
+  designation    String?
+  phoneNumber    String?
+  emailId        String?
+  isPrimary      Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  officeId       String?
+  plantId        String?
+  companyId      String
   communications Communication[]
+  company        Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  office         Office?         @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  plant          Plant?          @relation(fields: [plantId], references: [id], onDelete: Cascade)
 }
 
-// The central model for offices and plants
 model Location {
-  id        String       @id @default(uuid())
-  name      String       // e.g., "Pune Plant", "Mumbai Head Office"
-  type      LocationType // OFFICE or PLANT
-  address   String?
-  city      String?
-  state     String?
-  country   String?
+  id              String       @id @default(uuid())
+  name            String
+  type            LocationType
+  address         String?
+  city            String?
+  state           String?
+  country         String?
   receptionNumber String?
+  customerId      String
+  contacts        Contact[]
+  enquiries       Enquiry[]
+  customer        Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
-  // Relation back to the parent Customer
-  customerId String
-  customer   Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
-
-  // A location has many contacts and enquiries
-  contacts   Contact[]
-  enquiries  Enquiry[]
-
-  @@unique([customerId, name, type]) // Prevent duplicate names within same customer and type
+  @@unique([customerId, name, type])
 }
 
-// Contact is now linked to a specific Location
 model Contact {
-  id                 String   @id @default(uuid())
+  id                 String          @id @default(uuid())
   name               String
   designation        String?
   officialCellNumber String?
   personalCellNumber String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  // A contact belongs to one location and one parent customer
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
   locationId         String
-  location           Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
   customerId         String
-  customer           Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-
-  communications Communication[]
+  communications     Communication[]
+  customer           Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  location           Location        @relation(fields: [locationId], references: [id], onDelete: Cascade)
 }
 
-// Enquiry is now linked to a specific Location
 model Enquiry {
   id                Int           @id @default(autoincrement())
   subject           String
@@ -216,70 +169,56 @@ model Enquiry {
   notes             String?
   status            EnquiryStatus @default(NEW)
   regretReason      String?
-  quotationNumber   String?       @unique // Unique quotation number for tracking
+  quotationNumber   String?       @unique
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
-
-  // An enquiry originates from one location (legacy)
   locationId        String?
-  location          Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
-
-  // New structure - can originate from office or plant
   officeId          String?
-  office            Office? @relation(fields: [officeId], references: [id], onDelete: Cascade)
-  
   plantId           String?
-  plant             Plant? @relation(fields: [plantId], references: [id], onDelete: Cascade)
-
-  // It is created by one employee
   marketingPersonId String?
-  marketingPerson   Employee? @relation(fields: [marketingPersonId], references: [id])
-
-  // Keep the customer relation for easier querying (legacy)
   customerId        String?
-  customer          Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
-  // New structure - company relation
   companyId         String?
-  company           Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
   documents         Document[]
+  company           Company?      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer          Customer?     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  location          Location?     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  marketingPerson   Employee?     @relation(fields: [marketingPersonId], references: [id])
+  office            Office?       @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  plant             Plant?        @relation(fields: [plantId], references: [id], onDelete: Cascade)
   quotations        Quotation[]
 }
 
 model Quotation {
-  id                  String          @id @default(uuid())
-  quotationNumber     String          @unique
-  quotationDate       DateTime        @default(now())
-  validityPeriod      DateTime?
-  revisionNumber      Int             @default(0)
-  totalBasicPrice     Decimal?
-  gst                 Decimal?
-  transportCosts      Decimal?
-  insuranceCosts      Decimal?
-  paymentTerms        String?
-  deliverySchedule    String?
-  specialInstructions String?
-  currency            String          @default("INR")
-  packingForwardingPercentage Decimal? @default(3.0)
-  incoterms           String?
-  subtotal            Decimal?
-  tax                 Decimal?
-  totalValue          Decimal?
-  status              QuotationStatus @default(LIVE)
-  lostReason          String?
-  purchaseOrderNumber String?
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
-  
-  // Track who created this quotation
-  createdById         String?
-  createdBy           Employee? @relation("QuotationCreatedBy", fields: [createdById], references: [id])
-  
-  enquiryId           Int
-  documents           Document[]
-  enquiry             Enquiry         @relation(fields: [enquiryId], references: [id])
-  items               QuotationItem[]
+  id                          String          @id @default(uuid())
+  quotationNumber             String          @unique
+  quotationDate               DateTime        @default(now())
+  validityPeriod              DateTime?
+  revisionNumber              Int             @default(0)
+  totalBasicPrice             Decimal?
+  gst                         Decimal?
+  transportCosts              Decimal?
+  insuranceCosts              Decimal?
+  paymentTerms                String?
+  deliverySchedule            String?
+  specialInstructions         String?
+  currency                    String          @default("INR")
+  packingForwardingPercentage Decimal?        @default(3.0)
+  incoterms                   String?
+  subtotal                    Decimal?
+  tax                         Decimal?
+  totalValue                  Decimal?
+  status                      QuotationStatus @default(LIVE)
+  lostReason                  String?
+  purchaseOrderNumber         String?
+  poValue                     Decimal?
+  createdAt                   DateTime        @default(now())
+  updatedAt                   DateTime        @updatedAt
+  createdById                 String?
+  enquiryId                   Int
+  documents                   Document[]
+  createdBy                   Employee?       @relation("QuotationCreatedBy", fields: [createdById], references: [id])
+  enquiry                     Enquiry         @relation(fields: [enquiryId], references: [id])
+  items                       QuotationItem[]
 }
 
 model QuotationItem {
@@ -295,30 +234,26 @@ model QuotationItem {
 }
 
 model Communication {
-  id                    String                @id @default(uuid())
+  id                    String              @id @default(uuid())
   subject               String
   description           String
   type                  CommunicationType
-  status                CommunicationStatus   @default(SCHEDULED)
-  enquiryRelated        String?               // Link to enquiry for tracking
+  status                CommunicationStatus @default(SCHEDULED)
+  enquiryRelated        String?
   nextCommunicationDate DateTime?
   proposedNextAction    String?
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-  
-  // Legacy relations
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
   customerId            String?
   contactId             String?
   employeeId            String?
-  contact               Contact?              @relation(fields: [contactId], references: [id])
-  customer              Customer?             @relation(fields: [customerId], references: [id])
-  employee              Employee?             @relation(fields: [employeeId], references: [id])
-  
-  // New structure relations
   companyId             String?
-  company               Company?              @relation(fields: [companyId], references: [id], onDelete: Cascade)
   contactPersonId       String?
-  contactPerson         ContactPerson?        @relation(fields: [contactPersonId], references: [id], onDelete: Cascade)
+  company               Company?            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact               Contact?            @relation(fields: [contactId], references: [id])
+  contactPerson         ContactPerson?      @relation(fields: [contactPersonId], references: [id], onDelete: Cascade)
+  customer              Customer?           @relation(fields: [customerId], references: [id])
+  employee              Employee?           @relation(fields: [employeeId], references: [id])
 }
 
 model Document {
@@ -352,12 +287,12 @@ enum EnquiryStatus {
 }
 
 enum QuotationStatus {
-  DRAFT
   LIVE
   SUBMITTED
   WON
   LOST
-  RECEIVED
+  BUDGETARY
+  DEAD
 }
 
 enum LostReason {

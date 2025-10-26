@@ -89,8 +89,6 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
     poHeatExchanger: entity.poHeatExchanger,
     poMiscellaneous: entity.poMiscellaneous,
     poWaterJetSteamJet: entity.poWaterJetSteamJet,
-    existingGraphiteSuppliers: entity.existingGraphiteSuppliers ?? '',
-    problemsFaced: entity.problemsFaced ?? '',
     offices: entity.offices ?? [],
     plants: entity.plants ?? [],
   });
@@ -121,8 +119,8 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
           poHeatExchanger: formData.poHeatExchanger,
           poMiscellaneous: formData.poMiscellaneous,
           poWaterJetSteamJet: formData.poWaterJetSteamJet,
-          existingGraphiteSuppliers: formData.existingGraphiteSuppliers ?? null,
-          problemsFaced: formData.problemsFaced ?? null,
+          existingGraphiteSuppliers: null,
+          problemsFaced: null,
         });
       }
     } catch {
@@ -136,6 +134,122 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
     setFormData(prev => ({
       ...prev,
       [field]: value
+    }));
+  };
+
+  // Office management functions
+  const addOffice = () => {
+    const newOffice = {
+      id: `temp-${Date.now()}`,
+      name: '',
+      address: null,
+      area: null,
+      city: null,
+      state: null,
+      country: null,
+      pincode: null,
+      isHeadOffice: false,
+      contactPersons: []
+    };
+    setFormData(prev => ({
+      ...prev,
+      offices: [...prev.offices, newOffice]
+    }));
+  };
+
+  const removeOffice = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      offices: prev.offices.filter((_, i) => i !== index)
+    }));
+  };
+
+  // Plant management functions
+  const addPlant = () => {
+    const newPlant = {
+      id: `temp-${Date.now()}`,
+      name: '',
+      address: null,
+      area: null,
+      city: null,
+      state: null,
+      country: null,
+      pincode: null,
+      plantType: null,
+      contactPersons: []
+    };
+    setFormData(prev => ({
+      ...prev,
+      plants: [...prev.plants, newPlant]
+    }));
+  };
+
+  const removePlant = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      plants: prev.plants.filter((_, i) => i !== index)
+    }));
+  };
+
+  // Office contact management functions
+  const addOfficeContact = (officeIndex: number) => {
+    const newContact = {
+      id: `temp-contact-${Date.now()}`,
+      name: '',
+      designation: null,
+      phoneNumber: null,
+      emailId: null,
+      isPrimary: false
+    };
+    setFormData(prev => ({
+      ...prev,
+      offices: prev.offices.map((office, index) => 
+        index === officeIndex 
+          ? { ...office, contactPersons: [...office.contactPersons, newContact] }
+          : office
+      )
+    }));
+  };
+
+  const removeOfficeContact = (officeIndex: number, contactIndex: number) => {
+    setFormData(prev => ({
+      ...prev,
+      offices: prev.offices.map((office, index) => 
+        index === officeIndex 
+          ? { ...office, contactPersons: office.contactPersons.filter((_, i) => i !== contactIndex) }
+          : office
+      )
+    }));
+  };
+
+  // Plant contact management functions
+  const addPlantContact = (plantIndex: number) => {
+    const newContact = {
+      id: `temp-contact-${Date.now()}`,
+      name: '',
+      designation: null,
+      phoneNumber: null,
+      emailId: null,
+      isPrimary: false
+    };
+    setFormData(prev => ({
+      ...prev,
+      plants: prev.plants.map((plant, index) => 
+        index === plantIndex 
+          ? { ...plant, contactPersons: [...plant.contactPersons, newContact] }
+          : plant
+      )
+    }));
+  };
+
+  const removePlantContact = (plantIndex: number, contactIndex: number) => {
+    setFormData(prev => ({
+      ...prev,
+      plants: prev.plants.map((plant, index) => 
+        index === plantIndex 
+          ? { ...plant, contactPersons: plant.contactPersons.filter((_, i) => i !== contactIndex) }
+          : plant
+      )
     }));
   };
 
@@ -302,69 +416,45 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
             </div>
           </div>
 
-          {/* Additional Information */}
-          <div className="bg-green-50 rounded-lg p-4">
-            <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Building className="w-5 h-5 mr-2 text-green-600" />
-              Additional Information
-            </h4>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Existing Graphite Suppliers
-                </label>
-                <textarea
-                  value={formData.existingGraphiteSuppliers}
-                  onChange={(e) => handleInputChange('existingGraphiteSuppliers', e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="List existing graphite suppliers..."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Problems Faced
-                </label>
-                <textarea
-                  value={formData.problemsFaced}
-                  onChange={(e) => handleInputChange('problemsFaced', e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="Describe any problems faced..."
-                />
-              </div>
-            </div>
-          </div>
 
           {/* Company-specific sections */}
           {entity.type === 'company' && (
             <>
               {/* Note about office/plant editing */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
                   </div>
                   <div className="ml-3">
-                    <h3 className="text-sm font-medium text-yellow-800">
-                      Office and Plant Editing
+                    <h3 className="text-sm font-medium text-blue-800">
+                      Office and Plant Management
                     </h3>
-                    <div className="mt-2 text-sm text-yellow-700">
-                      <p>You can edit office, plant, and contact person information below, but these changes will not be saved to the database yet. Only basic company information (name, purchase orders, additional info) will be saved.</p>
+                    <div className="mt-2 text-sm text-blue-700">
+                      <p>You can add, edit, and remove offices and plants. All changes will be saved to the database when you submit the form.</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Offices */}
-              {entity.offices && entity.offices.length > 0 && (
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="text-lg font-semibold text-gray-900 flex items-center">
                     <Building className="w-5 h-5 mr-2 text-blue-600" />
                     Offices ({formData.offices.length})
                   </h4>
+                  <button
+                    type="button"
+                    onClick={addOffice}
+                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Building className="w-4 h-4 mr-2" />
+                    Add Office
+                  </button>
+                </div>
                   <div className="space-y-4">
                     {formData.offices.map((office, _index) => (
                       <div key={office.id} className="bg-white rounded-lg p-4 border">
@@ -378,6 +468,13 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                               </span>
                             )}
                           </h5>
+                          <button
+                            type="button"
+                            onClick={() => removeOffice(_index)}
+                            className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-full transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -391,12 +488,13 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Area</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                             <input
                               type="text"
                               value={office.area ?? ''}
                               onChange={(e) => handleOfficeChange(_index, 'area', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="e.g., MIDC Area, Industrial Zone"
                             />
                           </div>
                           <div>
@@ -429,21 +527,22 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                               required
                             />
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code</label>
-                            <input
-                              type="text"
-                              value={office.pincode ?? ''}
-                              onChange={(e) => handleOfficeChange(_index, 'pincode', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
-                          </div>
                         </div>
 
                         {/* Office Contact Persons */}
-                        {office.contactPersons && office.contactPersons.length > 0 && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Contact Persons</label>
+                        <div>
+                          <div className="flex justify-between items-center mb-2">
+                            <label className="block text-sm font-medium text-gray-700">Contact Persons</label>
+                            <button
+                              type="button"
+                              onClick={() => addOfficeContact(_index)}
+                              className="flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Add Contact
+                            </button>
+                          </div>
+                          {office.contactPersons && office.contactPersons.length > 0 && (
                             <div className="space-y-3">
                               {office.contactPersons.map((contact, contactIndex) => (
                                 <div key={contact.id} className="bg-gray-50 rounded-lg p-4 border">
@@ -457,6 +556,13 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                                         </span>
                                       )}
                                     </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeOfficeContact(_index, contactIndex)}
+                                      className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-full transition-colors"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
                                   </div>
                                   
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -512,21 +618,29 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                                 </div>
                               ))}
                             </div>
-                          </div>
                         )}
                       </div>
+                    </div>
                     ))}
                   </div>
                 </div>
-              )}
 
               {/* Plants */}
-              {entity.plants && entity.plants.length > 0 && (
-                <div className="bg-green-50 rounded-lg p-4">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <div className="bg-green-50 rounded-lg p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="text-lg font-semibold text-gray-900 flex items-center">
                     <Factory className="w-5 h-5 mr-2 text-green-600" />
                     Plants ({formData.plants.length})
                   </h4>
+                  <button
+                    type="button"
+                    onClick={addPlant}
+                    className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <Factory className="w-4 h-4 mr-2" />
+                    Add Plant
+                  </button>
+                </div>
                   <div className="space-y-4">
                     {formData.plants.map((plant, _index) => (
                       <div key={plant.id} className="bg-white rounded-lg p-4 border">
@@ -538,6 +652,13 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                               {plant.plantType}
                             </span>
                           </h5>
+                          <button
+                            type="button"
+                            onClick={() => removePlant(_index)}
+                            className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-full transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -551,12 +672,13 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Area</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                             <input
                               type="text"
                               value={plant.area ?? ''}
                               onChange={(e) => handlePlantChange(_index, 'area', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                              placeholder="e.g., MIDC Area, Industrial Zone"
                             />
                           </div>
                           <div>
@@ -589,21 +711,22 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                               required
                             />
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code</label>
-                            <input
-                              type="text"
-                              value={plant.pincode ?? ''}
-                              onChange={(e) => handlePlantChange(_index, 'pincode', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            />
-                          </div>
                         </div>
 
                         {/* Plant Contact Persons */}
-                        {plant.contactPersons && plant.contactPersons.length > 0 && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Contact Persons</label>
+                        <div>
+                          <div className="flex justify-between items-center mb-2">
+                            <label className="block text-sm font-medium text-gray-700">Contact Persons</label>
+                            <button
+                              type="button"
+                              onClick={() => addPlantContact(_index)}
+                              className="flex items-center px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Add Contact
+                            </button>
+                          </div>
+                          {plant.contactPersons && plant.contactPersons.length > 0 && (
                             <div className="space-y-3">
                               {plant.contactPersons.map((contact, contactIndex) => (
                                 <div key={contact.id} className="bg-gray-50 rounded-lg p-4 border">
@@ -617,6 +740,13 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                                         </span>
                                       )}
                                     </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => removePlantContact(_index, contactIndex)}
+                                      className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-full transition-colors"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
                                   </div>
                                   
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -672,13 +802,12 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                                 </div>
                               ))}
                             </div>
-                          </div>
                         )}
                       </div>
+                    </div>
                     ))}
                   </div>
                 </div>
-              )}
             </>
           )}
 

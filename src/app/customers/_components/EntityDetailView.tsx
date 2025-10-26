@@ -159,12 +159,6 @@ export function EntityDetailView({ entity, isOpen, onClose }: EntityDetailViewPr
                   {new Date(entity.updatedAt).toLocaleDateString()}
                 </p>
               </div>
-              {entity.createdBy && (
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Created By</label>
-                  <p className="text-sm text-gray-900">{entity.createdBy.name} ({entity.createdBy.email})</p>
-                </div>
-              )}
             </div>
           </div>
 
@@ -252,10 +246,14 @@ export function EntityDetailView({ entity, isOpen, onClose }: EntityDetailViewPr
                             <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                             <p className="text-sm text-gray-900">{office.address ?? 'Not provided'}</p>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Area</label>
-                            <p className="text-sm text-gray-900">{office.area ?? 'Not provided'}</p>
-                          </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <p className="text-sm text-gray-900">{office.area ?? 'Not provided'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <p className="text-sm text-gray-900">{office.name}</p>
+              </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
                             <p className="text-sm text-gray-900">{office.city}</p>
@@ -343,8 +341,12 @@ export function EntityDetailView({ entity, isOpen, onClose }: EntityDetailViewPr
                             <p className="text-sm text-gray-900">{plant.address ?? 'Not provided'}</p>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Area</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                             <p className="text-sm text-gray-900">{plant.area ?? 'Not provided'}</p>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                            <p className="text-sm text-gray-900">{plant.name}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">City</label>

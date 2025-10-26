@@ -27,6 +27,7 @@ export function QuotationStatusModal({
   const [status, setStatus] = useState('');
   const [lostReason, setLostReason] = useState('');
   const [purchaseOrderNumber, setPurchaseOrderNumber] = useState('');
+  const [poValue, setPoValue] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { success, error: showError } = useToast();
@@ -38,7 +39,7 @@ export function QuotationStatusModal({
   );
 
   // Update status mutation
-  const updateStatusMutation = api.tasks.updateQuotationStatus.useMutation({
+  const updateStatusMutation = api.quotation.updateStatus.useMutation({
     onSuccess: () => {
       success('Status Updated', 'Quotation status has been updated successfully.');
       setIsSubmitting(false);
@@ -48,6 +49,7 @@ export function QuotationStatusModal({
       setStatus('');
       setLostReason('');
       setPurchaseOrderNumber('');
+      setPoValue('');
       setNotes('');
     },
     onError: (error) => {
@@ -72,12 +74,14 @@ export function QuotationStatusModal({
       return;
     }
 
+
     setIsSubmitting(true);
     updateStatusMutation.mutate({
       quotationId,
-      status: status as 'DRAFT' | 'LIVE' | 'SUBMITTED' | 'WON' | 'LOST' | 'RECEIVED',
-      lostReason: lostReason || undefined,
+      status: status as 'LIVE' | 'WON' | 'LOST' | 'BUDGETARY' | 'DEAD',
+      lostReason: lostReason as 'PRICE' | 'DELIVERY_SCHEDULE' | 'LACK_OF_CONFIDENCE' | 'OTHER' | undefined,
       purchaseOrderNumber: purchaseOrderNumber || undefined,
+      poValue: poValue ? parseFloat(poValue) : undefined,
     });
   };
 
@@ -94,7 +98,6 @@ export function QuotationStatusModal({
     switch (status) {
       case 'DRAFT': return 'bg-gray-100 text-gray-800';
       case 'LIVE': return 'bg-blue-100 text-blue-800';
-      case 'SUBMITTED': return 'bg-purple-100 text-purple-800';
       case 'WON': return 'bg-green-100 text-green-800';
       case 'LOST': return 'bg-red-100 text-red-800';
       case 'RECEIVED': return 'bg-indigo-100 text-indigo-800';
@@ -264,7 +267,6 @@ export function QuotationStatusModal({
                       <SelectContent>
                         <SelectItem value="DRAFT">Draft</SelectItem>
                         <SelectItem value="LIVE">Live</SelectItem>
-                        <SelectItem value="SUBMITTED">Submitted</SelectItem>
                         <SelectItem value="WON">Won</SelectItem>
                         <SelectItem value="LOST">Lost</SelectItem>
                         <SelectItem value="RECEIVED">Received (PO)</SelectItem>
@@ -307,6 +309,42 @@ export function QuotationStatusModal({
                         placeholder="Enter PO number"
                         className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
+                    </div>
+                  </div>
+                )}
+
+                {status === 'WON' && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="purchaseOrderNumber" className="text-sm font-medium text-gray-700">
+                        Purchase Order Number <span className="text-gray-500">(Optional)</span>
+                      </Label>
+                      <div className="mt-2">
+                        <Input
+                          id="purchaseOrderNumber"
+                          value={purchaseOrderNumber}
+                          onChange={(e) => setPurchaseOrderNumber(e.target.value)}
+                          placeholder="Enter PO number"
+                          className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="poValue" className="text-sm font-medium text-gray-700">
+                        PO Value (Amount) <span className="text-gray-500">(Optional)</span>
+                      </Label>
+                      <div className="mt-2">
+                        <Input
+                          id="poValue"
+                          type="number"
+                          step="0.01"
+                          value={poValue}
+                          onChange={(e) => setPoValue(e.target.value)}
+                          placeholder="Enter PO value/amount"
+                          className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}

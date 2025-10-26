@@ -91,13 +91,15 @@ export function CommunicationList({
   const filteredCommunications = communications?.filter((comm: any) => {
     const matchesSearch = 
       (comm.subject ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (comm.customer?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (comm.contact?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (comm.company?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (comm.contactPerson?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (comm.enquiry?.office?.contactPersons?.[0]?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (comm.enquiry?.plant?.contactPersons?.[0]?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (comm.description ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (comm.enquiry?.quotationNumber ?? '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesType = filterType === 'all' || comm.type === filterType;
-    const matchesCustomer = filterCustomer === 'all' || comm.customerId === filterCustomer;
+    const matchesCustomer = filterCustomer === 'all' || comm.companyId === filterCustomer;
     const matchesQuotation = filterQuotation === 'all' || 
       (filterQuotation === 'with' && (comm.enquiry?.quotationNumber ?? false)) ||
       (filterQuotation === 'without' && !comm.enquiry?.quotationNumber);
@@ -240,11 +242,16 @@ export function CommunicationList({
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-3">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Building className="h-4 w-4" />
-                      <span>{communication.customer?.name}</span>
+                      <span>{communication.company?.name}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <User className="h-4 w-4" />
-                      <span>{communication.contact?.name}</span>
+                      <span>
+                        {communication.enquiry?.office?.contactPersons?.[0]?.name || 
+                         communication.enquiry?.plant?.contactPersons?.[0]?.name || 
+                         communication.contactPerson?.name || 
+                         'No contact person'}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Calendar className="h-4 w-4" />
@@ -270,6 +277,14 @@ export function CommunicationList({
                       )}
                     </div>
                   </div>
+
+                  {/* Enquiry Subject Display */}
+                  {communication.enquiry?.subject && (
+                    <div className="mt-2">
+                      <span className="text-xs font-medium text-gray-500">Enquiry Subject: </span>
+                      <span className="text-xs text-gray-700">{communication.enquiry.subject}</span>
+                    </div>
+                  )}
 
                                      <p className="text-sm text-gray-600 line-clamp-2">
                      {communication.description}

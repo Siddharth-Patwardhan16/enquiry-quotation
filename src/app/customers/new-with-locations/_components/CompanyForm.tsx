@@ -8,7 +8,6 @@ import { companyFormSchema, CompanyFormData } from '../_utils/validation';
 import { CompanyInfoCard } from './CompanyInfoCard';
 import { LocationManager } from './LocationManager';
 import { PurchaseOrderCard } from './PurchaseOrderCard';
-import { AdditionalInfoCard } from './AdditionalInfoCard';
 import { useRouter } from 'next/navigation';
 import { api } from '@/trpc/client';
 import { toast } from 'sonner';
@@ -22,8 +21,6 @@ export function CompanyForm() {
     resolver: zodResolver(companyFormSchema),
     defaultValues: {
       companyName: '',
-      website: '',
-      industry: '',
       offices: [{
         name: '',
         address: '',
@@ -34,25 +31,13 @@ export function CompanyForm() {
         pincode: '',
         contacts: []
       }],
-      plants: [{
-        name: '',
-        address: '',
-        area: '',
-        city: '',
-        state: '',
-        country: 'India',
-        pincode: '',
-        contacts: []
-      }],
+      plants: [],
       // Purchase Order fields
       poRuptureDiscs: false,
       poThermowells: false,
       poHeatExchanger: false,
       poMiscellaneous: false,
-      poWaterJetSteamJet: false,
-      // Additional Information fields
-      existingGraphiteSuppliers: '',
-      problemsFaced: ''
+      poWaterJetSteamJet: false
     }
   });
 
@@ -151,15 +136,12 @@ export function CompanyForm() {
               </div>
               
               <div className="p-6">
-                <LocationManager type={activeTab} />
+                <LocationManager key={activeTab} type={activeTab} />
               </div>
             </div>
-
+            
             {/* Step 3: Purchase Order Information */}
             <PurchaseOrderCard />
-            
-            {/* Step 4: Additional Information */}
-            <AdditionalInfoCard />
             
             {/* Submit Buttons */}
             <div className="flex justify-between items-center bg-white p-6 rounded-lg shadow-sm border">

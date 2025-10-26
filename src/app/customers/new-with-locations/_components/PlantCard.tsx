@@ -65,7 +65,7 @@ export function PlantCard({ index, onRemove }: PlantCardProps) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-3">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Address *
+            Address
           </label>
           <textarea
             {...register(`plants.${index}.address`)}
@@ -73,39 +73,33 @@ export function PlantCard({ index, onRemove }: PlantCardProps) {
             placeholder="Complete plant address"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
           />
-          {errors.plants?.[index]?.address && (
-            <p className="mt-1 text-sm text-red-600">{errors.plants[index]?.address?.message}</p>
-          )}
         </div>
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Industrial Area
+            Location
           </label>
           <input
             {...register(`plants.${index}.area`)}
-            placeholder="e.g., GIDC, SEZ"
+            placeholder="e.g., MIDC Area, Industrial Zone"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
           />
         </div>
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            City *
+            City
           </label>
           <input
             {...register(`plants.${index}.city`)}
             placeholder="e.g., Aurangabad"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
           />
-          {errors.plants?.[index]?.city && (
-            <p className="mt-1 text-sm text-red-600">{errors.plants[index]?.city?.message}</p>
-          )}
         </div>
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            State *
+            State
           </label>
           {watchedCountry === 'India' ? (
             <select
@@ -124,14 +118,11 @@ export function PlantCard({ index, onRemove }: PlantCardProps) {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             />
           )}
-          {errors.plants?.[index]?.state && (
-            <p className="mt-1 text-sm text-red-600">{errors.plants[index]?.state?.message}</p>
-          )}
         </div>
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Country *
+            Country
           </label>
           <select
             {...register(`plants.${index}.country`)}
@@ -142,21 +133,8 @@ export function PlantCard({ index, onRemove }: PlantCardProps) {
               <option key={country} value={country}>{country}</option>
             ))}
           </select>
-          {errors.plants?.[index]?.country && (
-            <p className="mt-1 text-sm text-red-600">{errors.plants[index]?.country?.message}</p>
-          )}
         </div>
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            PIN Code
-          </label>
-          <input
-            {...register(`plants.${index}.pincode`)}
-            placeholder="e.g., 413512"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-          />
-        </div>
       </div>
       
       {/* Contacts Section */}
@@ -212,7 +190,7 @@ interface ContactPersonFormProps {
 }
 
 function ContactPersonForm({ plantIndex, contactIndex, onRemove }: ContactPersonFormProps) {
-  const { register, formState: { errors } } = useFormContext<CompanyFormData>();
+  const { register } = useFormContext<CompanyFormData>();
 
   return (
     <div className="border rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition-colors">
@@ -238,36 +216,30 @@ function ContactPersonForm({ plantIndex, contactIndex, onRemove }: ContactPerson
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center">
             <User className="w-3 h-3 mr-1" />
-            Name *
+            Name
           </label>
           <input
             {...register(`plants.${plantIndex}.contacts.${contactIndex}.name`)}
             placeholder="e.g., Rahul Sharma"
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500"
           />
-          {errors.plants?.[plantIndex]?.contacts?.[contactIndex]?.name && (
-            <p className="mt-1 text-xs text-red-600">{errors.plants[plantIndex]?.contacts?.[contactIndex]?.name?.message}</p>
-          )}
         </div>
         
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
-            Designation *
+            Designation
           </label>
           <input
             {...register(`plants.${plantIndex}.contacts.${contactIndex}.designation`)}
             placeholder="e.g., Plant Manager"
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500"
           />
-          {errors.plants?.[plantIndex]?.contacts?.[contactIndex]?.designation && (
-            <p className="mt-1 text-xs text-red-600">{errors.plants[plantIndex]?.contacts?.[contactIndex]?.designation?.message}</p>
-          )}
         </div>
         
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center">
             <Phone className="w-3 h-3 mr-1" />
-            Phone Number *
+            Phone Number
           </label>
           <input
             {...register(`plants.${plantIndex}.contacts.${contactIndex}.phoneNumber`)}
@@ -275,15 +247,12 @@ function ContactPersonForm({ plantIndex, contactIndex, onRemove }: ContactPerson
             placeholder="e.g., 9876543210"
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500"
           />
-          {errors.plants?.[plantIndex]?.contacts?.[contactIndex]?.phoneNumber && (
-            <p className="mt-1 text-xs text-red-600">{errors.plants[plantIndex]?.contacts?.[contactIndex]?.phoneNumber?.message}</p>
-          )}
         </div>
         
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center">
             <Mail className="w-3 h-3 mr-1" />
-            Email *
+            Email
           </label>
           <input
             {...register(`plants.${plantIndex}.contacts.${contactIndex}.emailId`)}
@@ -291,9 +260,6 @@ function ContactPersonForm({ plantIndex, contactIndex, onRemove }: ContactPerson
             placeholder="e.g., rahul@company.com"
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500"
           />
-          {errors.plants?.[plantIndex]?.contacts?.[contactIndex]?.emailId && (
-            <p className="mt-1 text-xs text-red-600">{errors.plants[plantIndex]?.contacts?.[contactIndex]?.emailId?.message}</p>
-          )}
         </div>
       </div>
     </div>

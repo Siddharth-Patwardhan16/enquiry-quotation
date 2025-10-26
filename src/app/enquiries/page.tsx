@@ -90,7 +90,7 @@ export default function EnquiriesPage() {
     description: string;
     requirements: string;
     priority: 'Low' | 'Medium' | 'High' | 'Urgent';
-    source: 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media';
+    source: 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit';
     timeline: string;
     notes: string;
   };
@@ -168,7 +168,7 @@ export default function EnquiriesPage() {
         description: enquiry.description ?? '',
         requirements: enquiry.requirements ?? '',
         priority: (enquiry.priority ?? 'Medium') as 'Low' | 'Medium' | 'High' | 'Urgent',
-        source: (enquiry.source ?? 'Website') as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media',
+        source: (enquiry.source ?? 'Website') as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit',
         timeline: enquiry.timeline ?? '',
         notes: enquiry.notes ?? '',
       });
@@ -378,7 +378,6 @@ export default function EnquiriesPage() {
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Quotation Number</th>
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Subject</th>
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Customer</th>
-                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Created by</th>
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Date</th>
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Status</th>
                       <th className="text-black h-10 px-4 text-right align-middle font-medium whitespace-nowrap">Actions</th>
@@ -387,7 +386,7 @@ export default function EnquiriesPage() {
                   <tbody className="[&_tr:last-child]:border-0">
                     {isLoading ? (
                       <tr>
-                        <td colSpan={8} className="p-8 text-center">
+                        <td colSpan={7} className="p-8 text-center">
                           <div className="animate-pulse space-y-4">
                             <div className="h-4 bg-gray-200 rounded w-1/3 mx-auto"></div>
                             <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto"></div>
@@ -411,23 +410,6 @@ export default function EnquiriesPage() {
                            </td>
                           <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900">
                             {enquiry.company?.name ?? enquiry.customer?.name ?? 'N/A'}
-                          </td>
-                          <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900">
-                            {enquiry.marketingPerson ? (
-                              <div className="flex items-center">
-                                <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center mr-3">
-                                  <span className="text-xs font-medium text-gray-600">
-                                    {enquiry.marketingPerson.name.charAt(0).toUpperCase()}
-                                  </span>
-                                </div>
-                                <div>
-                                  <div className="font-medium text-gray-900">{enquiry.marketingPerson.name}</div>
-                                  <div className="text-xs text-gray-500">{enquiry.marketingPerson.email}</div>
-                                </div>
-                              </div>
-                            ) : (
-                              <span className="text-gray-400 italic">Unassigned</span>
-                            )}
                           </td>
                           <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-500">
                             {new Date(enquiry.createdAt).toLocaleDateString()}
@@ -533,7 +515,7 @@ export default function EnquiriesPage() {
                     </label>
                     <select
                       value={editData.source}
-                      onChange={(e) => setEditData({ ...editData, source: e.target.value as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' })}
+                      onChange={(e) => setEditData({ ...editData, source: e.target.value as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit' })}
                       className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="Website">Website</option>
@@ -542,6 +524,7 @@ export default function EnquiriesPage() {
                       <option value="Referral">Referral</option>
                       <option value="Trade Show">Trade Show</option>
                       <option value="Social Media">Social Media</option>
+                      <option value="Visit">Visit</option>
                     </select>
                   </div>
                   <div>

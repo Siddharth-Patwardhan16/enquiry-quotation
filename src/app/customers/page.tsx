@@ -143,11 +143,28 @@ export default function CustomersPage() {
     return <div>Error: {companiesError?.message}</div>;
   }
 
-  // Filter companies based on search term
+  // Filter companies based on search term (including location fields)
   const filteredCompanies = searchTerm.length > 0 
-    ? companiesList.filter(company => 
-        company.name.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+    ? companiesList.filter(company => {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          company.name.toLowerCase().includes(searchLower) ||
+          // Search in office locations
+          company.offices.some(office => 
+            office.city?.toLowerCase().includes(searchLower) ||
+            office.state?.toLowerCase().includes(searchLower) ||
+            office.area?.toLowerCase().includes(searchLower) ||
+            office.country?.toLowerCase().includes(searchLower)
+          ) ||
+          // Search in plant locations
+          company.plants.some(plant => 
+            plant.city?.toLowerCase().includes(searchLower) ||
+            plant.state?.toLowerCase().includes(searchLower) ||
+            plant.area?.toLowerCase().includes(searchLower) ||
+            plant.country?.toLowerCase().includes(searchLower)
+          )
+        );
+      })
     : companiesList;
 
   // Calculate stats
@@ -255,7 +272,7 @@ export default function CustomersPage() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <input
-                placeholder="Search by company name, office name, or plant name..."
+                placeholder="Search by company name, city, state, location, or country..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -287,16 +304,14 @@ export default function CustomersPage() {
                   <tr>
                     <th className="text-background h-10 px-4 text-left align-middle font-medium bg-white">Company & Locations</th>
                     <th className="text-background h-10 px-4 text-left align-middle font-medium bg-white">Office Location</th>
-                    <th className="text-background h-10 px-4 text-left align-middle font-medium bg-white">Contact</th>
                     <th className="text-background h-10 px-4 text-left align-middle font-medium bg-white">Status</th>
-                    <th className="text-background h-10 px-4 text-left align-middle font-medium bg-white">Created By</th>
                     <th className="text-background h-10 px-4 text-left align-middle font-medium bg-white">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="[&_tr:last-child]:border-0">
                   {companiesLoading ? (
                     <tr>
-                      <td colSpan={6} className="p-8 text-center">
+                      <td colSpan={4} className="p-8 text-center">
                         <div className="animate-pulse space-y-4">
                           <div className="h-4 bg-gray-200 rounded w-1/3 mx-auto"></div>
                           <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto"></div>
@@ -364,26 +379,9 @@ export default function CustomersPage() {
                           </div>
                         </td>
                         <td className="p-4 align-middle whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {company.offices && company.offices.length > 0 ?
-                              'Contact available' : 'No number'
-                            }
-                          </div>
-                        </td>
-                        <td className="p-4 align-middle whitespace-nowrap">
                           <span className="inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 border-transparent bg-blue-100 text-blue-800">
                             New
                           </span>
-                        </td>
-                        <td className="p-4 align-middle whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {new Date(company.createdAt).toLocaleDateString()}
-                          </div>
-                          {company.createdBy && (
-                            <div className="text-xs text-gray-500">
-                              by {company.createdBy.name}
-                            </div>
-                          )}
                         </td>
                         <td className="p-4 align-middle whitespace-nowrap">
                           <div className="flex items-center space-x-2">
@@ -420,7 +418,7 @@ export default function CustomersPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="text-center py-8">
+                      <td colSpan={4} className="text-center py-8">
                         <div className="text-gray-500">
                           {searchTerm ? 'No companies found matching your search.' : 'No companies found.'}
                         </div>

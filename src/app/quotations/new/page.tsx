@@ -7,7 +7,6 @@ import type { z } from 'zod';
 import { api } from '@/trpc/client';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Save, ArrowLeft } from 'lucide-react';
-import { useState } from 'react';
 import { useFormConfirmation } from '@/hooks/useFormConfirmation';
 import { useToastContext } from '@/components/providers/ToastProvider';
 import type { AppRouter } from '@/server/api/root';
@@ -22,8 +21,6 @@ type FormData = z.infer<typeof CreateQuotationSchema>;
 
 export default function NewQuotationPage() {
   const router = useRouter();
-  const [customPaymentPlan, setCustomPaymentPlan] = useState<string>('');
-  const [customPaymentError, setCustomPaymentError] = useState<string>('');
   const { confirmFormClose } = useFormConfirmation();
   const { success, error: showError } = useToastContext();
   
@@ -36,16 +33,11 @@ export default function NewQuotationPage() {
     control, // Control object from useForm is needed for useFieldArray
     formState: { errors },
     watch,
-    setValue,
   } = useForm({
     resolver: zodResolver(CreateQuotationSchema),
     defaultValues: {
       currency: 'INR',
       revisionNumber: 0,
-      transportCosts: 0,
-      gst: 0,
-      packingForwardingPercentage: 3,
-      incoterms: '',
       items: [{ materialDescription: '', quantity: 1, pricePerUnit: 0 }],
     },
   });
@@ -57,7 +49,6 @@ export default function NewQuotationPage() {
   // Watch the items to calculate totals in real-time
   const watchedItems = watch('items') ?? [];
   const currency = watch('currency') ?? 'INR';
-  const watchedPaymentTerms = watch('paymentTerms');
   
   // Quotation number will be auto-assigned from the selected enquiry
 
@@ -67,20 +58,6 @@ export default function NewQuotationPage() {
     const pricePerUnit = Number(item.pricePerUnit) ?? 0;
     return sum + (quantity * pricePerUnit);
   }, 0);
-  
-  // Watch commercial terms for grand total calculation
-  const transportCosts = Number(watch('transportCosts')) ?? 0;
-  const gstPercentage = Number(watch('gst')) ?? 0;
-  const packingForwardingPercentage = Number(watch('packingForwardingPercentage')) ?? 3;
-  
-  // Calculate packing and forwarding cost as percentage of base price
-  const packingForwardingCost = (totalBasicPrice * packingForwardingPercentage) / 100;
-  
-  // Calculate GST as percentage of base price
-  const gstAmount = (totalBasicPrice * gstPercentage) / 100;
-  
-  // Calculate grand total including commercial terms
-  const grandTotal = totalBasicPrice + transportCosts + gstAmount + packingForwardingCost;
 
   const formatCurrency = (amount: number) => {
     const locale = currency === 'INR' ? 'en-IN' : 'en-US';
@@ -92,66 +69,7 @@ export default function NewQuotationPage() {
     }).format(amount);
   };
 
-  // Parse custom payment plan (e.g., "30-30-40" -> [30, 30, 40])
-  const parseCustomPaymentPlan = (input: string) => {
-    if (!input.trim()) return null;
-    
-    const percentages = input.split('-').map(p => p.trim()).filter(p => p);
-    const numbers = percentages.map(p => {
-      const num = parseFloat(p);
-      return isNaN(num) ? null : num;
-    }).filter((num): num is number => num !== null);
-    
-    // Validate that all percentages are positive and sum to 100
-    if (numbers.length === 0) return null;
-    if (numbers.some(n => n <= 0)) return null;
-    
-    const total = numbers.reduce((sum, n) => sum + n, 0);
-    if (Math.abs(total - 100) > 0.01) return null; // Allow small rounding errors
-    
-    return numbers;
-  };
-
-  // Handle custom payment plan input
-  const handleCustomPaymentPlanChange = (value: string) => {
-    setCustomPaymentPlan(value);
-    setCustomPaymentError('');
-    
-    const percentages = parseCustomPaymentPlan(value);
-    if (percentages) {
-      // Create a structured payment plan description
-      const planDescription = percentages.map((p) => `${p}%`).join('-');
-      setValue('paymentTerms', `Custom Plan (${planDescription})`);
-    } else if (value.trim()) {
-      setCustomPaymentError('Please enter valid percentages that sum to 100 (e.g., 30-30-40)');
-    }
-  };
-
   // Quotation number is auto-assigned from the selected enquiry
-
-  // Generate payment plan details for custom plans
-  const generateCustomPaymentDetails = (percentages: number[]) => {
-    const milestones = [
-      'Advance Payment: Due upon confirmation of the purchase order to secure the order and commence work.',
-      'Mid-Project Payment: Due upon completion of manufacturing and prior to dispatch.',
-      'Final Payment: Due upon completion and prior to shipment.'
-    ];
-    
-    // Extend milestones if we have more than 3 payments
-    while (milestones.length < percentages.length) {
-      milestones.push(`Payment ${milestones.length + 1}: Due upon completion of phase ${milestones.length + 1}.`);
-    }
-    
-    return {
-      title: `Custom Payment Plan (${percentages.map(p => `${p}%`).join('-')})`,
-      description: 'Custom payment plan with specified percentages',
-      percentages: percentages,
-      milestones: percentages.map((percentage, index) => ({
-        percentage: `${percentage}%`,
-        description: milestones[index] ?? `Payment ${index + 1}: Due upon completion of phase ${index + 1}.`
-      }))
-    };
-  };
 
   // useFieldArray hook to manage dynamic items
   const { fields, append, remove } = useFieldArray({
@@ -245,17 +163,6 @@ export default function NewQuotationPage() {
               />
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Valid Until
-              </label>
-              <input 
-                type="date"
-                {...register('validityPeriod')} 
-                defaultValue={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-              />
-            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -292,93 +199,6 @@ export default function NewQuotationPage() {
               </select>
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Payment Terms <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={customPaymentPlan}
-                onChange={(e) => handleCustomPaymentPlanChange(e.target.value)}
-                placeholder="Enter payment plan (e.g., 30-30-40)"
-                className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              {customPaymentError && (
-                <p className="text-red-500 text-sm mt-1">{customPaymentError}</p>
-              )}
-              {customPaymentPlan && !customPaymentError && parseCustomPaymentPlan(customPaymentPlan) && (
-                <p className="text-green-600 text-sm mt-1">
-                  ✓ Valid payment plan: {parseCustomPaymentPlan(customPaymentPlan)?.map(p => `${p}%`).join('-')}
-                </p>
-              )}
-              <p className="text-xs text-gray-500 mt-1">
-                Enter percentages separated by hyphens that sum to 100 (e.g., 30-30-40, 50-50, 25-25-25-25)
-              </p>
-              
-              {/* Payment Plan Details Display */}
-              {watchedPaymentTerms && watchedPaymentTerms.startsWith('Custom Plan') && parseCustomPaymentPlan(customPaymentPlan) && (
-                <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  {(() => {
-                    const percentages = parseCustomPaymentPlan(customPaymentPlan);
-                    if (!percentages) return null;
-                    
-                    const paymentDetails = generateCustomPaymentDetails(percentages);
-                    
-                    return (
-                      <>
-                        <h4 className="font-semibold text-blue-900 mb-2">
-                          {paymentDetails.title}
-                        </h4>
-                        <p className="text-sm text-blue-700 mb-3">
-                          {paymentDetails.description}
-                        </p>
-                        <div className="space-y-2">
-                          {paymentDetails.milestones.map((milestone, index) => {
-                            const amount = (grandTotal * percentages[index]) / 100;
-                            
-                            return (
-                              <div key={index} className="flex items-start gap-3">
-                                <span className="inline-flex items-center justify-center w-12 h-6 text-xs font-bold text-white bg-blue-600 rounded-full flex-shrink-0">
-                                  {milestone.percentage}
-                                </span>
-                                <div className="flex-1">
-                                  <p className="text-sm text-blue-800">{milestone.description}</p>
-                                  <p className="text-xs text-blue-600 font-medium mt-1">
-                                    Amount: {formatCurrency(amount)}
-                                  </p>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        
-                        {/* Payment Summary */}
-                        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                          <h5 className="font-medium text-green-900 mb-2">Payment Summary</h5>
-                          <div className="space-y-1">
-                            {percentages.map((percentage, index) => {
-                              const amount = (grandTotal * percentage) / 100;
-                              return (
-                                <div key={index} className="flex justify-between text-sm">
-                                  <span className="text-green-700">Payment {index + 1} ({percentage}%):</span>
-                                  <span className="font-medium text-green-900">{formatCurrency(amount)}</span>
-                                </div>
-                              );
-                            })}
-                            <div className="border-t border-green-200 pt-1 mt-2">
-                              <div className="flex justify-between font-medium">
-                                <span className="text-green-900">Total:</span>
-                                <span className="text-green-900">{formatCurrency(grandTotal)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -392,92 +212,7 @@ export default function NewQuotationPage() {
             </div>
           </div>
 
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Special Instructions
-            </label>
-            <textarea
-              {...register('specialInstructions')} 
-              rows={3}
-              placeholder="Any special terms, conditions, or instructions..."
-              className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-            />
-          </div>
 
-          {/* Commercial Terms */}
-          <div className="mt-6">
-            <h3 className="text-md font-semibold text-gray-900 mb-3">Commercial Terms</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Transport Costs
-                </label>
-                <input 
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  {...register('transportCosts')} 
-                  placeholder="0.00"
-                  className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  GST (%)
-                </label>
-                <input 
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  {...register('gst')} 
-                  placeholder="0.0"
-                  className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                />
-                <p className="text-xs text-gray-500 mt-1">Percentage of base price</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Packing and Forwarding (%)
-                </label>
-                <select 
-                  {...register('packingForwardingPercentage')} 
-                  defaultValue="3"
-                  className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="0">0%</option>
-                  <option value="0.5">0.5%</option>
-                  <option value="1">1%</option>
-                  <option value="1.5">1.5%</option>
-                  <option value="2">2%</option>
-                  <option value="2.5">2.5%</option>
-                  <option value="3">3%</option>
-                  <option value="3.5">3.5%</option>
-                  <option value="4">4%</option>
-                  <option value="4.5">4.5%</option>
-                  <option value="5">5%</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">Percentage of base price (0-5%)</p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Incoterms
-                </label>
-                <input 
-                  type="text"
-                  {...register('incoterms')} 
-                  placeholder="e.g., FOB, CIF, EXW, etc."
-                  className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                />
-                <p className="text-xs text-gray-500 mt-1">International commercial terms</p>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Dynamic Line Items */}
@@ -597,24 +332,9 @@ export default function NewQuotationPage() {
                  <span className="font-medium text-gray-900">{formatCurrency(totalBasicPrice)}</span>
                </div>
                
-               <div className="flex justify-between text-sm">
-                 <span className="text-gray-600">Transport Costs:</span>
-                 <span className="font-medium text-gray-900">{formatCurrency(transportCosts)}</span>
-               </div>
-               
-               <div className="flex justify-between text-sm">
-                 <span className="text-gray-600">GST ({gstPercentage}%):</span>
-                 <span className="font-medium text-gray-900">{formatCurrency(gstAmount)}</span>
-               </div>
-               
-               <div className="flex justify-between text-sm">
-                 <span className="text-gray-600">Packing & Forwarding ({packingForwardingPercentage}%):</span>
-                 <span className="font-medium text-gray-900">{formatCurrency(packingForwardingCost)}</span>
-               </div>
-               
                <div className="border-t pt-2 flex justify-between">
-                 <span className="text-lg font-semibold text-gray-900">Grand Total:</span>
-                 <span className="text-lg font-semibold text-gray-900">{formatCurrency(grandTotal)}</span>
+                 <span className="text-lg font-semibold text-gray-900">Total:</span>
+                 <span className="text-lg font-semibold text-gray-900">{formatCurrency(totalBasicPrice)}</span>
                </div>
              </div>
            </div>

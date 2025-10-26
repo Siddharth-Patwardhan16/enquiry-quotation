@@ -1,131 +1,109 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
+import { useForm, useFieldArray } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { CreateQuotationSchema } from '@/lib/validators/quotation';
+import type { z } from 'zod';
 import { api } from '@/trpc/client';
-import { ArrowLeft, Save, X } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react';
+import { useEffect } from 'react';
+import { useToastContext } from '@/components/providers/ToastProvider';
+
+type FormData = z.infer<typeof CreateQuotationSchema>;
 
 export default function EditQuotationPage() {
   const params = useParams();
   const router = useRouter();
   const quotationId = params.id as string;
+  const { success, error: showError } = useToastContext();
   
-  const [formData, setFormData] = useState({
-    revisionNumber: 0,
-    quotationDate: '',
-    validityPeriod: '',
-    paymentTerms: '',
-    deliverySchedule: '',
-    specialInstructions: '',
-    currency: 'INR',
-    transportCosts: 0,
-    gst: 0,
-    packingForwardingPercentage: 3,
-    incoterms: '',
-  });
-  
-  const [items, setItems] = useState<Array<{
-    materialDescription: string;
-    specifications: string;
-    quantity: number;
-    pricePerUnit: number;
-  }>>([]);
-
   const { data: quotation, isLoading, error } = api.quotation.getById.useQuery({ id: quotationId });
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors },
+    watch,
+    reset,
+  } = useForm({
+    resolver: zodResolver(CreateQuotationSchema),
+    defaultValues: {
+      currency: 'INR',
+      revisionNumber: 0,
+      items: [{ materialDescription: '', quantity: 1, pricePerUnit: 0 }],
+    },
+  });
+
+  // Watch the items to calculate totals in real-time
+  const watchedItems = watch('items') ?? [];
+  const currency = watch('currency') ?? 'INR';
+
+  // Calculate totals
+  const totalBasicPrice = watchedItems.reduce((sum, item) => {
+    const quantity = Number(item.quantity) ?? 0;
+    const pricePerUnit = Number(item.pricePerUnit) ?? 0;
+    return sum + (quantity * pricePerUnit);
+  }, 0);
+
+  const formatCurrency = (amount: number) => {
+    const locale = currency === 'INR' ? 'en-IN' : 'en-US';
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
+
+  // useFieldArray hook to manage dynamic items
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'items',
+  });
+
+  // Initialize form with existing quotation data
+  useEffect(() => {
+    if (quotation) {
+      reset({
+        enquiryId: quotation.enquiryId,
+        revisionNumber: quotation.revisionNumber || 0,
+        quotationDate: quotation.quotationDate ? new Date(quotation.quotationDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        deliverySchedule: quotation.deliverySchedule || '',
+        currency: quotation.currency || 'INR',
+        items: quotation.items?.map(item => ({
+          materialDescription: item.materialDescription,
+          quantity: Number(item.quantity),
+          pricePerUnit: Number(item.pricePerUnit),
+        })) || [{ materialDescription: '', quantity: 1, pricePerUnit: 0 }],
+      });
+    }
+  }, [quotation, reset]);
 
   const updateQuotationMutation = api.quotation.update.useMutation({
     onSuccess: () => {
+      success('Quotation Updated', 'The quotation has been successfully updated.');
       router.push(`/quotations/${quotationId}`);
     },
     onError: (error) => {
-      alert(`Failed to update quotation: ${error.message}`);
+      showError('Update Failed', `Failed to update quotation: ${error instanceof Error ? error.message : 'Unknown error'}`);
     },
   });
 
-  useEffect(() => {
-    if (quotation) {
-      setFormData({
-        revisionNumber: quotation.revisionNumber || 0,
-        quotationDate: quotation.quotationDate ? new Date(quotation.quotationDate).toISOString().split('T')[0] : '',
-        validityPeriod: quotation.validityPeriod ? new Date(quotation.validityPeriod).toISOString().split('T')[0] : '',
-        paymentTerms: quotation.paymentTerms ?? '',
-        deliverySchedule: quotation.deliverySchedule ?? '',
-        specialInstructions: quotation.specialInstructions ?? '',
-        currency: quotation.currency ?? 'INR',
-        transportCosts: Number(quotation.transportCosts) ?? 0,
-        gst: Number(quotation.gst) ?? 0,
-        packingForwardingPercentage: Number(quotation.packingForwardingPercentage) ?? 3,
-        incoterms: quotation.incoterms ?? '',
-      });
-
-      setItems(quotation.items?.map(item => ({
-        materialDescription: item.materialDescription,
-        specifications: item.specifications ?? '',
-        quantity: Number(item.quantity),
-        pricePerUnit: Number(item.pricePerUnit),
-      })) ?? []);
-    }
-  }, [quotation]);
-
-  const handleInputChange = (field: string, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const onSubmit = (data: FormData) => {
+    updateQuotationMutation.mutate({
+      id: quotationId,
+      enquiryId: data.enquiryId,
+      revisionNumber: data.revisionNumber,
+      quotationDate: data.quotationDate,
+      deliverySchedule: data.deliverySchedule,
+      currency: data.currency,
+      items: data.items,
+    });
   };
 
-  const handleItemChange = (index: number, field: string, value: string | number) => {
-    setItems(prev => prev.map((item, i) => 
-      i === index ? { ...item, [field]: value } : item
-    ));
-  };
-
-  const addItem = () => {
-    setItems(prev => [...prev, {
-      materialDescription: '',
-      specifications: '',
-      quantity: 1,
-      pricePerUnit: 0,
-    }]);
-  };
-
-  const removeItem = (index: number) => {
-    setItems(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (items.length === 0) {
-      alert('Please add at least one item');
-      return;
-    }
-
-    if (!quotation?.enquiryId) {
-      alert('Enquiry ID is missing');
-      return;
-    }
-
-    try {
-      await updateQuotationMutation.mutateAsync({
-        id: quotationId,
-        enquiryId: quotation.enquiryId,
-        revisionNumber: formData.revisionNumber,
-        quotationDate: formData.quotationDate,
-        validityPeriod: formData.validityPeriod,
-        paymentTerms: formData.paymentTerms,
-        deliverySchedule: formData.deliverySchedule,
-        specialInstructions: formData.specialInstructions,
-        currency: formData.currency,
-        transportCosts: formData.transportCosts,
-        gst: formData.gst,
-        packingForwardingPercentage: formData.packingForwardingPercentage,
-        incoterms: formData.incoterms,
-        items,
-      });
-    } catch {
-      // Error is handled by the mutation
-    }
-  };
-
-  if (error) return <div>Error: {error.message}</div>;
+  if (error) return <div>Error: {error instanceof Error ? error.message : 'Unknown error'}</div>;
   if (isLoading || !quotation) return <div>Loading...</div>;
 
   return (
@@ -144,7 +122,7 @@ export default function EditQuotationPage() {
               Edit Quotation {quotation.quotationNumber}
             </h1>
             <p className="text-gray-600 mt-1">
-              For {quotation.enquiry.customer?.name ?? 'Unknown Customer'}
+              For {quotation.enquiry?.customer?.name ?? 'Unknown Customer'}
             </p>
           </div>
         </div>
@@ -153,11 +131,10 @@ export default function EditQuotationPage() {
             onClick={() => router.push(`/quotations/${quotationId}`)}
             className="inline-flex items-center gap-2 rounded-md bg-gray-100 px-4 py-2 text-gray-700 hover:bg-gray-200"
           >
-            <X className="h-4 w-4" />
             Cancel
           </button>
           <button 
-            onClick={handleSubmit}
+            onClick={handleSubmit(onSubmit)}
             disabled={updateQuotationMutation.isPending}
             className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
           >
@@ -167,20 +144,20 @@ export default function EditQuotationPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Information */}
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Main Quotation Details */}
         <div className="bg-white rounded-lg border p-6">
-          <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <h2 className="text-lg font-semibold mb-4">Quotation Details</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Quotation Number
               </label>
               <div className="w-full rounded-md border border-gray-300 p-2 bg-gray-50 text-gray-700">
-                {quotation?.quotationNumber || 'Loading...'}
+                {quotation.quotationNumber}
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Quotation number is assigned from the enquiry and cannot be changed
+                Quotation number cannot be changed
               </p>
             </div>
             
@@ -188,272 +165,180 @@ export default function EditQuotationPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Revision Number
               </label>
-              <input
-                type="number"
-                value={formData.revisionNumber}
-                onChange={(e) => handleInputChange('revisionNumber', parseInt(e.target.value) || 0)}
-                className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                min="0"
+              <input 
+                {...register('revisionNumber')} 
+                placeholder="e.g., Rev. 1, Rev. 2"
+                className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
               />
+              {errors.revisionNumber && <p className="text-red-500 text-sm mt-1">{errors.revisionNumber.message}</p>}
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Currency
-              </label>
-              <select
-                value={formData.currency}
-                onChange={(e) => handleInputChange('currency', e.target.value)}
-                className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="INR">INR</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Quotation Date
               </label>
-              <input
+              <input 
                 type="date"
-                value={formData.quotationDate}
-                onChange={(e) => handleInputChange('quotationDate', e.target.value)}
-                className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                {...register('quotationDate')} 
+                className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
               />
+              {errors.quotationDate && <p className="text-red-500 text-sm mt-1">{errors.quotationDate.message}</p>}
             </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Valid Until
+                Currency
               </label>
-              <input
-                type="date"
-                value={formData.validityPeriod}
-                onChange={(e) => handleInputChange('validityPeriod', e.target.value)}
+              <select 
+                {...register('currency')} 
                 className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+              >
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
+                <option value="INR">INR</option>
+              </select>
+              {errors.currency && <p className="text-red-500 text-sm mt-1">{errors.currency.message}</p>}
             </div>
           </div>
 
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Payment Terms
-            </label>
-            <input
-              type="text"
-              value={formData.paymentTerms}
-              onChange={(e) => handleInputChange('paymentTerms', e.target.value)}
-              className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g., 30 days from invoice date"
-            />
-          </div>
-
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Delivery Schedule
-            </label>
-            <input
-              type="text"
-              value={formData.deliverySchedule}
-              onChange={(e) => handleInputChange('deliverySchedule', e.target.value)}
-              className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g., 4-6 weeks from order confirmation"
-            />
-          </div>
-
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Special Instructions
-            </label>
-            <textarea
-              value={formData.specialInstructions}
-              onChange={(e) => handleInputChange('specialInstructions', e.target.value)}
-              className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              rows={3}
-              placeholder="Any special instructions or terms..."
-            />
-          </div>
-
-          {/* Commercial Terms */}
-          <div className="mt-6">
-            <h3 className="text-md font-semibold text-gray-900 mb-3">Commercial Terms</h3>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                   Transport Costs
-                 </label>
-                 <input
-                   type="number"
-                   step="0.01"
-                   min="0"
-                   value={formData.transportCosts}
-                   onChange={(e) => handleInputChange('transportCosts', parseFloat(e.target.value) || 0)}
-                   className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                 />
-               </div>
-               
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                   GST (%)
-                 </label>
-                 <input
-                   type="number"
-                   step="0.1"
-                   min="0"
-                   max="100"
-                   value={formData.gst}
-                   onChange={(e) => handleInputChange('gst', parseFloat(e.target.value) || 0)}
-                   className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                 />
-                 <p className="text-xs text-gray-500 mt-1">Percentage of base price</p>
-               </div>
-             </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Enquiry
+              </label>
+              <div className="w-full rounded-md border border-gray-300 p-2 bg-gray-50 text-gray-700">
+                {quotation.enquiry?.customer?.name ?? 'Unknown Customer'}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Enquiry cannot be changed
+              </p>
+            </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Packing and Forwarding (%)
-                </label>
-                <select
-                  value={formData.packingForwardingPercentage}
-                  onChange={(e) => handleInputChange('packingForwardingPercentage', parseFloat(e.target.value) || 3)}
-                  className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="0">0%</option>
-                  <option value="0.5">0.5%</option>
-                  <option value="1">1%</option>
-                  <option value="1.5">1.5%</option>
-                  <option value="2">2%</option>
-                  <option value="2.5">2.5%</option>
-                  <option value="3">3%</option>
-                  <option value="3.5">3.5%</option>
-                  <option value="4">4%</option>
-                  <option value="4.5">4.5%</option>
-                  <option value="5">5%</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">Percentage of base price (0-5%)</p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Incoterms
-                </label>
-                <input
-                  type="text"
-                  value={formData.incoterms}
-                  onChange={(e) => handleInputChange('incoterms', e.target.value)}
-                  placeholder="e.g., FOB, CIF, EXW, etc."
-                  className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <p className="text-xs text-gray-500 mt-1">International commercial terms</p>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Delivery Schedule
+              </label>
+              <input 
+                {...register('deliverySchedule')} 
+                placeholder="e.g., 2-3 weeks after order confirmation"
+                className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+              />
+              {errors.deliverySchedule && <p className="text-red-500 text-sm mt-1">{errors.deliverySchedule.message}</p>}
             </div>
           </div>
         </div>
 
-        {/* Line Items */}
+        {/* Dynamic Line Items */}
         <div className="bg-white rounded-lg border p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">Line Items</h2>
-            <button
-              type="button"
-              onClick={addItem}
-              className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+            <button 
+              type="button" 
+              onClick={() => append({ materialDescription: '', quantity: 1, pricePerUnit: 0 })} 
+              className="inline-flex items-center gap-2 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
             >
+              <Plus className="h-4 w-4" />
               Add Item
             </button>
           </div>
-
-          <div className="space-y-4">
-            {items.map((item, index) => (
-              <div key={index} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-medium">Item {index + 1}</h3>
-                  <button
-                    type="button"
-                    onClick={() => removeItem(index)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+          
+          {fields.map((field, index) => {
+            const item = watchedItems[index];
+            const quantity = Number(item?.quantity) ?? 0;
+            const pricePerUnit = Number(item?.pricePerUnit) ?? 0;
+            const itemTotal = quantity * pricePerUnit;
+            
+            return (
+              <div key={field.id} className="space-y-4 border-b border-gray-200 pb-4 mb-4">
+                {/* First Row: Description, Quantity, Price/Unit, Total, Remove */}
+                <div className="grid grid-cols-1 md:grid-cols-6 items-end gap-4">
+                  <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Material Description *
+                      Description <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={item.materialDescription}
-                      onChange={(e) => handleItemChange(index, 'materialDescription', e.target.value)}
-                      className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
+                    <input 
+                      {...register(`items.${index}.materialDescription`)} 
+                      placeholder="Material or service description"
+                      className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
                     />
+                    {errors.items?.[index]?.materialDescription && (
+                      <p className="text-red-500 text-sm mt-1">{errors.items[index]?.materialDescription?.message}</p>
+                    )}
                   </div>
-
+                  
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Specifications
+                      Quantity <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={item.specifications}
-                      onChange={(e) => handleItemChange(index, 'specifications', e.target.value)}
-                      className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Quantity *
-                    </label>
-                    <input
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 0)}
-                      className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    <input 
+                      type="number" 
+                      {...register(`items.${index}.quantity`)} 
                       min="1"
-                      required
+                      className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
                     />
+                    {errors.items?.[index]?.quantity && (
+                      <p className="text-red-500 text-sm mt-1">{errors.items[index]?.quantity?.message}</p>
+                    )}
                   </div>
-
+                  
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Price Per Unit *
+                      Price/Unit <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="number"
-                      value={item.pricePerUnit}
-                      onChange={(e) => handleItemChange(index, 'pricePerUnit', parseFloat(e.target.value) || 0)}
-                      className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    <input 
+                      type="number" 
+                      {...register(`items.${index}.pricePerUnit`)} 
                       min="0"
                       step="0.01"
-                      required
+                      className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
                     />
+                    {errors.items?.[index]?.pricePerUnit && (
+                      <p className="text-red-500 text-sm mt-1">{errors.items[index]?.pricePerUnit?.message}</p>
+                    )}
                   </div>
-                </div>
-
-                <div className="mt-2 text-right">
-                  <span className="text-sm text-gray-500">
-                    Total: {new Intl.NumberFormat('en-IN', {
-                      style: 'currency',
-                      currency: formData.currency,
-                      minimumFractionDigits: 2,
-                    }).format(item.quantity * item.pricePerUnit)}
-                  </span>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Total
+                    </label>
+                    <div className="w-full rounded-md border border-gray-300 p-2 bg-gray-50 text-gray-900 font-medium">
+                      {formatCurrency(itemTotal)}
+                    </div>
+                  </div>
+                  
+                  {fields.length > 1 && (
+                    <button 
+                      type="button" 
+                      onClick={() => remove(index)}
+                      className="inline-flex items-center justify-center w-10 h-10 rounded-md border border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
+                      title="Remove item"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
 
-          {items.length === 0 && (
+          {fields.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-                    <p>No items added yet. Click &quot;Add Item&quot; to start.</p>
+              <p>No items added yet. Click &quot;Add Item&quot; to start.</p>
+            </div>
+          )}
+
+          {/* Total Summary */}
+          {fields.length > 0 && (
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <div className="flex justify-end">
+                <div className="text-right">
+                  <div className="text-sm text-gray-600 mb-1">Total Basic Price</div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {formatCurrency(totalBasicPrice)}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>

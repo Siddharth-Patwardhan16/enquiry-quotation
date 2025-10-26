@@ -466,6 +466,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                     <option value="Referral" className="text-black bg-white">Referral</option>
                     <option value="Trade Show" className="text-black bg-white">Trade Show</option>
                     <option value="Social Media" className="text-black bg-white">Social Media</option>
+                    <option value="Visit" className="text-black bg-white">Visit</option>
                   </select>
                 </div>
 

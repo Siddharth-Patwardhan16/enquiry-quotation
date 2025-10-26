@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { api } from '@/trpc/client';
 import { QuotationStatusUpdater } from './_components/QuotationStatusUpdater';
 import type { AppRouter } from '@/server/api/root';
@@ -9,6 +10,7 @@ import type { inferRouterOutputs } from '@trpc/server';
 type Quotation = inferRouterOutputs<AppRouter>['quotation']['getAll'][0];
 
 export default function QuotationStatusPage() {
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const { data: quotations, isLoading, error } = api.quotation.getAll.useQuery();
   const { data: stats } = api.quotation.getStats.useQuery();
 
@@ -33,21 +35,26 @@ export default function QuotationStatusPage() {
   // Use backend stats if available, otherwise show loading
   const displayStats = stats ? {
     total: stats.total,
-    draft: stats.draft,
     live: stats.live,
     won: stats.won,
     lost: stats.lost,
-    received: stats.received
+    budgetary: stats.budgetary,
+    dead: stats.dead
   } : {
     total: 0,
-    draft: 0,
     live: 0,
     won: 0,
     lost: 0,
-    received: 0
+    budgetary: 0,
+    dead: 0
   };
 
   const displayTotalValue = stats?.activeTotalValue ?? 0;
+
+  // Filter quotations based on status filter
+  const filteredQuotations = statusFilter 
+    ? quotations?.filter(q => q.status === statusFilter) ?? []
+    : quotations ?? [];
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -86,25 +93,35 @@ export default function QuotationStatusPage() {
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div 
+          className={`bg-white overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg ${
+            statusFilter === 'BUDGETARY' ? 'ring-2 ring-orange-500' : ''
+          }`}
+          onClick={() => setStatusFilter(statusFilter === 'BUDGETARY' ? null : 'BUDGETARY')}
+        >
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-gray-500 rounded-md flex items-center justify-center">
-                  <div className="text-white font-bold text-sm">📝</div>
+                <div className="w-8 h-8 bg-orange-500 rounded-md flex items-center justify-center">
+                  <div className="text-white font-bold text-sm">💰</div>
                 </div>
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Draft</dt>
-                  <dd className="text-lg font-medium text-gray-900">{displayStats.draft}</dd>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Budgetary</dt>
+                  <dd className="text-lg font-medium text-gray-900">{displayStats.budgetary}</dd>
                 </dl>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div 
+          className={`bg-white overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg ${
+            statusFilter === 'LIVE' ? 'ring-2 ring-yellow-500' : ''
+          }`}
+          onClick={() => setStatusFilter(statusFilter === 'LIVE' ? null : 'LIVE')}
+        >
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -122,7 +139,12 @@ export default function QuotationStatusPage() {
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div 
+          className={`bg-white overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg ${
+            statusFilter === 'WON' ? 'ring-2 ring-green-500' : ''
+          }`}
+          onClick={() => setStatusFilter(statusFilter === 'WON' ? null : 'WON')}
+        >
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -140,7 +162,12 @@ export default function QuotationStatusPage() {
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div 
+          className={`bg-white overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg ${
+            statusFilter === 'LOST' ? 'ring-2 ring-red-500' : ''
+          }`}
+          onClick={() => setStatusFilter(statusFilter === 'LOST' ? null : 'LOST')}
+        >
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -158,18 +185,23 @@ export default function QuotationStatusPage() {
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div 
+          className={`bg-white overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg ${
+            statusFilter === 'DEAD' ? 'ring-2 ring-gray-500' : ''
+          }`}
+          onClick={() => setStatusFilter(statusFilter === 'DEAD' ? null : 'DEAD')}
+        >
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
-                  <div className="text-white font-bold text-sm">📦</div>
+                <div className="w-8 h-8 bg-gray-600 rounded-md flex items-center justify-center">
+                  <div className="text-white font-bold text-sm">💀</div>
                 </div>
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Received</dt>
-                  <dd className="text-lg font-medium text-gray-900">{displayStats.received}</dd>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Dead</dt>
+                  <dd className="text-lg font-medium text-gray-900">{displayStats.dead}</dd>
                 </dl>
               </div>
             </div>
@@ -195,6 +227,23 @@ export default function QuotationStatusPage() {
           </div>
         </div>
       </div>
+
+      {/* Filter Status */}
+      {statusFilter && (
+        <div className="mb-4 flex items-center justify-between bg-blue-50 p-4 rounded-lg">
+          <div className="flex items-center">
+            <span className="text-sm text-blue-700">
+              Showing quotations with status: <strong>{statusFilter}</strong>
+            </span>
+          </div>
+          <button
+            onClick={() => setStatusFilter(null)}
+            className="text-sm text-blue-600 hover:text-blue-800 underline"
+          >
+            Clear Filter
+          </button>
+        </div>
+      )}
 
       {/* Quotations Table */}
       <div className="bg-white shadow rounded-lg">
@@ -235,7 +284,7 @@ export default function QuotationStatusPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {quotations?.map((quotation: Quotation) => (
+                {filteredQuotations?.map((quotation: Quotation) => (
                   <tr key={quotation.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{quotation.quotationNumber}</div>

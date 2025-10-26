@@ -170,4 +170,4 @@
 - Never run destructive operations on Supabase/PostgreSQL without explicit confirmation.
 - Always use WHERE clauses for updates/deletes.
 - Review foreign key constraints and cascade rules before schema changes.
-
+- take backup before changing any of the databases and other clause 

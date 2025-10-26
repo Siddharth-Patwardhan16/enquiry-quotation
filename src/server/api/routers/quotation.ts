@@ -10,7 +10,7 @@ export const quotationRouter = createTRPCRouter({
   create: publicProcedure
     .input(CreateQuotationSchema)
     .mutation(async ({ ctx, input }) => {
-      const { enquiryId, items, quotationDate, validityPeriod, ...rest } = input;
+      const { enquiryId, items, quotationDate, ...rest } = input;
 
       // Get the enquiry to retrieve its quotation number
       const enquiry = await db.enquiry.findUnique({
@@ -48,11 +48,7 @@ export const quotationRouter = createTRPCRouter({
 
       // Calculate totals
       const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.pricePerUnit), 0);
-      const gstPercentage = Number(rest.gst) || 0;
-      const gstAmount = (subtotal * gstPercentage) / 100;
-      const packingForwardingPercentage = Number(rest.packingForwardingPercentage) || 3;
-      const packingForwardingAmount = (subtotal * packingForwardingPercentage) / 100;
-      const totalValue = subtotal + Number(rest.transportCosts || 0) + gstAmount + packingForwardingAmount;
+      const totalValue = subtotal;
 
       // Prisma Transaction: This ensures that both the quotation and all its items are created successfully.
       // If any part fails, the entire transaction is rolled back, preventing partial data.
@@ -64,10 +60,9 @@ export const quotationRouter = createTRPCRouter({
               enquiryId,
               quotationNumber,
               subtotal,
-              tax: gstAmount,
+              tax: 0,
               totalValue,
               quotationDate: quotationDate ? new Date(quotationDate) : new Date(),
-              validityPeriod: validityPeriod ? new Date(validityPeriod) : null,
               createdById: ctx.currentUser?.id ?? null,
               ...rest,
             },
@@ -137,34 +132,34 @@ export const quotationRouter = createTRPCRouter({
 
   // Get quotation statistics - moved from frontend calculations
   getStats: publicProcedure.query(async () => {
-    const [total, draft, live, won, lost, received] = await Promise.all([
+    const [total, live, won, lost, budgetary, dead] = await Promise.all([
       db.quotation.count(),
-      db.quotation.count({ where: { status: 'DRAFT' } }),
-      db.quotation.count({ where: { status: { in: ['LIVE', 'SUBMITTED'] } } }),
+      db.quotation.count({ where: { status: { in: ['LIVE'] } } }),
       db.quotation.count({ where: { status: 'WON' } }),
       db.quotation.count({ where: { status: 'LOST' } }),
-      db.quotation.count({ where: { status: 'RECEIVED' } })
+      db.quotation.count({ where: { status: 'BUDGETARY' } }),
+      db.quotation.count({ where: { status: 'DEAD' } })
     ]);
 
     // Calculate total value for live/submitted quotations
     const liveTotalValue = await db.quotation.aggregate({
-      where: { status: { in: ['LIVE', 'SUBMITTED'] } },
+      where: { status: { in: ['LIVE'] } },
       _sum: { totalValue: true }
     });
 
-    // Calculate total value for all active quotations (live, submitted, won, received)
+    // Calculate total value for all active quotations (live, submitted, won, budgetary)
     const activeTotalValue = await db.quotation.aggregate({
-      where: { status: { in: ['LIVE', 'SUBMITTED', 'WON', 'RECEIVED'] } },
+      where: { status: { in: ['LIVE', 'WON', 'BUDGETARY'] } },
       _sum: { totalValue: true }
     });
 
     return {
       total,
-      draft,
       live,
       won,
       lost,
-      received,
+      budgetary,
+      dead,
       liveTotalValue: liveTotalValue._sum.totalValue ?? 0,
       activeTotalValue: activeTotalValue._sum.totalValue ?? 0
     };
@@ -188,7 +183,7 @@ export const quotationRouter = createTRPCRouter({
   updateStatus: publicProcedure
     .input(UpdateQuotationStatusSchema)
     .mutation(async ({ input }) => {
-      const { quotationId, status, lostReason, purchaseOrderNumber } = input;
+      const { quotationId, status, lostReason, purchaseOrderNumber, poValue } = input;
 
       // Ensure the quotation exists before trying to update it
       const existingQuotation = await db.quotation.findUnique({
@@ -207,7 +202,8 @@ export const quotationRouter = createTRPCRouter({
         data: {
           status: status,
           lostReason: status === 'LOST' ? lostReason : null, // Only set lostReason if status is LOST
-          purchaseOrderNumber: status === 'WON' || status === 'RECEIVED' ? purchaseOrderNumber : null,
+          purchaseOrderNumber: status === 'WON' ? purchaseOrderNumber : null,
+          poValue: status === 'WON' ? poValue : null,
           // Add other fields here
         },
       });
@@ -242,7 +238,7 @@ export const quotationRouter = createTRPCRouter({
   update: publicProcedure
     .input(CreateQuotationSchema.extend({ id: z.string() }))
     .mutation(async ({ input }) => {
-      const { id, enquiryId, items, quotationDate, validityPeriod, ...rest } = input;
+      const { id, enquiryId, items, quotationDate, ...rest } = input;
 
       // Get the enquiry to retrieve its quotation number
       const enquiry = await db.enquiry.findUnique({
@@ -283,11 +279,7 @@ export const quotationRouter = createTRPCRouter({
 
       // Calculate totals
       const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.pricePerUnit), 0);
-      const gstPercentage = Number(rest.gst) || 0;
-      const gstAmount = (subtotal * gstPercentage) / 100;
-      const packingForwardingPercentage = Number(rest.packingForwardingPercentage) || 3;
-      const packingForwardingAmount = (subtotal * packingForwardingPercentage) / 100;
-      const totalValue = subtotal + Number(rest.transportCosts || 0) + gstAmount + packingForwardingAmount;
+      const totalValue = subtotal;
 
       try {
         return await db.$transaction(async (prisma) => {
@@ -298,10 +290,9 @@ export const quotationRouter = createTRPCRouter({
               enquiryId,
               quotationNumber,
               subtotal,
-              tax: gstAmount,
+              tax: 0,
               totalValue,
               quotationDate: quotationDate ? new Date(quotationDate) : new Date(),
-              validityPeriod: validityPeriod ? new Date(validityPeriod) : null,
               ...rest,
             },
           });

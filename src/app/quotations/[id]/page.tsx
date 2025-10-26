@@ -65,7 +65,7 @@ export default function QuotationDetailPage() {
     try {
       await updateStatusMutation.mutateAsync({
         quotationId: quotationId,
-        status: newStatus as 'DRAFT' | 'LIVE' | 'SUBMITTED' | 'WON' | 'LOST' | 'RECEIVED',
+        status: newStatus as 'LIVE' | 'WON' | 'LOST' | 'BUDGETARY' | 'DEAD',
         ...(reason && { lostReason: reason as 'PRICE' | 'DELIVERY_SCHEDULE' | 'LACK_OF_CONFIDENCE' | 'OTHER' }),
       });
     } finally {
@@ -239,7 +239,6 @@ export default function QuotationDetailPage() {
     const statusConfig = {
       'DRAFT': { color: 'bg-gray-100 text-gray-800', label: 'Draft' },
       'LIVE': { color: 'bg-yellow-100 text-yellow-800', label: 'Live' },
-      'SUBMITTED': { color: 'bg-blue-100 text-blue-800', label: 'Submitted' },
       'WON': { color: 'bg-green-100 text-green-800', label: 'Won' },
       'LOST': { color: 'bg-red-100 text-red-800', label: 'Lost' },
       'RECEIVED': { color: 'bg-purple-100 text-purple-800', label: 'Received' }
@@ -309,7 +308,17 @@ export default function QuotationDetailPage() {
           {/* Quotation Details */}
           <div className="bg-white rounded-lg border p-6">
             <h2 className="text-lg font-semibold mb-4">Quotation Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-sm text-gray-500">Quotation Number</p>
+                <p className="text-gray-900 font-medium">{quotation.quotationNumber}</p>
+              </div>
+              
+              <div>
+                <p className="text-sm text-gray-500">Revision Number</p>
+                <p className="text-gray-900">{quotation.revisionNumber || 0}</p>
+              </div>
+              
               <div>
                 <p className="text-sm text-gray-500">Quotation Date</p>
                 <p className="text-gray-900">
@@ -318,68 +327,48 @@ export default function QuotationDetailPage() {
               </div>
               
               <div>
-                <p className="text-sm text-gray-500">Valid Until</p>
-                <p className="text-gray-900">
-                  {quotation.validityPeriod ? 
-                    new Date(quotation.validityPeriod).toLocaleDateString() : 
-                    'Not specified'
-                  }
-                </p>
+                <p className="text-sm text-gray-500">Currency</p>
+                <p className="text-gray-900">{quotation.currency || 'INR'}</p>
               </div>
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div>
-                <p className="text-sm text-gray-500">Payment Terms</p>
-                <p className="text-gray-900">{quotation.paymentTerms ?? 'Not specified'}</p>
+                <p className="text-sm text-gray-500">Customer</p>
+                <p className="text-gray-900">{quotation.enquiry.customer?.name ?? 'Unknown Customer'}</p>
               </div>
+              
+              {quotation.deliverySchedule && (
+                <div>
+                  <p className="text-sm text-gray-500">Delivery Schedule</p>
+                  <p className="text-gray-900">{quotation.deliverySchedule}</p>
+                </div>
+              )}
             </div>
 
-            {quotation.deliverySchedule && (
-              <div className="mt-4">
-                <p className="text-sm text-gray-500">Delivery Schedule</p>
-                <p className="text-gray-900">{quotation.deliverySchedule}</p>
+            {/* Purchase Order Information */}
+            {quotation.purchaseOrderNumber && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
+                <div>
+                  <p className="text-sm text-gray-500">Purchase Order Number</p>
+                  <p className="text-gray-900 font-medium">{quotation.purchaseOrderNumber}</p>
+                </div>
+                
+                {quotation.poValue && (
+                  <div>
+                    <p className="text-sm text-gray-500">PO Value</p>
+                    <p className="text-gray-900 font-medium">
+                      {new Intl.NumberFormat('en-IN', {
+                        style: 'currency',
+                        currency: quotation.currency || 'INR',
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }).format(Number(quotation.poValue))}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
-
-            {quotation.specialInstructions && (
-              <div className="mt-4">
-                <p className="text-sm text-gray-500">Special Instructions</p>
-                <div className="mt-2 p-3 bg-gray-50 rounded-md">
-                  <p className="text-gray-900 whitespace-pre-wrap">
-                    {quotation.specialInstructions}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Commercial Terms */}
-            <div className="mt-6">
-              <h3 className="text-md font-semibold text-gray-900 mb-3">Commercial Terms</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Transport Costs</p>
-                  <p className="text-gray-900">{formatCurrency(Number(quotation.transportCosts) ?? 0)}</p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-500">GST</p>
-                  <p className="text-gray-900">
-                    {extendedQuotation?.gst ? `${extendedQuotation.gst}%` : 'Not specified'}
-                  </p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-500">Packing & Forwarding</p>
-                  <p className="text-gray-900">
-                    {extendedQuotation?.packingForwardingPercentage ? `${extendedQuotation.packingForwardingPercentage}%` : 'Not specified'}
-                  </p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-500">Incoterms</p>
-                  <p className="text-gray-900">{extendedQuotation?.incoterms ?? 'Not specified'}</p>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Line Items */}
@@ -428,32 +417,10 @@ export default function QuotationDetailPage() {
 
             {/* Totals */}
             <div className="mt-6 flex justify-end">
-              <div className="w-80 space-y-2">
-                <div className="border-t pt-2">
-                  <div className="flex justify-between">
-                    <span>Subtotal:</span>
-                    <span>{formatCurrency(Number(quotation.subtotal) ?? 0)}</span>
-                  </div>
-                </div>
-                
-                <div className="flex justify-between">
-                  <span>Transport Costs:</span>
-                  <span>{formatCurrency(Number(quotation.transportCosts) ?? 0)}</span>
-                </div>
-                
-                <div className="flex justify-between">
-                  <span>GST ({extendedQuotation?.gst ?? 0}%):</span>
-                  <span>{formatCurrency(Number(quotation.tax) ?? 0)}</span>
-                </div>
-                
-                <div className="flex justify-between">
-                  <span>Packing & Forwarding ({extendedQuotation?.packingForwardingPercentage ?? 3}%):</span>
-                  <span>{formatCurrency(((Number(quotation.subtotal) ?? 0) * (extendedQuotation?.packingForwardingPercentage ?? 3)) / 100)}</span>
-                </div>
-                
+              <div className="w-80">
                 <div className="border-t pt-2">
                   <div className="flex justify-between text-lg font-semibold">
-                    <span>Total:</span>
+                    <span>Total Value:</span>
                     <span>{formatCurrency(Number(quotation.totalValue) ?? 0)}</span>
                   </div>
                 </div>
@@ -481,12 +448,11 @@ export default function QuotationDetailPage() {
                   disabled={updating}
                   className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="DRAFT">Draft</option>
                   <option value="LIVE">Live</option>
-                  <option value="SUBMITTED">Submitted</option>
                   <option value="WON">Won</option>
                   <option value="LOST">Lost</option>
-                  <option value="RECEIVED">Received</option>
+                  <option value="BUDGETARY">Budgetary</option>
+                  <option value="DEAD">Dead</option>
                 </select>
               </div>
 
