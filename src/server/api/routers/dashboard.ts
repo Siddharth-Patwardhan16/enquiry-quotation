@@ -176,7 +176,7 @@ export const dashboardRouter = createTRPCRouter({
     const enquiryTasks = await db.enquiry.findMany({
       where: {
         status: {
-          in: ['NEW', 'IN_PROGRESS']
+          in: ['LIVE', 'RCD']
         },
         createdAt: {
           gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) // Enquiries from last 7 days

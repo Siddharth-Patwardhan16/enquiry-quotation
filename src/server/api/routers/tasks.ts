@@ -101,7 +101,7 @@ export const tasksRouter = createTRPCRouter({
       return {
         type: 'QUOTATION' as const,
         dueDate,
-        customerName: q.enquiry.customer?.name ?? 'Unknown Customer',
+        customerName: q.enquiry?.customer?.name ?? 'Unknown Customer',
         taskDescription: `Quotation #${q.quotationNumber}`,
         status: q.status,
         link: `/quotations/${q.id}`,
@@ -300,15 +300,15 @@ export const tasksRouter = createTRPCRouter({
       // Get tasks from enquiries
       const enquiryTasks = await db.enquiry.findMany({
         where: {
-          status: {
-            in: ['NEW', 'IN_PROGRESS']
-          },
+        status: {
+          in: ['LIVE', 'RCD']
+        },
           createdAt: {
             gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
           }
         },
         include: {
-          customer: { select: { name: true } },
+          company: { select: { name: true } },
           marketingPerson: { select: { name: true } }
         },
         orderBy: { createdAt: 'desc' },
@@ -363,9 +363,11 @@ export const tasksRouter = createTRPCRouter({
           dueDate: new Date(enquiry.createdAt.getTime() + 3 * 24 * 60 * 60 * 1000),
           priority: (enquiry.priority?.toLowerCase() as 'high' | 'medium' | 'low') ?? 'medium',
           status: 'pending' as const,
-          customerName: enquiry.customer?.name ?? 'Unknown Customer',
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          customerName: (enquiry.company && typeof enquiry.company === 'object' && 'name' in enquiry.company ? String(enquiry.company.name) : '') || 'Unknown Customer',
           description: enquiry.description ?? enquiry.requirements ?? 'Follow up required',
-          assignedTo: enquiry.marketingPerson?.name ?? 'Unassigned',
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          assignedTo: (enquiry.marketingPerson && typeof enquiry.marketingPerson === 'object' && 'name' in enquiry.marketingPerson ? String(enquiry.marketingPerson.name) : '') || 'Unassigned',
           sourceId: enquiry.id,
           sourceType: 'enquiry',
           createdAt: enquiry.createdAt,
@@ -378,7 +380,7 @@ export const tasksRouter = createTRPCRouter({
           dueDate: quotation.validityPeriod ?? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
           priority: 'medium' as const,
           status: quotation.status === 'LIVE' ? 'pending' as const : 'in-progress' as const,
-          customerName: quotation.enquiry.customer?.name ?? 'Unknown Customer',
+          customerName: quotation.enquiry?.customer?.name ?? 'Unknown Customer',
           description: `Quotation ${quotation.status.toLowerCase()} - needs completion`,
           assignedTo: 'Marketing Team',
           sourceId: quotation.id,
@@ -419,9 +421,10 @@ export const tasksRouter = createTRPCRouter({
       }
       
       if (input.assignedTo) {
-        filteredTasks = filteredTasks.filter(task => 
-          task.assignedTo?.toLowerCase().includes(input.assignedTo!.toLowerCase())
-        );
+        filteredTasks = filteredTasks.filter(task => {
+          const assignedToStr = String(task.assignedTo ?? '');
+          return assignedToStr.toLowerCase().includes(input.assignedTo!.toLowerCase());
+        });
       }
 
       // Sort by priority and due date
@@ -442,7 +445,7 @@ export const tasksRouter = createTRPCRouter({
     const [pendingEnquiries, inProgressEnquiries, pendingQuotations, pendingCommunications] = await Promise.all([
       db.enquiry.count({
         where: {
-          status: 'NEW',
+          status: 'LIVE',
           createdAt: {
             gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
           }
@@ -450,7 +453,7 @@ export const tasksRouter = createTRPCRouter({
       }),
       db.enquiry.count({
         where: {
-          status: 'IN_PROGRESS',
+          status: 'RCD',
           createdAt: {
             gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
           }
@@ -500,7 +503,7 @@ export const tasksRouter = createTRPCRouter({
         await db.enquiry.update({
           where: { id: parseInt(sourceId) },
           data: { 
-            status: 'QUOTED',
+            status: 'LIVE',
             notes: input.notes ? `${input.notes}\n\nTask completed on ${new Date().toISOString()}` : undefined
           }
         });

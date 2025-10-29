@@ -18,7 +18,7 @@ const CommunicationSchema = z.object({
   subject: z.string().optional(),
   description: z.string().optional(),
   enquiryRelated: z.string().optional(), // Link to enquiry for tracking
-  type: z.enum(['TELEPHONIC', 'VIRTUAL_MEETING', 'EMAIL', 'PLANT_VISIT', 'OFFICE_VISIT']).default('TELEPHONIC'),
+  type: z.enum(['TELEPHONIC', 'VIRTUAL_MEETING', 'EMAIL', 'PLANT_VISIT', 'OFFICE_VISIT']),
   nextCommunicationDate: z.string().optional(),
   proposedNextAction: z.string().optional(),
 });
@@ -85,12 +85,11 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
     resolver: zodResolver(CommunicationSchema),
     defaultValues: {
       date: new Date().toISOString().split('T')[0],
-      type: 'TELEPHONIC' as const,
+      type: (initialData?.type ?? 'TELEPHONIC') as 'TELEPHONIC' | 'VIRTUAL_MEETING' | 'EMAIL' | 'PLANT_VISIT' | 'OFFICE_VISIT',
       ...(initialData ? {
         companyId: initialData.companyId ?? undefined,
         subject: initialData.subject,
         description: initialData.description,
-        type: initialData.type,
         enquiryRelated: initialData.enquiryRelated ?? undefined,
         nextCommunicationDate: initialData.nextCommunicationDate?.toISOString().split('T')[0] ?? undefined,
         proposedNextAction: initialData.proposedNextAction ?? undefined,
@@ -104,7 +103,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
     // Filter contacts based on selected customer (unused for now)
   
   // Filter enquiries based on selected company
-  const filteredEnquiries = enquiries?.filter((enquiry: { companyId: string | null; id: number; subject: string; quotationNumber?: string | null }) => enquiry.companyId === watchedCompanyId) ?? [];
+  const filteredEnquiries = enquiries?.filter((enquiry) => enquiry.companyId === watchedCompanyId) ?? [];
 
   // Update company info when selection changes
   useEffect(() => {
@@ -117,7 +116,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
   // Auto-populate subject when enquiry is selected
   useEffect(() => {
     if (watchedEnquiryRelated && filteredEnquiries.length > 0) {
-      const selectedEnquiry = filteredEnquiries.find((enquiry: { id: number; subject: string }) => 
+      const selectedEnquiry = filteredEnquiries.find((enquiry) => 
         enquiry.id === parseInt(watchedEnquiryRelated)
       );
       if (selectedEnquiry && selectedEnquiry.subject) {
@@ -347,9 +346,9 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
                 disabled={!watchedCompanyId}
               >
                 <option value="">Select Enquiry (Optional)</option>
-                {filteredEnquiries.map((enquiry: { id: number; subject: string; quotationNumber?: string | null }) => (
+                {filteredEnquiries.map((enquiry) => (
                   <option key={enquiry.id} value={enquiry.id}>
-                    {enquiry.quotationNumber ? `Q#${enquiry.quotationNumber} - ${enquiry.subject}` : enquiry.subject}
+                    {enquiry.quotationNumber ? `Q#${enquiry.quotationNumber} - ${enquiry.subject ?? ''}` : (enquiry.subject ?? '')}
                   </option>
                 ))}
               </select>
@@ -362,14 +361,14 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
               <div className="p-3 bg-gray-50 rounded-md border">
                 {watchedEnquiryRelated ? (
                   (() => {
-                    const selectedEnquiry = filteredEnquiries.find((enquiry: { id: number; subject: string; quotationNumber?: string | null }) => enquiry.id === parseInt(watchedEnquiryRelated));
+                    const selectedEnquiry = filteredEnquiries.find((enquiry) => enquiry.id === parseInt(watchedEnquiryRelated));
                     return selectedEnquiry ? (
                       <div className="text-sm text-gray-700">
                         <div className="font-medium text-gray-900 mb-1">
                           {selectedEnquiry.quotationNumber ? `Quotation #${selectedEnquiry.quotationNumber}` : 'No Quotation Number'}
                         </div>
                         <div className="text-gray-600">
-                          {selectedEnquiry.subject}
+                          {selectedEnquiry.subject ?? ''}
                         </div>
                       </div>
                     ) : (

@@ -185,7 +185,7 @@ export function QuotationStatusModal({
                     </div>
                     <div>
                       <span className="text-sm font-medium text-gray-700">Customer:</span>
-                      <p className="text-sm text-gray-900 font-medium">{quotation.enquiry.customer?.name ?? 'Unknown Customer'}</p>
+                      <p className="text-sm text-gray-900 font-medium">{quotation.enquiry?.customer?.name ?? 'Unknown Customer'}</p>
                     </div>
                   </div>
 
@@ -239,9 +239,9 @@ export function QuotationStatusModal({
                 </div>
               </div>
 
-              {quotation.enquiry.subject && (
-                <div className="mt-6 p-4 bg-gray-50 rounded-md">
-                  <span className="text-sm font-medium text-gray-700">Subject:</span>
+              {quotation.enquiry?.subject && (
+                <div className="mt-6 p-4 bg-gray-50 rounded-md">        
+                  <span className="text-sm font-medium text-gray-700">Subject:</span>                                                                   
                   <p className="text-sm text-gray-900 mt-1 font-medium">{quotation.enquiry.subject}</p>
                 </div>
               )}

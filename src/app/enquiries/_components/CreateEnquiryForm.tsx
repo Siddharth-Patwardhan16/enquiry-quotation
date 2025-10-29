@@ -146,10 +146,9 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
     reset,
     control,
     setValue,
-    watch,
     formState: { errors },
   } = useForm<FormData>({
-    resolver: zodResolver(CreateEnquirySchema) as any,
+    resolver: zodResolver(CreateEnquirySchema),
     defaultValues: {
       enquiryDate: new Date().toISOString().split('T')[0],
       priority: 'Medium' as const,
@@ -249,11 +248,12 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
       if (selectedLocation) {
         // If location has city/state data, use it
         const regionParts: string[] = [];
-        if ((selectedLocation as any).city) {
-          regionParts.push((selectedLocation as any).city);
+        const locationWithCity = selectedLocation as { city?: string; state?: string };
+        if (locationWithCity.city) {
+          regionParts.push(locationWithCity.city);
         }
-        if ((selectedLocation as any).state) {
-          regionParts.push((selectedLocation as any).state);
+        if (locationWithCity.state) {
+          regionParts.push(locationWithCity.state);
         }
         if (regionParts.length > 0) {
           setValue('region', regionParts.join(', '));

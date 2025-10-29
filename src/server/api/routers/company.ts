@@ -62,7 +62,7 @@ export const companyRouter = createTRPCRouter({
           if (contacts.length > 0) {
             await prisma.contactPerson.createMany({
               data: contacts.map(contact => ({
-                name: contact.name ?? null,
+                name: contact.name ?? 'Unnamed Contact',
                 designation: contact.designation ?? null,
                 phoneNumber: contact.phoneNumber ?? null,
                 emailId: contact.emailId ?? null,
@@ -100,7 +100,7 @@ export const companyRouter = createTRPCRouter({
           if (contacts.length > 0) {
             await prisma.contactPerson.createMany({
               data: contacts.map(contact => ({
-                name: contact.name ?? null,
+                name: contact.name ?? 'Unnamed Contact',
                 designation: contact.designation ?? null,
                 phoneNumber: contact.phoneNumber ?? null,
                 emailId: contact.emailId ?? null,

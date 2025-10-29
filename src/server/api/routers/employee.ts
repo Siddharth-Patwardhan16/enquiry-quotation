@@ -1,5 +1,4 @@
 import { createTRPCRouter, publicProcedure } from '../trpc';
-import { db } from '@/server/db';
 import { z } from 'zod';
 
 export const employeeRouter = createTRPCRouter({

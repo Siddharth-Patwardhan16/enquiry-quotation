@@ -1,6 +1,6 @@
 // Types for the new company-based customer form
 export interface ContactPerson {
-  name: string;
+  name?: string;
   designation?: string;
   phoneNumber?: string;
   emailId?: string;
@@ -17,19 +17,19 @@ export interface Address {
 }
 
 export interface Office extends Address {
-  name: string;
+  name?: string;
   contacts: ContactPerson[];
 }
 
 export interface Plant extends Address {
-  name: string;
+  name?: string;
   contacts: ContactPerson[];
 }
 
 export interface CompanyFormData {
-  companyName: string;
-  offices: Office[];
-  plants: Plant[];
+  companyName?: string;
+  offices?: Office[];
+  plants?: Plant[];
   // Purchase Order fields
   poRuptureDiscs: boolean;
   poThermowells: boolean;

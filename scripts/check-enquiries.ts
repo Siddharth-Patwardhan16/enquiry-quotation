@@ -47,9 +47,9 @@ async function checkEnquiries() {
     quotations.forEach((quotation, index) => {
       console.log(`\n${index + 1}. Quotation ID: ${quotation.id}`);
       console.log(`   Quotation Number: ${quotation.quotationNumber}`);
-      console.log(`   Enquiry ID: ${quotation.enquiryId}`);
-      console.log(`   Customer Name: ${quotation.enquiry.customer?.name || 'None'}`);
-      console.log(`   Company Name: ${quotation.enquiry.company?.name || 'None'}`);
+      console.log(`   Enquiry ID: ${quotation.enquiryId || 'None'}`);
+      console.log(`   Customer Name: ${quotation.enquiry?.customer?.name || 'None'}`);
+      console.log(`   Company Name: ${quotation.enquiry?.company?.name || 'None'}`);
     });
     
   } catch (error) {

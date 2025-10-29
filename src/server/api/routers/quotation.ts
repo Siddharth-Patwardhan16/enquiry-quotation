@@ -327,6 +327,7 @@ export const quotationRouter = createTRPCRouter({
           // 3. Create new items
           const itemsToCreate = items.map((item) => ({
             ...item,
+            materialDescription: item.materialDescription ?? 'Unnamed Item',
             total: item.quantity * item.pricePerUnit,
             quotationId: id,
           }));

@@ -10,7 +10,7 @@ const CreateCommunicationSchema = z.object({
   subject: z.string().optional(),
   enquiryRelated: z.string().optional(),
   description: z.string().optional(),
-  type: z.enum(['TELEPHONIC', 'VIRTUAL_MEETING', 'EMAIL', 'PLANT_VISIT', 'OFFICE_VISIT']).default('TELEPHONIC'),
+  type: z.enum(['TELEPHONIC', 'VIRTUAL_MEETING', 'EMAIL', 'PLANT_VISIT', 'OFFICE_VISIT']),
   nextCommunicationDate: z.string().optional(),
   proposedNextAction: z.string().optional(),
   contactId: z.string().optional(), // Made optional for backward compatibility

@@ -1,58 +1,5 @@
 'use client';
 
-// Type for enquiry from the API
-type Enquiry = {
-  id: number;
-  subject: string | null;
-  description: string | null;
-  requirements: string | null;
-  timeline: string | null;
-  enquiryDate: Date | null;
-  priority: string | null;
-  source: string | null;
-  notes: string | null;
-  quotationNumber: string | null;
-  status: string;
-  region: string | null;
-  oaNumber: string | null;
-  dateOfReceipt: Date | null;
-  blockModel: string | null;
-  numberOfBlocks: number | null;
-  designRequired: string | null;
-  customerType: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  customerId: string | null;
-  companyId: string | null;
-  locationId: string | null;
-  officeId: string | null;
-  plantId: string | null;
-  marketingPersonId: string | null;
-  attendedById: string | null;
-  customer?: {
-    name: string;
-  } | null;
-  company?: {
-    name: string;
-  } | null;
-  office?: {
-    name: string;
-  } | null;
-  plant?: {
-    name: string;
-  } | null;
-  marketingPerson?: {
-    id: string;
-    name: string;
-    email: string;
-  } | null;
-  attendedBy?: {
-    id: string;
-    name: string;
-    email: string;
-  } | null;
-};
-
 import { useState } from 'react';
 import { api } from '@/trpc/client';
 import { CreateEnquiryForm } from './_components/CreateEnquiryForm';
@@ -123,15 +70,17 @@ export default function EnquiriesPage() {
   if (error) return <div>Error: {error.message}</div>;
 
   // Filter enquiries based on search and status
-  const filteredEnquiries = enquiries?.filter((enquiry: Enquiry) => {
-    const customerName = enquiry.customer?.name ?? '';
+  const filteredEnquiries = enquiries?.filter((enquiry) => {
     const companyName = enquiry.company?.name ?? '';
-    const entityName = companyName || customerName; // Prefer company name if available
+    const entityName = companyName;
+    
+    const subjectStr = String(enquiry.subject ?? '');
+    const marketingPersonName = enquiry.marketingPerson?.name ?? '';
     
     const matchesSearch = 
-      (enquiry.subject ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      subjectStr.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entityName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (enquiry.marketingPerson?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase());
+      marketingPersonName.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || enquiry.status === statusFilter;
     
@@ -175,7 +124,7 @@ export default function EnquiriesPage() {
   };
 
   const handleEditEnquiry = (enquiryId: number) => {
-    const enquiry = enquiries?.find((e: Enquiry) => e.id === enquiryId);
+    const enquiry = enquiries?.find((e) => e.id === enquiryId);
     if (enquiry) {
       setEditingEnquiry(enquiryId);
       setEditData({
@@ -409,7 +358,7 @@ export default function EnquiriesPage() {
                         </td>
                       </tr>
                     ) : filteredEnquiries.length > 0 ? (
-                      filteredEnquiries.map((enquiry: Enquiry) => (
+                      filteredEnquiries.map((enquiry) => (
                         <tr key={enquiry.id} className="hover:bg-gray-50 data-[state=selected]:bg-muted border-b transition-colors">
                                                      <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900">
                              #{enquiry.id.toString().slice(-8)}
@@ -424,7 +373,7 @@ export default function EnquiriesPage() {
                              </div>
                            </td>
                           <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900">
-                            {enquiry.company?.name ?? enquiry.customer?.name ?? 'N/A'}
+                            {enquiry.company?.name ?? 'N/A'}
                           </td>
                           <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-500">
                             {new Date(enquiry.createdAt).toLocaleDateString()}
@@ -621,7 +570,7 @@ export default function EnquiriesPage() {
                   </button>
                 </div>
                 {(() => {
-                  const enquiry = enquiries?.find((e: Enquiry) => e.id === viewingEnquiry);
+                  const enquiry = enquiries?.find((e) => e.id === viewingEnquiry);
                   if (!enquiry) return <div>Enquiry not found</div>;
                   
                   return (
