@@ -211,7 +211,6 @@ export function generateCustomerExportData(customers: any[]): Record<string, str
       'Phone Number': primaryContact?.phoneNumber ?? '',
       'Email ID': primaryContact?.emailId ?? '',
       'Created Date': customer.createdAt.toLocaleDateString(),
-      'Created By': customer.createdBy?.name ?? '',
       'Office Locations': Array.isArray(customer.offices)
         ? customer.offices.map((office: any) => office.name).join(', ')
         : '',

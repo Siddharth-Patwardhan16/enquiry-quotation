@@ -121,7 +121,6 @@ export function exportCustomersToJSON(customers: CompanyApiResponse[], filename?
       website: customer.website,
       industry: customer.industry,
       createdAt: customer.createdAt,
-      createdBy: customer.createdBy,
       offices: customer.offices,
       plants: customer.plants,
       contactPersons: customer.contactPersons,
