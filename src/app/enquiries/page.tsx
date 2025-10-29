@@ -13,6 +13,13 @@ type Enquiry = {
   notes: string | null;
   quotationNumber: string | null;
   status: string;
+  region: string | null;
+  oaNumber: string | null;
+  dateOfReceipt: Date | null;
+  blockModel: string | null;
+  numberOfBlocks: number | null;
+  designRequired: string | null;
+  customerType: string | null;
   createdAt: Date;
   updatedAt: Date;
   customerId: string | null;
@@ -21,6 +28,7 @@ type Enquiry = {
   officeId: string | null;
   plantId: string | null;
   marketingPersonId: string | null;
+  attendedById: string | null;
   customer?: {
     name: string;
   } | null;
@@ -34,6 +42,11 @@ type Enquiry = {
     name: string;
   } | null;
   marketingPerson?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+  attendedBy?: {
     id: string;
     name: string;
     email: string;
@@ -128,25 +141,27 @@ export default function EnquiriesPage() {
   // Use backend stats if available, otherwise show loading
   const displayStats = stats ? {
     total: stats.total,
-    new: stats.new,
-    inProgress: stats.inProgress,
-    quoted: stats.quoted
+    live: stats.live,
+    dead: stats.dead,
+    rcd: stats.rcd,
+    lost: stats.lost
   } : {
     total: 0,
-    new: 0,
-    inProgress: 0,
-    quoted: 0
+    live: 0,
+    dead: 0,
+    rcd: 0,
+    lost: 0
   };
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      'NEW': { color: 'bg-blue-100 text-blue-800', label: 'New' },
-      'IN_PROGRESS': { color: 'bg-orange-100 text-orange-800', label: 'In Progress' },
-      'QUOTED': { color: 'bg-purple-100 text-purple-800', label: 'Quoted' },
-      'CLOSED': { color: 'bg-gray-100 text-gray-800', label: 'Closed' }
+      'LIVE': { color: 'bg-green-100 text-green-800', label: 'Live' },
+      'DEAD': { color: 'bg-red-100 text-red-800', label: 'Dead' },
+      'RCD': { color: 'bg-blue-100 text-blue-800', label: 'RCD (Received)' },
+      'LOST': { color: 'bg-gray-100 text-gray-800', label: 'Lost' }
     };
     
-          const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['NEW'];
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['LIVE'];
     
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>
@@ -283,8 +298,8 @@ export default function EnquiriesPage() {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">New Enquiries</dt>
-                    <dd className="text-lg font-medium text-gray-900">{displayStats.new}</dd>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Live Enquiries</dt>
+                    <dd className="text-lg font-medium text-gray-900">{displayStats.live}</dd>
                   </dl>
                 </div>
               </div>
@@ -295,14 +310,14 @@ export default function EnquiriesPage() {
             <div className="p-5">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-orange-500 rounded-md flex items-center justify-center">
+                  <div className="w-8 h-8 bg-red-500 rounded-md flex items-center justify-center">
                     <Calendar className="w-5 h-5 text-white" />
                   </div>
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">In Progress</dt>
-                    <dd className="text-lg font-medium text-gray-900">{displayStats.inProgress}</dd>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Dead Enquiries</dt>
+                    <dd className="text-lg font-medium text-gray-900">{displayStats.dead}</dd>
                   </dl>
                 </div>
               </div>
@@ -313,14 +328,14 @@ export default function EnquiriesPage() {
             <div className="p-5">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
+                  <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
                     <User className="w-5 h-5 text-white" />
                   </div>
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Quoted</dt>
-                    <dd className="text-lg font-medium text-gray-900">{displayStats.quoted}</dd>
+                    <dt className="text-sm font-medium text-gray-500 truncate">RCD (Received)</dt>
+                    <dd className="text-lg font-medium text-gray-900">{displayStats.rcd}</dd>
                   </dl>
                 </div>
               </div>
@@ -354,13 +369,13 @@ export default function EnquiriesPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All Statuses</option>
-                <option value="NEW">New</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="QUOTED">Quoted</option>
-                <option value="CLOSED">Closed</option>
+                <option value="LIVE">Live</option>
+                <option value="DEAD">Dead</option>
+                <option value="RCD">RCD (Received)</option>
+                <option value="LOST">Lost</option>
               </select>
               <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-4 py-2">
                 <Filter className="h-4 w-4" />
@@ -501,7 +516,7 @@ export default function EnquiriesPage() {
                     <select
                       value={editData.priority}
                       onChange={(e) => setEditData({ ...editData, priority: e.target.value as 'Low' | 'Medium' | 'High' | 'Urgent' })}
-                      className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="Low">Low</option>
                       <option value="Medium">Medium</option>
@@ -516,7 +531,7 @@ export default function EnquiriesPage() {
                     <select
                       value={editData.source}
                       onChange={(e) => setEditData({ ...editData, source: e.target.value as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit' })}
-                      className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="Website">Website</option>
                       <option value="Email">Email</option>

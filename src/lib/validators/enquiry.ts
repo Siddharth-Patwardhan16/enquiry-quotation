@@ -1,32 +1,63 @@
 import { z } from 'zod';
 
 export const CreateEnquirySchema = z.object({
-  customerId: z.string().uuid('You must select a customer'), // Still needed for the form
-  locationId: z.string().uuid('You must select a location'),
-  subject: z.string().min(5, 'Subject must be at least 5 characters'),
-  description: z.string().min(10, 'Description must be at least 10 characters'),
+  customerId: z.string().optional(),
+  locationId: z.string().optional(),
+  subject: z.string().optional(),
+  description: z.string().optional(),
   requirements: z.string().optional(),
   timeline: z.string().optional(),
-  enquiryDate: z.string(),
-  priority: z.enum(['Low', 'Medium', 'High', 'Urgent']),
-  source: z.enum(['Website', 'Email', 'Phone', 'Referral', 'Trade Show', 'Social Media', 'Visit']),
+  enquiryDate: z.string().optional(),
+  priority: z.enum(['Low', 'Medium', 'High', 'Urgent']).optional(),
+  source: z.enum(['Website', 'Email', 'Phone', 'Referral', 'Trade Show', 'Social Media', 'Visit']).optional(),
   notes: z.string().optional(),
-  quotationNumber: z.string().min(1, 'Quotation number is required'),
-  entityType: z.enum(['customer', 'company']).optional(), // Track whether it's a customer or company
+  quotationNumber: z.string().optional(),
+  region: z.string().optional(),
+  oaNumber: z.string().optional(),
+  dateOfReceipt: z.string().optional(),
+  blockModel: z.string().optional(),
+  numberOfBlocks: z.number().optional(),
+  designRequired: z.enum(['Standard', 'Custom', 'Modified', 'None']).optional(),
+  attendedById: z.string().optional(),
+  customerType: z.enum(['NEW', 'OLD']).optional(),
+  status: z.enum(['LIVE', 'DEAD', 'RCD', 'LOST']).optional(),
+  entityType: z.enum(['customer', 'company']).optional(),
+}).refine((data) => {
+  // Only validate UUID format if the string is not empty
+  if (data.customerId && data.customerId.trim() !== '') {
+    return z.string().uuid().safeParse(data.customerId).success;
+  }
+  if (data.locationId && data.locationId.trim() !== '') {
+    return z.string().uuid().safeParse(data.locationId).success;
+  }
+  if (data.attendedById && data.attendedById.trim() !== '') {
+    return z.string().uuid().safeParse(data.attendedById).success;
+  }
+  return true;
+}, {
+  message: 'Invalid UUID format',
 });
 
 export const UpdateEnquirySchema = z.object({
   id: z.number(),
-  status: z.enum(['NEW', 'IN_PROGRESS', 'QUOTED', 'CLOSED']),
+  status: z.enum(['LIVE', 'DEAD', 'RCD', 'LOST']),
 });
 
 export const UpdateEnquiryFullSchema = z.object({
   id: z.number(),
-  subject: z.string().min(5, 'Subject must be at least 5 characters').optional(),
-  description: z.string().min(10, 'Description must be at least 10 characters').optional(),
+  subject: z.string().optional(),
+  description: z.string().optional(),
   requirements: z.string().optional(),
   timeline: z.string().optional(),
   priority: z.enum(['Low', 'Medium', 'High', 'Urgent']).optional(),
   source: z.enum(['Website', 'Email', 'Phone', 'Referral', 'Trade Show', 'Social Media', 'Visit']).optional(),
   notes: z.string().optional(),
+  region: z.string().optional(),
+  oaNumber: z.string().optional(),
+  dateOfReceipt: z.string().optional(),
+  blockModel: z.string().optional(),
+  numberOfBlocks: z.number().optional(),
+  designRequired: z.enum(['Standard', 'Custom', 'Modified', 'None']).optional(),
+  attendedById: z.string().uuid().optional(),
+  customerType: z.enum(['NEW', 'OLD']).optional(),
 });

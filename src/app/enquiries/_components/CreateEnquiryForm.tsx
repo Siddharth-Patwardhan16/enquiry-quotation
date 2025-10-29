@@ -98,6 +98,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
   // Fetch both customers and companies to populate the dropdown
   const { data: customers, isLoading: isLoadingCustomers } = api.company.getAll.useQuery();
   const { data: companies, isLoading: isLoadingCompanies } = api.company.getAll.useQuery();
+  const { data: employees, isLoading: isLoadingEmployees } = api.employee.getAll.useQuery();
   
   // Combine customers and companies into a unified list with deduplication
   const allEntities: Customer[] = (() => {
@@ -145,16 +146,20 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
     reset,
     control,
     setValue,
-    formState: { errors, isValid },
+    watch,
+    formState: { errors },
   } = useForm<FormData>({
-    resolver: zodResolver(CreateEnquirySchema),
+    resolver: zodResolver(CreateEnquirySchema) as any,
     defaultValues: {
       enquiryDate: new Date().toISOString().split('T')[0],
       priority: 'Medium' as const,
       source: 'Website' as const,
       quotationNumber: generateQuotationNumber(),
+      status: 'LIVE' as const,
+      customerType: 'NEW' as const,
+      designRequired: 'Standard' as const,
     },
-    mode: 'onChange',
+    mode: 'onSubmit', // Change to onSubmit to avoid validation issues while typing
   });
 
   // Watch for changes in the customer dropdown
@@ -197,6 +202,65 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
   
   const locations = isCompany ? companyLocations : customerLocations;
   const isLoadingLocations = isCompany ? false : isLoadingCustomerLocations;
+
+  // Watch for location changes to auto-populate region
+  const selectedLocationId = useWatch({ control, name: 'locationId' });
+  
+  useEffect(() => {
+    if (!selectedLocationId || !selectedCustomerId) {
+      // Clear region if no location or customer is selected
+      setValue('region', '');
+      return;
+    }
+
+    if (isCompany && companies) {
+      // For companies, get city/state from office or plant
+      const company = companies.find(c => c.id === selectedCustomerId);
+      if (company) {
+        const office = company.offices?.find(o => o.id === selectedLocationId);
+        const plant = company.plants?.find(p => p.id === selectedLocationId);
+        const location = office || plant;
+        
+        if (location) {
+          // Build region string from city and state
+          const regionParts: string[] = [];
+          if (location.city) {
+            regionParts.push(location.city);
+          }
+          if (location.state) {
+            regionParts.push(location.state);
+          }
+          if (location.country) {
+            regionParts.push(location.country);
+          }
+          
+          if (regionParts.length > 0) {
+            setValue('region', regionParts.join(', '));
+          } else {
+            setValue('region', '');
+          }
+        } else {
+          setValue('region', '');
+        }
+      }
+    } else if (!isCompany && customerLocations) {
+      // For legacy customers, try to get location data
+      const selectedLocation = customerLocations.find(loc => loc.id === selectedLocationId);
+      if (selectedLocation) {
+        // If location has city/state data, use it
+        const regionParts: string[] = [];
+        if ((selectedLocation as any).city) {
+          regionParts.push((selectedLocation as any).city);
+        }
+        if ((selectedLocation as any).state) {
+          regionParts.push((selectedLocation as any).state);
+        }
+        if (regionParts.length > 0) {
+          setValue('region', regionParts.join(', '));
+        }
+      }
+    }
+  }, [selectedLocationId, selectedCustomerId, isCompany, companies, customerLocations, setValue]);
 
   const createEnquiry = api.enquiry.create.useMutation({
     onSuccess: () => {
@@ -247,22 +311,25 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
     if (customer) {
       setValue('customerId', customer.id);
     } else {
-      setValue('customerId', '');
+      setValue('customerId', undefined);
     }
   };
 
   const onSubmit = (data: FormData) => {
-    if (!isValid) {
-      showError('Validation Error', 'Please fill in all required fields correctly.');
-      return;
-    }
+    // Clean up data: convert empty strings to undefined for optional UUID fields
+    const cleanedData: FormData = {
+      ...data,
+      customerId: data.customerId && data.customerId.trim() !== '' ? data.customerId : undefined,
+      locationId: data.locationId && data.locationId.trim() !== '' ? data.locationId : undefined,
+      attendedById: data.attendedById && data.attendedById.trim() !== '' ? data.attendedById : undefined,
+    };
     
-    // Use selectedCustomer to determine entity type
-    const entityType = selectedCustomer?.type === 'Company' ? 'company' : 'customer';
+    // Use selectedCustomer to determine entity type, or default to 'company' if no customer selected
+    const entityType = selectedCustomer?.type === 'Company' ? 'company' : (selectedCustomer ? 'customer' : 'company');
     
     setIsSubmitting(true);
     createEnquiry.mutate({
-      ...data,
+      ...cleanedData,
       entityType: entityType as 'customer' | 'company'
     });
   };
@@ -327,7 +394,6 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                 selectedCustomer={selectedCustomer}
                 onCustomerSelect={handleCustomerSelect}
                 loading={isLoadingEntities}
-                required
                 error={errors.customerId?.message}
                 placeholder="Search and select a customer..."
                 emptyMessage="No customers found"
@@ -343,12 +409,12 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
 
               <div className="space-y-2">
                 <label htmlFor="locationId" className="block text-sm font-medium text-gray-900">
-                  Location (Office/Plant) <span className="text-red-500">*</span>
+                  Location (Office/Plant)
                 </label>
                 <select
                   id="locationId"
                   {...register('locationId')}
-                  className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md text-black bg-white ${
+                  className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white ${
                     errors.locationId ? 'border-red-300' : ''
                   }`}
                   disabled={!selectedCustomerId || isLoadingLocations}
@@ -388,8 +454,56 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
             <div className="px-6 pb-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
+                  <label htmlFor="enquiryDate" className="block text-sm font-medium text-gray-900">
+                    Enquiry Date
+                  </label>
+                  <input
+                    type="date"
+                    id="enquiryDate"
+                    {...register('enquiryDate')}
+                    className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="region" className="block text-sm font-medium text-gray-900">
+                    Region
+                  </label>
+                  <input
+                    id="region"
+                    {...register('region')}
+                    className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                    placeholder="Auto-filled from location or enter manually"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="oaNumber" className="block text-sm font-medium text-gray-900">
+                    O.A. No. (Order Acknowledge Number)
+                  </label>
+                  <input
+                    id="oaNumber"
+                    {...register('oaNumber')}
+                    className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                    placeholder="Enter O.A. number"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="dateOfReceipt" className="block text-sm font-medium text-gray-900">
+                    Date of Receipt
+                  </label>
+                  <input
+                    type="date"
+                    id="dateOfReceipt"
+                    {...register('dateOfReceipt')}
+                    className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <label htmlFor="subject" className="block text-sm font-medium text-gray-900">
-                    Subject <span className="text-red-500">*</span>
+                    Subject
                   </label>
                   <input
                     id="subject"
@@ -405,20 +519,71 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="enquiryDate" className="block text-sm font-medium text-gray-900">
-                    Enquiry Date <span className="text-red-500">*</span>
+                  <label htmlFor="blockModel" className="block text-sm font-medium text-gray-900">
+                    Block Model
                   </label>
                   <input
-                    type="date"
-                    id="enquiryDate"
-                    {...register('enquiryDate')}
+                    id="blockModel"
+                    {...register('blockModel')}
                     className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                    placeholder="Enter block model"
                   />
                 </div>
 
                 <div className="space-y-2">
+                  <label htmlFor="numberOfBlocks" className="block text-sm font-medium text-gray-900">
+                    No. of Blocks
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    id="numberOfBlocks"
+                    {...register('numberOfBlocks', { valueAsNumber: true })}
+                    className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                    placeholder="Enter number of blocks"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="designRequired" className="block text-sm font-medium text-gray-900">
+                    Design Required
+                  </label>
+                  <select
+                    id="designRequired"
+                    {...register('designRequired')}
+                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                  >
+                    <option value="Standard" className="text-black bg-white">Standard</option>
+                    <option value="Custom" className="text-black bg-white">Custom</option>
+                    <option value="Modified" className="text-black bg-white">Modified</option>
+                    <option value="None" className="text-black bg-white">None</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="attendedById" className="block text-sm font-medium text-gray-900">
+                    Attended By
+                  </label>
+                  <select
+                    id="attendedById"
+                    {...register('attendedById')}
+                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                    disabled={isLoadingEmployees}
+                  >
+                    <option value="" className="text-black bg-white">
+                      {isLoadingEmployees ? 'Loading employees...' : 'Select employee'}
+                    </option>
+                    {employees?.map((employee) => (
+                      <option key={employee.id} value={employee.id} className="text-black bg-white">
+                        {employee.name} ({employee.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
                   <label htmlFor="quotationNumber" className="block text-sm font-medium text-gray-900">
-                    Quotation Number <span className="text-red-500">*</span>
+                    Quotation Ref. Number
                   </label>
                   <input
                     id="quotationNumber"
@@ -433,8 +598,50 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                   )}
                 </div>
 
+                <div className="space-y-2">
+                  <label htmlFor="status" className="block text-sm font-medium text-gray-900">
+                    Status
+                  </label>
+                  <select
+                    id="status"
+                    {...register('status')}
+                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                  >
+                    <option value="LIVE" className="text-black bg-white">LIVE</option>
+                    <option value="DEAD" className="text-black bg-white">DEAD</option>
+                    <option value="RCD" className="text-black bg-white">RCD (Received)</option>
+                    <option value="LOST" className="text-black bg-white">LOST</option>
+                  </select>
+                </div>
 
+                <div className="space-y-2">
+                  <label htmlFor="customerType" className="block text-sm font-medium text-gray-900">
+                    New/Old Customer
+                  </label>
+                  <select
+                    id="customerType"
+                    {...register('customerType')}
+                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                  >
+                    <option value="NEW" className="text-black bg-white">NEW</option>
+                    <option value="OLD" className="text-black bg-white">OLD</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
 
+          {/* Additional Details */}
+          <div className="bg-white rounded-xl border shadow-sm">
+            <div className="px-6 pt-6">
+              <h4 className="text-lg font-semibold text-gray-900 flex items-center">
+                <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                Additional Details
+              </h4>
+              <p className="text-gray-900 text-sm">Optional additional information</p>
+            </div>
+            <div className="px-6 pb-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label htmlFor="priority" className="block text-sm font-medium text-gray-900">
                     Priority
@@ -442,7 +649,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                   <select
                     id="priority"
                     {...register('priority')}
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md text-black bg-white"
+                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
                   >
                     <option value="Low" className="text-black bg-white">Low</option>
                     <option value="Medium" className="text-black bg-white">Medium</option>
@@ -458,7 +665,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                   <select
                     id="source"
                     {...register('source')}
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md text-black bg-white"
+                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
                   >
                     <option value="Website" className="text-black bg-white">Website</option>
                     <option value="Email" className="text-black bg-white">Email</option>
@@ -470,12 +677,34 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                   </select>
                 </div>
 
+                <div className="space-y-2">
+                  <label htmlFor="timeline" className="block text-sm font-medium text-gray-900">
+                    Timeline
+                  </label>
+                  <input
+                    id="timeline"
+                    {...register('timeline')}
+                    className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                    placeholder="e.g., 2-3 weeks"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="requirements" className="block text-sm font-medium text-gray-900">
+                    Requirements
+                  </label>
+                  <input
+                    id="requirements"
+                    {...register('requirements')}
+                    className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                    placeholder="e.g., Specific requirements"
+                  />
+                </div>
               </div>
-            </div>
 
               <div className="space-y-2">
                 <label htmlFor="description" className="block text-sm font-medium text-gray-900">
-                  Description <span className="text-red-500">*</span>
+                  Description
                 </label>
                 <textarea
                   id="description"
@@ -489,9 +718,19 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                 {errors.description && (
                   <p className="mt-2 text-sm text-red-600">{errors.description.message}</p>
                 )}
-                <p className="mt-2 text-sm text-gray-900 pl-3 pb-2">
-                  Minimum 10 characters required
-                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="notes" className="block text-sm font-medium text-gray-900">
+                  Notes
+                </label>
+                <textarea
+                  id="notes"
+                  {...register('notes')}
+                  rows={3}
+                  className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white placeholder-gray-500"
+                  placeholder="Additional notes..."
+                />
               </div>
             </div>
           </div>
@@ -507,7 +746,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
             </button>
             <button
               type="submit" 
-              disabled={isSubmitting || !isValid} 
+              disabled={isSubmitting} 
               className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 px-4 py-2"
             >
               {isSubmitting ? (
@@ -523,6 +762,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
               )}
             </button>
           </div>
+        </div>
         </form>
       </div>
     </div>

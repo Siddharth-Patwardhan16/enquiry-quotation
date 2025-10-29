@@ -10,44 +10,56 @@ export const quotationRouter = createTRPCRouter({
   create: publicProcedure
     .input(CreateQuotationSchema)
     .mutation(async ({ ctx, input }) => {
-      const { enquiryId, items, quotationDate, ...rest } = input;
+      const { enquiryId, items = [], quotationDate, ...rest } = input;
 
-      // Get the enquiry to retrieve its quotation number
-      const enquiry = await db.enquiry.findUnique({
-        where: { id: enquiryId },
-        select: { quotationNumber: true, subject: true }
-      });
-
-      if (!enquiry) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Enquiry not found',
+      // Generate quotation number - use enquiry's quotation number if available, otherwise generate default
+      let quotationNumber: string;
+      
+      if (enquiryId) {
+        // Get the enquiry to retrieve its quotation number
+        const enquiry = await db.enquiry.findUnique({
+          where: { id: enquiryId },
+          select: { quotationNumber: true, subject: true }
         });
+
+        if (enquiry?.quotationNumber) {
+          quotationNumber = enquiry.quotationNumber;
+          
+          // Check for duplicate quotation number before creating
+          const existingQuotation = await db.quotation.findUnique({
+            where: { quotationNumber },
+          });
+
+          if (existingQuotation) {
+            throw new TRPCError({
+              code: 'CONFLICT',
+              message: `Quotation number "${quotationNumber}" already exists. Please use a different quotation number.`,
+            });
+          }
+        } else {
+          // Generate default quotation number if enquiry doesn't have one
+          const now = new Date();
+          const year = now.getFullYear();
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          const timestamp = now.getTime().toString().slice(-6);
+          quotationNumber = `Q${year}${month}${timestamp}`;
+        }
+      } else {
+        // Generate default quotation number if no enquiry is selected
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const timestamp = now.getTime().toString().slice(-6);
+        quotationNumber = `Q${year}${month}${timestamp}`;
       }
 
-      if (!enquiry.quotationNumber) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Selected enquiry does not have a quotation number assigned',
-        });
-      }
-
-      const quotationNumber = enquiry.quotationNumber;
-
-      // Check for duplicate quotation number before creating
-      const existingQuotation = await db.quotation.findUnique({
-        where: { quotationNumber },
-      });
-
-      if (existingQuotation) {
-        throw new TRPCError({
-          code: 'CONFLICT',
-          message: `Quotation number "${quotationNumber}" already exists. Please use a different quotation number.`,
-        });
-      }
-
-      // Calculate totals
-      const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.pricePerUnit), 0);
+      // Calculate totals - handle empty items array
+      const itemsArray = items || [];
+      const subtotal = itemsArray.reduce((sum, item) => {
+        const quantity = Number(item.quantity) || 0;
+        const pricePerUnit = Number(item.pricePerUnit) || 0;
+        return sum + (quantity * pricePerUnit);
+      }, 0);
       const totalValue = subtotal;
 
       // Prisma Transaction: This ensures that both the quotation and all its items are created successfully.
@@ -57,7 +69,7 @@ export const quotationRouter = createTRPCRouter({
           // 1. Create the main Quotation record
           const newQuotation = await prisma.quotation.create({
             data: {
-              enquiryId,
+              enquiryId: enquiryId ?? null,
               quotationNumber,
               subtotal,
               tax: 0,
@@ -68,17 +80,27 @@ export const quotationRouter = createTRPCRouter({
             },
           });
 
-          // 2. Prepare the data for all QuotationItem records with totals
-          const itemsToCreate = items.map((item) => ({
-            ...item,
-            total: item.quantity * item.pricePerUnit,
-            quotationId: newQuotation.id, // Link each item to the new quotation
-          }));
+          // 2. Prepare the data for all QuotationItem records with totals (only if items array is not empty)
+          if (itemsArray.length > 0) {
+            const itemsToCreate = itemsArray.map((item) => {
+              const quantity = Number(item.quantity) || 0;
+              const pricePerUnit = Number(item.pricePerUnit) || 0;
+              const materialDescription: string = item.materialDescription ?? 'Unnamed Item';
+              return {
+                materialDescription,
+                specifications: item.specifications ?? null,
+                quantity,
+                pricePerUnit,
+                total: quantity * pricePerUnit,
+                quotationId: newQuotation.id, // Link each item to the new quotation
+              };
+            });
 
-          // 3. Create all QuotationItem records in one go
-          await prisma.quotationItem.createMany({
-            data: itemsToCreate,
-          });
+            // 3. Create all QuotationItem records in one go
+            await prisma.quotationItem.createMany({
+              data: itemsToCreate,
+            });
+          }
 
           return newQuotation;
         });

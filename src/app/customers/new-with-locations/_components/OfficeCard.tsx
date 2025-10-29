@@ -65,7 +65,7 @@ export function OfficeCard({ index, onRemove }: OfficeCardProps) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-3">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Address *
+            Address
           </label>
           <textarea
             {...register(`offices.${index}.address`)}
@@ -80,7 +80,7 @@ export function OfficeCard({ index, onRemove }: OfficeCardProps) {
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Area/Zone
+            Location
           </label>
           <input
             {...register(`offices.${index}.area`)}
@@ -91,7 +91,7 @@ export function OfficeCard({ index, onRemove }: OfficeCardProps) {
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            City *
+            City
           </label>
           <input
             {...register(`offices.${index}.city`)}
@@ -105,7 +105,7 @@ export function OfficeCard({ index, onRemove }: OfficeCardProps) {
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            State *
+            State
           </label>
           {watchedCountry === 'India' ? (
             <select
@@ -131,7 +131,7 @@ export function OfficeCard({ index, onRemove }: OfficeCardProps) {
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Country *
+            Country
           </label>
           <select
             {...register(`offices.${index}.country`)}
@@ -145,17 +145,6 @@ export function OfficeCard({ index, onRemove }: OfficeCardProps) {
           {errors.offices?.[index]?.country && (
             <p className="mt-1 text-sm text-red-600">{errors.offices[index]?.country?.message}</p>
           )}
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            PIN Code
-          </label>
-          <input
-            {...register(`offices.${index}.pincode`)}
-            placeholder="e.g., 400001"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
         </div>
       </div>
       
@@ -238,7 +227,7 @@ function ContactPersonForm({ officeIndex, contactIndex, onRemove }: ContactPerso
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center">
             <User className="w-3 h-3 mr-1" />
-            Name *
+            Name
           </label>
           <input
             {...register(`offices.${officeIndex}.contacts.${contactIndex}.name`)}
@@ -252,7 +241,7 @@ function ContactPersonForm({ officeIndex, contactIndex, onRemove }: ContactPerso
         
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
-            Designation *
+            Designation
           </label>
           <input
             {...register(`offices.${officeIndex}.contacts.${contactIndex}.designation`)}
@@ -267,7 +256,7 @@ function ContactPersonForm({ officeIndex, contactIndex, onRemove }: ContactPerso
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center">
             <Phone className="w-3 h-3 mr-1" />
-            Phone Number *
+            Phone Number
           </label>
           <input
             {...register(`offices.${officeIndex}.contacts.${contactIndex}.phoneNumber`)}
@@ -283,7 +272,7 @@ function ContactPersonForm({ officeIndex, contactIndex, onRemove }: ContactPerso
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center">
             <Mail className="w-3 h-3 mr-1" />
-            Email *
+            Email
           </label>
           <input
             {...register(`offices.${officeIndex}.contacts.${contactIndex}.emailId`)}

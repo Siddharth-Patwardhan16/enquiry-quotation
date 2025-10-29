@@ -255,7 +255,7 @@ export default function EditQuotationPage() {
                 <div className="grid grid-cols-1 md:grid-cols-6 items-end gap-4">
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Description <span className="text-red-500">*</span>
+                      Description
                     </label>
                     <input 
                       {...register(`items.${index}.materialDescription`)} 
@@ -269,12 +269,12 @@ export default function EditQuotationPage() {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Quantity <span className="text-red-500">*</span>
+                      Quantity
                     </label>
                     <input 
                       type="number" 
                       {...register(`items.${index}.quantity`)} 
-                      min="1"
+                      min="0"
                       className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
                     />
                     {errors.items?.[index]?.quantity && (
@@ -284,7 +284,7 @@ export default function EditQuotationPage() {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Price/Unit <span className="text-red-500">*</span>
+                      Price/Unit
                     </label>
                     <input 
                       type="number" 

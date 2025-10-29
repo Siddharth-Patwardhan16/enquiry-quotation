@@ -7,19 +7,24 @@ export const companyRouter = createTRPCRouter({
     .input(companyFormSchema)
     .mutation(async ({ ctx, input }) => {
       return ctx.prisma.$transaction(async (prisma) => {
-        // Check if company with same name already exists
-        const existingCompany = await prisma.company.findUnique({
-          where: { name: input.companyName }
-        });
+        // Generate default company name if empty
+        const companyName = input.companyName?.trim() || `Unnamed Company ${Date.now()}`;
 
-        if (existingCompany) {
-          throw new Error(`A company with the name "${input.companyName}" already exists. Please choose a different name.`);
+        // Check if company with same name already exists (only if name was provided)
+        if (input.companyName?.trim()) {
+          const existingCompany = await prisma.company.findUnique({
+            where: { name: companyName }
+          });
+
+          if (existingCompany) {
+            throw new Error(`A company with the name "${companyName}" already exists. Please choose a different name.`);
+          }
         }
 
         // Create company
         const company = await prisma.company.create({
           data: {
-            name: input.companyName,
+            name: companyName,
             // Purchase Order fields
             poRuptureDiscs: input.poRuptureDiscs,
             poThermowells: input.poThermowells,
@@ -31,30 +36,36 @@ export const companyRouter = createTRPCRouter({
           }
         });
 
-        // Create offices with contacts
-        for (const office of input.offices) {
+        // Create offices with contacts (handle empty array)
+        const offices = input.offices || [];
+        for (let index = 0; index < offices.length; index++) {
+          const office = offices[index];
+          // Generate default office name if empty
+          const officeName = office.name?.trim() || `Unnamed Office ${index + 1}`;
+          
           const createdOffice = await prisma.office.create({
             data: {
               companyId: company.id,
-              name: office.name,
-              address: office.address,
+              name: officeName,
+              address: office.address ?? null,
               area: office.area ?? null,
-              city: office.city,
-              state: office.state,
-              country: office.country,
+              city: office.city ?? null,
+              state: office.state ?? null,
+              country: office.country ?? null,
               pincode: office.pincode ?? null,
-              isHeadOffice: input.offices.indexOf(office) === 0 // First office is head office
+              isHeadOffice: index === 0 // First office is head office
             }
           });
 
           // Create contacts for this office
-          if (office.contacts.length > 0) {
+          const contacts = office.contacts || [];
+          if (contacts.length > 0) {
             await prisma.contactPerson.createMany({
-              data: office.contacts.map(contact => ({
-                name: contact.name,
-                designation: contact.designation,
-                phoneNumber: contact.phoneNumber,
-                emailId: contact.emailId,
+              data: contacts.map(contact => ({
+                name: contact.name ?? null,
+                designation: contact.designation ?? null,
+                phoneNumber: contact.phoneNumber ?? null,
+                emailId: contact.emailId ?? null,
                 isPrimary: contact.isPrimary,
                 officeId: createdOffice.id,
                 companyId: company.id
@@ -63,30 +74,36 @@ export const companyRouter = createTRPCRouter({
           }
         }
 
-        // Create plants with contacts
-        for (const plant of input.plants) {
+        // Create plants with contacts (handle empty array)
+        const plants = input.plants || [];
+        for (let index = 0; index < plants.length; index++) {
+          const plant = plants[index];
+          // Generate default plant name if empty
+          const plantName = plant.name?.trim() || `Unnamed Plant ${index + 1}`;
+          
           const createdPlant = await prisma.plant.create({
             data: {
               companyId: company.id,
-              name: plant.name,
-              address: plant.address,
+              name: plantName,
+              address: plant.address ?? null,
               area: plant.area ?? null,
-              city: plant.city,
-              state: plant.state,
-              country: plant.country,
+              city: plant.city ?? null,
+              state: plant.state ?? null,
+              country: plant.country ?? null,
               pincode: plant.pincode ?? null,
               plantType: 'Manufacturing'
             }
           });
 
           // Create contacts for this plant
-          if (plant.contacts.length > 0) {
+          const contacts = plant.contacts || [];
+          if (contacts.length > 0) {
             await prisma.contactPerson.createMany({
-              data: plant.contacts.map(contact => ({
-                name: contact.name,
-                designation: contact.designation,
-                phoneNumber: contact.phoneNumber,
-                emailId: contact.emailId,
+              data: contacts.map(contact => ({
+                name: contact.name ?? null,
+                designation: contact.designation ?? null,
+                phoneNumber: contact.phoneNumber ?? null,
+                emailId: contact.emailId ?? null,
                 isPrimary: contact.isPrimary,
                 plantId: createdPlant.id,
                 companyId: company.id

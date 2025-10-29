@@ -3,7 +3,7 @@ import { CompanyFormData } from '../_types/company.types';
 
 // Contact Person validation
 export const contactPersonSchema = z.object({
-  name: z.string().min(1, 'Contact name is required'),
+  name: z.string().optional(),
   designation: z.string().optional(),
   phoneNumber: z.string().optional(),
   emailId: z.string().optional(),
@@ -22,23 +22,23 @@ export const addressSchema = z.object({
 
 // Office validation
 export const officeSchema = z.object({
-  name: z.string().min(1, 'Office name is required'),
+  name: z.string().optional(),
   ...addressSchema.shape,
   contacts: z.array(contactPersonSchema)
 });
 
 // Plant validation
 export const plantSchema = z.object({
-  name: z.string().min(1, 'Plant name is required'),
+  name: z.string().optional(),
   ...addressSchema.shape,
   contacts: z.array(contactPersonSchema)
 });
 
 // Company form validation
 export const companyFormSchema = z.object({
-  companyName: z.string().min(1, 'Company name is required'),
-  offices: z.array(officeSchema).min(1, 'At least one office is required'),
-  plants: z.array(plantSchema),
+  companyName: z.string().optional(),
+  offices: z.array(officeSchema).optional(),
+  plants: z.array(plantSchema).optional(),
   // Purchase Order fields
   poRuptureDiscs: z.boolean(),
   poThermowells: z.boolean(),

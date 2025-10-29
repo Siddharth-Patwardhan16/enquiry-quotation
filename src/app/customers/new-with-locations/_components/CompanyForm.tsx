@@ -21,16 +21,7 @@ export function CompanyForm() {
     resolver: zodResolver(companyFormSchema),
     defaultValues: {
       companyName: '',
-      offices: [{
-        name: '',
-        address: '',
-        area: '',
-        city: '',
-        state: '',
-        country: 'India',
-        pincode: '',
-        contacts: []
-      }],
+      offices: [],
       plants: [],
       // Purchase Order fields
       poRuptureDiscs: false,
@@ -146,7 +137,7 @@ export function CompanyForm() {
             {/* Submit Buttons */}
             <div className="flex justify-between items-center bg-white p-6 rounded-lg shadow-sm border">
               <div className="text-sm text-gray-600">
-                Make sure all required fields are filled out correctly
+                All fields are optional. You can submit an empty form.
               </div>
               <div className="flex space-x-4">
                 <button 

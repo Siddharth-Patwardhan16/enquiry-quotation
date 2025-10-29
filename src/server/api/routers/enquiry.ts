@@ -17,7 +17,7 @@ export const enquiryRouter = createTRPCRouter({
       let officeId = null;
       let plantId = null;
       
-      if (input.entityType === 'company') {
+      if (input.entityType === 'company' && input.locationId) {
         // Check if the location is an office or plant
         const office = await db.office.findUnique({
           where: { id: input.locationId }
@@ -46,13 +46,21 @@ export const enquiryRouter = createTRPCRouter({
           description: input.description,
           requirements: input.requirements,
           timeline: input.timeline,
-          enquiryDate: new Date(input.enquiryDate),
+          enquiryDate: input.enquiryDate ? new Date(input.enquiryDate) : null,
           marketingPersonId: ctx.currentUser?.id ?? marketingPerson?.id ?? null,
+          attendedById: input.attendedById,
           priority: input.priority,
           source: input.source,
           notes: input.notes,
           quotationNumber: input.quotationNumber,
-          status: 'NEW',
+          region: input.region,
+          oaNumber: input.oaNumber,
+          dateOfReceipt: input.dateOfReceipt ? new Date(input.dateOfReceipt) : null,
+          blockModel: input.blockModel,
+          numberOfBlocks: input.numberOfBlocks,
+          designRequired: input.designRequired,
+          customerType: input.customerType,
+          status: input.status ?? 'LIVE',
         },
       });
     }),
@@ -84,24 +92,33 @@ export const enquiryRouter = createTRPCRouter({
             email: true,
           },
         },
+        attendedBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
       },
     });
   }),
 
   // Get enquiry statistics - moved from frontend calculations
   getStats: publicProcedure.query(async () => {
-    const [total, newCount, inProgress, quoted] = await Promise.all([
+    const [total, liveCount, deadCount, rcdCount, lostCount] = await Promise.all([
       db.enquiry.count(),
-      db.enquiry.count({ where: { status: 'NEW' } }),
-      db.enquiry.count({ where: { status: 'IN_PROGRESS' } }),
-      db.enquiry.count({ where: { status: 'QUOTED' } })
+      db.enquiry.count({ where: { status: 'LIVE' } }),
+      db.enquiry.count({ where: { status: 'DEAD' } }),
+      db.enquiry.count({ where: { status: 'RCD' } }),
+      db.enquiry.count({ where: { status: 'LOST' } })
     ]);
 
     return {
       total,
-      new: newCount,
-      inProgress,
-      quoted
+      live: liveCount,
+      dead: deadCount,
+      rcd: rcdCount,
+      lost: lostCount
     };
   }),
 

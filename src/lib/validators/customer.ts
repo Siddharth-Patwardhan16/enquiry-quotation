@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const CreateCustomerSchema = z.object({
-  name: z.string().min(2, 'Customer name is required'),
+  name: z.string().optional(),
   
   // Office Information
   officeName: z.string().optional(),

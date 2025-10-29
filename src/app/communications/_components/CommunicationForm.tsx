@@ -18,7 +18,7 @@ const CommunicationSchema = z.object({
   subject: z.string().optional(),
   description: z.string().optional(),
   enquiryRelated: z.string().optional(), // Link to enquiry for tracking
-  type: z.enum(['TELEPHONIC', 'VIRTUAL_MEETING', 'EMAIL', 'PLANT_VISIT', 'OFFICE_VISIT']),
+  type: z.enum(['TELEPHONIC', 'VIRTUAL_MEETING', 'EMAIL', 'PLANT_VISIT', 'OFFICE_VISIT']).default('TELEPHONIC'),
   nextCommunicationDate: z.string().optional(),
   proposedNextAction: z.string().optional(),
 });
@@ -85,11 +85,11 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
     resolver: zodResolver(CommunicationSchema),
     defaultValues: {
       date: new Date().toISOString().split('T')[0],
-      type: 'TELEPHONIC',
+      type: 'TELEPHONIC' as const,
       ...(initialData ? {
         companyId: initialData.companyId ?? undefined,
         subject: initialData.subject,
-                description: initialData.description,
+        description: initialData.description,
         type: initialData.type,
         enquiryRelated: initialData.enquiryRelated ?? undefined,
         nextCommunicationDate: initialData.nextCommunicationDate?.toISOString().split('T')[0] ?? undefined,

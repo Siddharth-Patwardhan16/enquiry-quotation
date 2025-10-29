@@ -38,7 +38,7 @@ export default function NewQuotationPage() {
     defaultValues: {
       currency: 'INR',
       revisionNumber: 0,
-      items: [{ materialDescription: '', quantity: 1, pricePerUnit: 0 }],
+      items: [],
     },
   });
 
@@ -168,13 +168,13 @@ export default function NewQuotationPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Enquiry <span className="text-red-500">*</span>
+                Enquiry
               </label>
               <select 
                 {...register('enquiryId')} 
                 className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">{isLoadingEnquiries ? "Loading..." : "Select Enquiry"}</option>
+                <option value="">{isLoadingEnquiries ? "Loading..." : "Select Enquiry (Optional)"}</option>
                 {enquiries?.map((e: Enquiry) => (
                   <option key={e.id} value={e.id}>
                     {e.company?.name} - {e.subject}
@@ -229,19 +229,32 @@ export default function NewQuotationPage() {
             </button>
           </div>
           
-          {fields.map((field, index) => {
-            const item = watchedItems[index];
-                  const quantity = Number(item?.quantity) ?? 0;
-      const pricePerUnit = Number(item?.pricePerUnit) ?? 0;
-            const itemTotal = quantity * pricePerUnit;
-            
-                         return (
-               <div key={field.id} className="space-y-4 border-b border-gray-200 pb-4 mb-4">
+          {fields.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+              <p>No items added yet. All fields are optional - you can submit without any items.</p>
+              <button
+                type="button"
+                onClick={() => append({ materialDescription: '', quantity: 0, pricePerUnit: 0 })}
+                className="mt-4 inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+              >
+                <Plus className="h-4 w-4" />
+                Add First Item
+              </button>
+            </div>
+          ) : (
+            fields.map((field, index) => {
+              const item = watchedItems[index];
+              const quantity = Number(item?.quantity) ?? 0;
+              const pricePerUnit = Number(item?.pricePerUnit) ?? 0;
+              const itemTotal = quantity * pricePerUnit;
+              
+              return (
+                <div key={field.id} className="space-y-4 border-b border-gray-200 pb-4 mb-4">
                  {/* First Row: Description, Quantity, Price/Unit, Total, Remove */}
                  <div className="grid grid-cols-1 md:grid-cols-6 items-end gap-4">
                    <div className="md:col-span-2">
                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                       Description <span className="text-red-500">*</span>
+                       Description
                      </label>
                      <input 
                        {...register(`items.${index}.materialDescription`)} 
@@ -255,7 +268,7 @@ export default function NewQuotationPage() {
                    
                    <div>
                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                       Quantity <span className="text-red-500">*</span>
+                       Quantity
                      </label>
                      <input 
                        type="number" 
@@ -270,7 +283,7 @@ export default function NewQuotationPage() {
                    
                    <div>
                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                       Price/Unit <span className="text-red-500">*</span>
+                       Price/Unit
                      </label>
                      <input 
                        type="number" 
@@ -318,8 +331,9 @@ export default function NewQuotationPage() {
                    />
                  </div>
                </div>
-             );
-          })}
+              );
+            })
+          )}
           
           {errors.items && <p className="text-red-500 text-sm">{errors.items.message}</p>}
           

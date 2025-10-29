@@ -19,6 +19,7 @@ model Employee {
   createdCompanies  Company[]       @relation("CompanyCreatedBy")
   createdCustomers  Customer[]      @relation("CustomerCreatedBy")
   enquiries         Enquiry[]
+  attendedEnquiries Enquiry[]       @relation("EnquiryAttendedBy")
   createdQuotations Quotation[]     @relation("QuotationCreatedBy")
 }
 
@@ -159,7 +160,7 @@ model Contact {
 
 model Enquiry {
   id                Int           @id @default(autoincrement())
-  subject           String
+  subject           String?
   description       String?
   requirements      String?
   timeline          String?
@@ -167,15 +168,23 @@ model Enquiry {
   priority          String?
   source            String?
   notes             String?
-  status            EnquiryStatus @default(NEW)
+  status            EnquiryStatus @default(LIVE)
   regretReason      String?
   quotationNumber   String?       @unique
+  region            String?
+  oaNumber          String?
+  dateOfReceipt     DateTime?
+  blockModel        String?
+  numberOfBlocks    Decimal?
+  designRequired    String?
+  customerType      String?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   locationId        String?
   officeId          String?
   plantId           String?
   marketingPersonId String?
+  attendedById      String?
   customerId        String?
   companyId         String?
   documents         Document[]
@@ -183,6 +192,7 @@ model Enquiry {
   customer          Customer?     @relation(fields: [customerId], references: [id], onDelete: Cascade)
   location          Location?     @relation(fields: [locationId], references: [id], onDelete: Cascade)
   marketingPerson   Employee?     @relation(fields: [marketingPersonId], references: [id])
+  attendedBy        Employee?     @relation("EnquiryAttendedBy", fields: [attendedById], references: [id])
   office            Office?       @relation(fields: [officeId], references: [id], onDelete: Cascade)
   plant             Plant?        @relation(fields: [plantId], references: [id], onDelete: Cascade)
   quotations        Quotation[]
@@ -214,10 +224,10 @@ model Quotation {
   createdAt                   DateTime        @default(now())
   updatedAt                   DateTime        @updatedAt
   createdById                 String?
-  enquiryId                   Int
+  enquiryId                   Int?
   documents                   Document[]
   createdBy                   Employee?       @relation("QuotationCreatedBy", fields: [createdById], references: [id])
-  enquiry                     Enquiry         @relation(fields: [enquiryId], references: [id])
+  enquiry                     Enquiry?        @relation(fields: [enquiryId], references: [id])
   items                       QuotationItem[]
 }
 
@@ -280,10 +290,10 @@ enum LocationType {
 }
 
 enum EnquiryStatus {
-  NEW
-  IN_PROGRESS
-  QUOTED
-  CLOSED
+  LIVE
+  DEAD
+  RCD
+  LOST
 }
 
 enum QuotationStatus {
