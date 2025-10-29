@@ -14,7 +14,8 @@ import {
   User,
   Edit,
   Trash2,
-  X
+  X,
+  Building
 } from 'lucide-react';
 
 
@@ -22,19 +23,12 @@ export default function EnquiriesPage() {
   const enquiriesQuery = api.enquiry.getAll.useQuery();
   const { data: stats } = api.enquiry.getStats.useQuery();
   const { data: enquiries, isLoading, error } = enquiriesQuery;
+  const { data: employees } = api.employee.getAll.useQuery();
   const updateEnquiryMutation = api.enquiry.update.useMutation({
     onSuccess: () => {
       enquiriesQuery.refetch();
       setEditingEnquiry(null);
-      setEditData({
-        subject: '',
-        description: '',
-        requirements: '',
-        priority: 'Medium',
-        source: 'Website',
-        timeline: '',
-        notes: '',
-      });
+      setEditData({});
     },
     onError: (error) => {
       // Error handling is managed by tRPC and toast notifications
@@ -46,25 +40,28 @@ export default function EnquiriesPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   // Define the edit data type
   type EditEnquiryData = {
-    subject: string;
-    description: string;
-    requirements: string;
-    priority: 'Low' | 'Medium' | 'High' | 'Urgent';
-    source: 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit';
-    timeline: string;
-    notes: string;
+    subject?: string;
+    description?: string;
+    requirements?: string;
+    timeline?: string;
+    enquiryDate?: string;
+    priority?: 'Low' | 'Medium' | 'High' | 'Urgent';
+    source?: 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit';
+    notes?: string;
+    quotationNumber?: string;
+    region?: string;
+    oaNumber?: string;
+    dateOfReceipt?: string;
+    blockModel?: string;
+    numberOfBlocks?: number;
+    designRequired?: 'Standard' | 'Custom' | 'Modified' | 'None';
+    attendedById?: string;
+    customerType?: 'NEW' | 'OLD';
+    status?: 'LIVE' | 'DEAD' | 'RCD' | 'LOST';
   };
 
   const [editingEnquiry, setEditingEnquiry] = useState<number | null>(null);
-  const [editData, setEditData] = useState<EditEnquiryData>({
-    subject: '',
-    description: '',
-    requirements: '',
-    priority: 'Medium',
-    source: 'Website',
-    timeline: '',
-    notes: '',
-  });
+  const [editData, setEditData] = useState<EditEnquiryData>({});
   const [viewingEnquiry, setViewingEnquiry] = useState<number | null>(null);
 
   if (error) return <div>Error: {error.message}</div>;
@@ -126,15 +123,31 @@ export default function EnquiriesPage() {
   const handleEditEnquiry = (enquiryId: number) => {
     const enquiry = enquiries?.find((e) => e.id === enquiryId);
     if (enquiry) {
+      // Close view modal if open
+      if (viewingEnquiry === enquiryId) {
+        setViewingEnquiry(null);
+      }
+      // Open edit form
       setEditingEnquiry(enquiryId);
       setEditData({
-        subject: enquiry.subject ?? '',
-        description: enquiry.description ?? '',
-        requirements: enquiry.requirements ?? '',
+        subject: enquiry.subject ?? undefined,
+        description: enquiry.description ?? undefined,
+        requirements: enquiry.requirements ?? undefined,
+        timeline: enquiry.timeline ?? undefined,
+        enquiryDate: enquiry.enquiryDate ? new Date(enquiry.enquiryDate).toISOString().split('T')[0] : undefined,
         priority: (enquiry.priority ?? 'Medium') as 'Low' | 'Medium' | 'High' | 'Urgent',
         source: (enquiry.source ?? 'Website') as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit',
-        timeline: enquiry.timeline ?? '',
-        notes: enquiry.notes ?? '',
+        notes: enquiry.notes ?? undefined,
+        quotationNumber: enquiry.quotationNumber ?? undefined,
+        region: enquiry.region ?? undefined,
+        oaNumber: enquiry.oaNumber ?? undefined,
+        dateOfReceipt: enquiry.dateOfReceipt ? new Date(enquiry.dateOfReceipt).toISOString().split('T')[0] : undefined,
+        blockModel: enquiry.blockModel ?? undefined,
+        numberOfBlocks: enquiry.numberOfBlocks ? Number(enquiry.numberOfBlocks) : undefined,
+        designRequired: (enquiry.designRequired ?? 'Standard') as 'Standard' | 'Custom' | 'Modified' | 'None',
+        attendedById: enquiry.attendedById ?? undefined,
+        customerType: (enquiry.customerType ?? 'NEW') as 'NEW' | 'OLD',
+        status: (enquiry.status ?? 'LIVE') as 'LIVE' | 'DEAD' | 'RCD' | 'LOST',
       });
     }
   };
@@ -166,15 +179,7 @@ export default function EnquiriesPage() {
 
   const handleCancelEdit = () => {
     setEditingEnquiry(null);
-    setEditData({
-      subject: '',
-      description: '',
-      requirements: '',
-      priority: 'Medium',
-      source: 'Website',
-      timeline: '',
-      notes: '',
-    });
+    setEditData({});
   };
 
   const handleCloseView = () => {
@@ -444,112 +449,324 @@ export default function EnquiriesPage() {
 
             {/* Inline Edit Form */}
             {editingEnquiry && (
-              <div className="mt-6 bg-white rounded-lg border p-6">
-                <h3 className="text-lg font-semibold mb-4">Edit Enquiry</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Subject
-                    </label>
-                    <input
-                      type="text"
-                      value={editData.subject}
-                      onChange={(e) => setEditData({ ...editData, subject: e.target.value })}
-                      className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Priority
-                    </label>
-                    <select
-                      value={editData.priority}
-                      onChange={(e) => setEditData({ ...editData, priority: e.target.value as 'Low' | 'Medium' | 'High' | 'Urgent' })}
-                      className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="Low">Low</option>
-                      <option value="Medium">Medium</option>
-                      <option value="High">High</option>
-                      <option value="Urgent">Urgent</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Source
-                    </label>
-                    <select
-                      value={editData.source}
-                      onChange={(e) => setEditData({ ...editData, source: e.target.value as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit' })}
-                      className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="Website">Website</option>
-                      <option value="Email">Email</option>
-                      <option value="Phone">Phone</option>
-                      <option value="Referral">Referral</option>
-                      <option value="Trade Show">Trade Show</option>
-                      <option value="Social Media">Social Media</option>
-                      <option value="Visit">Visit</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Timeline
-                    </label>
-                    <input
-                      type="text"
-                      value={editData.timeline}
-                      onChange={(e) => setEditData({ ...editData, timeline: e.target.value })}
-                      className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="e.g., 2-3 weeks"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Requirements
-                    </label>
-                    <input
-                      type="text"
-                      value={editData.requirements}
-                      onChange={(e) => setEditData({ ...editData, requirements: e.target.value })}
-                      className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="e.g., Specific requirements"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Description
-                    </label>
-                    <textarea
-                      value={editData.description}
-                      onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                      rows={3}
-                      className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Notes
-                    </label>
-                    <textarea
-                      value={editData.notes}
-                      onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
-                      rows={2}
-                      className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Additional notes"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end space-x-3 mt-4">
+              <div className="mt-6 bg-white rounded-lg border shadow-sm p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                    <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                    Edit Enquiry
+                  </h3>
                   <button
                     onClick={handleCancelEdit}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* Enquiry Details Section */}
+                <div className="bg-white rounded-xl border shadow-sm">
+                  <div className="px-6 pt-6">
+                    <h4 className="text-lg font-semibold text-gray-900 flex items-center">
+                      <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                      Enquiry Details
+                    </h4>
+                    <p className="text-gray-900 text-sm">Update enquiry information</p>
+                  </div>
+                  <div className="px-6 pb-6 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label htmlFor="edit-enquiryDate" className="block text-sm font-medium text-gray-900">
+                          Enquiry Date
+                        </label>
+                        <input
+                          type="date"
+                          id="edit-enquiryDate"
+                          value={editData.enquiryDate ?? ''}
+                          onChange={(e) => setEditData({ ...editData, enquiryDate: e.target.value || undefined })}
+                          className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="edit-region" className="block text-sm font-medium text-gray-900">
+                          Region
+                        </label>
+                        <input
+                          id="edit-region"
+                          value={editData.region ?? ''}
+                          onChange={(e) => setEditData({ ...editData, region: e.target.value || undefined })}
+                          className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                          placeholder="Enter region"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="edit-oaNumber" className="block text-sm font-medium text-gray-900">
+                          O.A. No. (Order Acknowledge Number)
+                        </label>
+                        <input
+                          id="edit-oaNumber"
+                          value={editData.oaNumber ?? ''}
+                          onChange={(e) => setEditData({ ...editData, oaNumber: e.target.value || undefined })}
+                          className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                          placeholder="Enter O.A. number"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="edit-dateOfReceipt" className="block text-sm font-medium text-gray-900">
+                          Date of Receipt
+                        </label>
+                        <input
+                          type="date"
+                          id="edit-dateOfReceipt"
+                          value={editData.dateOfReceipt ?? ''}
+                          onChange={(e) => setEditData({ ...editData, dateOfReceipt: e.target.value || undefined })}
+                          className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="edit-subject" className="block text-sm font-medium text-gray-900">
+                          Subject
+                        </label>
+                        <input
+                          id="edit-subject"
+                          value={editData.subject ?? ''}
+                          onChange={(e) => setEditData({ ...editData, subject: e.target.value || undefined })}
+                          className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                          placeholder="Enter enquiry subject"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="edit-blockModel" className="block text-sm font-medium text-gray-900">
+                          Block Model
+                        </label>
+                        <input
+                          id="edit-blockModel"
+                          value={editData.blockModel ?? ''}
+                          onChange={(e) => setEditData({ ...editData, blockModel: e.target.value || undefined })}
+                          className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                          placeholder="Enter block model"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="edit-numberOfBlocks" className="block text-sm font-medium text-gray-900">
+                          No. of Blocks
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          id="edit-numberOfBlocks"
+                          value={editData.numberOfBlocks ?? ''}
+                          onChange={(e) => setEditData({ ...editData, numberOfBlocks: e.target.value ? parseFloat(e.target.value) : undefined })}
+                          className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                          placeholder="Enter number of blocks"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="edit-designRequired" className="block text-sm font-medium text-gray-900">
+                          Design Required
+                        </label>
+                        <select
+                          id="edit-designRequired"
+                          value={editData.designRequired ?? 'Standard'}
+                          onChange={(e) => setEditData({ ...editData, designRequired: e.target.value as 'Standard' | 'Custom' | 'Modified' | 'None' })}
+                          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                        >
+                          <option value="Standard" className="text-black bg-white">Standard</option>
+                          <option value="Custom" className="text-black bg-white">Custom</option>
+                          <option value="Modified" className="text-black bg-white">Modified</option>
+                          <option value="None" className="text-black bg-white">None</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="edit-attendedById" className="block text-sm font-medium text-gray-900">
+                          Attended By
+                        </label>
+                        <select
+                          id="edit-attendedById"
+                          value={editData.attendedById ?? ''}
+                          onChange={(e) => setEditData({ ...editData, attendedById: e.target.value || undefined })}
+                          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                        >
+                          <option value="" className="text-black bg-white">Select employee</option>
+                          {employees?.map((employee) => (
+                            <option key={employee.id} value={employee.id} className="text-black bg-white">
+                              {employee.name} ({employee.role})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="edit-quotationNumber" className="block text-sm font-medium text-gray-900">
+                          Quotation Ref. Number
+                        </label>
+                        <input
+                          id="edit-quotationNumber"
+                          value={editData.quotationNumber ?? ''}
+                          onChange={(e) => setEditData({ ...editData, quotationNumber: e.target.value || undefined })}
+                          className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                          placeholder="e.g., Q202412345678"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="edit-status" className="block text-sm font-medium text-gray-900">
+                          Status
+                        </label>
+                        <select
+                          id="edit-status"
+                          value={editData.status ?? 'LIVE'}
+                          onChange={(e) => setEditData({ ...editData, status: e.target.value as 'LIVE' | 'DEAD' | 'RCD' | 'LOST' })}
+                          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                        >
+                          <option value="LIVE" className="text-black bg-white">LIVE</option>
+                          <option value="DEAD" className="text-black bg-white">DEAD</option>
+                          <option value="RCD" className="text-black bg-white">RCD (Received)</option>
+                          <option value="LOST" className="text-black bg-white">LOST</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="edit-customerType" className="block text-sm font-medium text-gray-900">
+                          New/Old Customer
+                        </label>
+                        <select
+                          id="edit-customerType"
+                          value={editData.customerType ?? 'NEW'}
+                          onChange={(e) => setEditData({ ...editData, customerType: e.target.value as 'NEW' | 'OLD' })}
+                          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                        >
+                          <option value="NEW" className="text-black bg-white">NEW</option>
+                          <option value="OLD" className="text-black bg-white">OLD</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Details Section */}
+                <div className="bg-white rounded-xl border shadow-sm">
+                  <div className="px-6 pt-6">
+                    <h4 className="text-lg font-semibold text-gray-900 flex items-center">
+                      <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                      Additional Details
+                    </h4>
+                    <p className="text-gray-900 text-sm">Optional additional information</p>
+                  </div>
+                  <div className="px-6 pb-6 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label htmlFor="edit-priority" className="block text-sm font-medium text-gray-900">
+                          Priority
+                        </label>
+                        <select
+                          id="edit-priority"
+                          value={editData.priority ?? 'Medium'}
+                          onChange={(e) => setEditData({ ...editData, priority: e.target.value as 'Low' | 'Medium' | 'High' | 'Urgent' })}
+                          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                        >
+                          <option value="Low" className="text-black bg-white">Low</option>
+                          <option value="Medium" className="text-black bg-white">Medium</option>
+                          <option value="High" className="text-black bg-white">High</option>
+                          <option value="Urgent" className="text-black bg-white">Urgent</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="edit-source" className="block text-sm font-medium text-gray-900">
+                          Source
+                        </label>
+                        <select
+                          id="edit-source"
+                          value={editData.source ?? 'Website'}
+                          onChange={(e) => setEditData({ ...editData, source: e.target.value as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit' })}
+                          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                        >
+                          <option value="Website" className="text-black bg-white">Website</option>
+                          <option value="Email" className="text-black bg-white">Email</option>
+                          <option value="Phone" className="text-black bg-white">Phone</option>
+                          <option value="Referral" className="text-black bg-white">Referral</option>
+                          <option value="Trade Show" className="text-black bg-white">Trade Show</option>
+                          <option value="Social Media" className="text-black bg-white">Social Media</option>
+                          <option value="Visit" className="text-black bg-white">Visit</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="edit-timeline" className="block text-sm font-medium text-gray-900">
+                          Timeline
+                        </label>
+                        <input
+                          id="edit-timeline"
+                          value={editData.timeline ?? ''}
+                          onChange={(e) => setEditData({ ...editData, timeline: e.target.value || undefined })}
+                          className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                          placeholder="e.g., 2-3 weeks"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="edit-requirements" className="block text-sm font-medium text-gray-900">
+                          Requirements
+                        </label>
+                        <input
+                          id="edit-requirements"
+                          value={editData.requirements ?? ''}
+                          onChange={(e) => setEditData({ ...editData, requirements: e.target.value || undefined })}
+                          className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                          placeholder="e.g., Specific requirements"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="edit-description" className="block text-sm font-medium text-gray-900">
+                        Description
+                      </label>
+                      <textarea
+                        id="edit-description"
+                        value={editData.description ?? ''}
+                        onChange={(e) => setEditData({ ...editData, description: e.target.value || undefined })}
+                        rows={4}
+                        className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white placeholder-gray-500"
+                        placeholder="Provide a detailed description of the enquiry..."
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="edit-notes" className="block text-sm font-medium text-gray-900">
+                        Notes
+                      </label>
+                      <textarea
+                        id="edit-notes"
+                        value={editData.notes ?? ''}
+                        onChange={(e) => setEditData({ ...editData, notes: e.target.value || undefined })}
+                        rows={3}
+                        className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white placeholder-gray-500"
+                        placeholder="Additional notes..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={handleCancelEdit}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSaveEdit}
                     disabled={updateEnquiryMutation.isPending}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 px-4 py-2"
                   >
                     {updateEnquiryMutation.isPending ? 'Saving...' : 'Save Changes'}
                   </button>
@@ -559,9 +776,12 @@ export default function EnquiriesPage() {
 
             {/* View Enquiry Modal */}
             {viewingEnquiry && (
-              <div className="mt-6 bg-white rounded-lg border p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">View Enquiry Details</h3>
+              <div className="mt-6 bg-white rounded-lg border shadow-sm p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                    <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                    View Enquiry Details
+                  </h3>
                   <button
                     onClick={handleCloseView}
                     className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -574,69 +794,211 @@ export default function EnquiriesPage() {
                   if (!enquiry) return <div>Enquiry not found</div>;
                   
                   return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Subject
-                        </label>
-                        <p className="text-gray-900">{enquiry.subject}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Quotation Number
-                        </label>
-                        <p className="text-gray-900">{enquiry.quotationNumber ?? 'Not assigned'}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Priority
-                        </label>
-                        <p className="text-gray-900">{enquiry.priority ?? 'Not specified'}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Source
-                        </label>
-                        <p className="text-gray-900">{enquiry.source ?? 'Not specified'}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Status
-                        </label>
-                        <div className="mt-1">
-                          {getStatusBadge(enquiry.status)}
+                    <div className="space-y-6">
+                      {/* Customer Information */}
+                      <div className="bg-white rounded-xl border shadow-sm">
+                        <div className="px-6 pt-6">
+                          <h4 className="text-lg font-semibold text-gray-900 flex items-center">
+                            <Building className="w-5 h-5 mr-2 text-blue-600" />
+                            Customer Information
+                          </h4>
+                        </div>
+                        <div className="px-6 pb-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Company/Customer
+                              </label>
+                              <p className="text-gray-900">{enquiry.company?.name ?? 'Not specified'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Location
+                              </label>
+                              <p className="text-gray-900">
+                                {enquiry.office?.name ?? enquiry.plant?.name ?? 'Not specified'}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Marketing Person
+                              </label>
+                              <p className="text-gray-900">{enquiry.marketingPerson?.name ?? 'Not specified'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Attended By
+                              </label>
+                              <p className="text-gray-900">{enquiry.attendedBy?.name ?? 'Not specified'}</p>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Customer
-                        </label>
-                        <p className="text-gray-900">{enquiry.company?.name ?? 'Not specified'}</p>
+
+                      {/* Enquiry Details */}
+                      <div className="bg-white rounded-xl border shadow-sm">
+                        <div className="px-6 pt-6">
+                          <h4 className="text-lg font-semibold text-gray-900 flex items-center">
+                            <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                            Enquiry Details
+                          </h4>
+                        </div>
+                        <div className="px-6 pb-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Enquiry Date
+                              </label>
+                              <p className="text-gray-900">
+                                {enquiry.enquiryDate ? new Date(enquiry.enquiryDate).toLocaleDateString() : 'Not specified'}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Region
+                              </label>
+                              <p className="text-gray-900">{enquiry.region ?? 'Not specified'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                O.A. No. (Order Acknowledge Number)
+                              </label>
+                              <p className="text-gray-900">{enquiry.oaNumber ?? 'Not specified'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Date of Receipt
+                              </label>
+                              <p className="text-gray-900">
+                                {enquiry.dateOfReceipt ? new Date(enquiry.dateOfReceipt).toLocaleDateString() : 'Not specified'}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Subject
+                              </label>
+                              <p className="text-gray-900">{enquiry.subject ?? 'No subject'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Block Model
+                              </label>
+                              <p className="text-gray-900">{enquiry.blockModel ?? 'Not specified'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                No. of Blocks
+                              </label>
+                              <p className="text-gray-900">
+                                {enquiry.numberOfBlocks ? Number(enquiry.numberOfBlocks).toString() : 'Not specified'}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Design Required
+                              </label>
+                              <p className="text-gray-900">{enquiry.designRequired ?? 'Not specified'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Quotation Ref. Number
+                              </label>
+                              <p className="text-gray-900">{enquiry.quotationNumber ?? 'Not assigned'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Status
+                              </label>
+                              <div className="mt-1">
+                                {getStatusBadge(enquiry.status)}
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                New/Old Customer
+                              </label>
+                              <p className="text-gray-900">{enquiry.customerType ?? 'Not specified'}</p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Marketing Person
-                        </label>
-                        <p className="text-gray-900">{enquiry.marketingPerson?.name ?? 'Not specified'}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Created Date
-                        </label>
-                        <p className="text-gray-900">
-                          {new Date(enquiry.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Description
-                        </label>
-                        <p className="text-gray-900">{enquiry.description ?? 'No description provided'}</p>
+
+                      {/* Additional Details */}
+                      <div className="bg-white rounded-xl border shadow-sm">
+                        <div className="px-6 pt-6">
+                          <h4 className="text-lg font-semibold text-gray-900 flex items-center">
+                            <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                            Additional Details
+                          </h4>
+                        </div>
+                        <div className="px-6 pb-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Priority
+                              </label>
+                              <p className="text-gray-900">{enquiry.priority ?? 'Not specified'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Source
+                              </label>
+                              <p className="text-gray-900">{enquiry.source ?? 'Not specified'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Timeline
+                              </label>
+                              <p className="text-gray-900">{enquiry.timeline ?? 'Not specified'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Requirements
+                              </label>
+                              <p className="text-gray-900">{enquiry.requirements ?? 'Not specified'}</p>
+                            </div>
+                            <div className="md:col-span-2">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Description
+                              </label>
+                              <p className="text-gray-900">{enquiry.description ?? 'No description provided'}</p>
+                            </div>
+                            <div className="md:col-span-2">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Notes
+                              </label>
+                              <p className="text-gray-900">{enquiry.notes ?? 'No notes provided'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Created Date
+                              </label>
+                              <p className="text-gray-900">
+                                {new Date(enquiry.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Last Updated
+                              </label>
+                              <p className="text-gray-900">
+                                {new Date(enquiry.updatedAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
                 })()}
-                <div className="flex justify-end mt-4">
+                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => handleEditEnquiry(viewingEnquiry)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 flex items-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </button>
                   <button
                     onClick={handleCloseView}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"

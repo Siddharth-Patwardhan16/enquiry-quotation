@@ -49,15 +49,26 @@ export const UpdateEnquiryFullSchema = z.object({
   description: z.string().optional(),
   requirements: z.string().optional(),
   timeline: z.string().optional(),
+  enquiryDate: z.string().optional(),
   priority: z.enum(['Low', 'Medium', 'High', 'Urgent']).optional(),
   source: z.enum(['Website', 'Email', 'Phone', 'Referral', 'Trade Show', 'Social Media', 'Visit']).optional(),
   notes: z.string().optional(),
+  quotationNumber: z.string().optional(),
   region: z.string().optional(),
   oaNumber: z.string().optional(),
   dateOfReceipt: z.string().optional(),
   blockModel: z.string().optional(),
   numberOfBlocks: z.number().optional(),
   designRequired: z.enum(['Standard', 'Custom', 'Modified', 'None']).optional(),
-  attendedById: z.string().uuid().optional(),
+  attendedById: z.string().optional(),
   customerType: z.enum(['NEW', 'OLD']).optional(),
+  status: z.enum(['LIVE', 'DEAD', 'RCD', 'LOST']).optional(),
+}).refine((data) => {
+  // Only validate UUID format if the string is not empty
+  if (data.attendedById && data.attendedById.trim() !== '') {
+    return z.string().uuid().safeParse(data.attendedById).success;
+  }
+  return true;
+}, {
+  message: 'Invalid UUID format for attendedById',
 });

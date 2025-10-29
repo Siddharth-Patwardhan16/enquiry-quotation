@@ -184,7 +184,48 @@ export const enquiryRouter = createTRPCRouter({
   update: publicProcedure
     .input(UpdateEnquiryFullSchema)
     .mutation(async ({ input }) => {
-      const { id, ...updateData } = input;
+      const { id, enquiryDate, dateOfReceipt, attendedById, status, ...rest } = input;
+      
+      // Build update data with proper types
+      const updateData: {
+        subject?: string | null;
+        description?: string | null;
+        requirements?: string | null;
+        timeline?: string | null;
+        enquiryDate?: Date | null;
+        priority?: string | null;
+        source?: string | null;
+        notes?: string | null;
+        quotationNumber?: string | null;
+        region?: string | null;
+        oaNumber?: string | null;
+        dateOfReceipt?: Date | null;
+        blockModel?: string | null;
+        numberOfBlocks?: number | null;
+        designRequired?: string | null;
+        attendedById?: string | undefined;
+        customerType?: string | null;
+        status?: 'LIVE' | 'DEAD' | 'RCD' | 'LOST';
+      } = { ...rest };
+      
+      // Convert date strings to Date objects
+      if (enquiryDate !== undefined) {
+        updateData.enquiryDate = enquiryDate ? new Date(enquiryDate) : null;
+      }
+      if (dateOfReceipt !== undefined) {
+        updateData.dateOfReceipt = dateOfReceipt ? new Date(dateOfReceipt) : null;
+      }
+      
+      // Handle attendedById - convert empty string to undefined
+      if (attendedById !== undefined) {
+        updateData.attendedById = attendedById && attendedById.trim() !== '' ? attendedById : undefined;
+      }
+      
+      // Handle status - ensure it's a valid enum value
+      if (status !== undefined) {
+        updateData.status = status;
+      }
+      
       return db.enquiry.update({
         where: { id },
         data: updateData,

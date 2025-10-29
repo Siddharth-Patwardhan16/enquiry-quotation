@@ -363,10 +363,8 @@ export const tasksRouter = createTRPCRouter({
           dueDate: new Date(enquiry.createdAt.getTime() + 3 * 24 * 60 * 60 * 1000),
           priority: (enquiry.priority?.toLowerCase() as 'high' | 'medium' | 'low') ?? 'medium',
           status: 'pending' as const,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           customerName: (enquiry.company && typeof enquiry.company === 'object' && 'name' in enquiry.company ? String(enquiry.company.name) : '') || 'Unknown Customer',
           description: enquiry.description ?? enquiry.requirements ?? 'Follow up required',
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           assignedTo: (enquiry.marketingPerson && typeof enquiry.marketingPerson === 'object' && 'name' in enquiry.marketingPerson ? String(enquiry.marketingPerson.name) : '') || 'Unassigned',
           sourceId: enquiry.id,
           sourceType: 'enquiry',
