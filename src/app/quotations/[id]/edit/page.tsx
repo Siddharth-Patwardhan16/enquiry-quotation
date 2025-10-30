@@ -68,10 +68,10 @@ export default function EditQuotationPage() {
     if (quotation) {
       reset({
         enquiryId: quotation.enquiryId,
-        revisionNumber: quotation.revisionNumber || 0,
+        revisionNumber: quotation.revisionNumber ?? 0,
         quotationDate: quotation.quotationDate ? new Date(quotation.quotationDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        deliverySchedule: quotation.deliverySchedule || '',
-        currency: quotation.currency || 'INR',
+        deliverySchedule: quotation.deliverySchedule ?? '',
+        currency: quotation.currency ?? 'INR',
         items: quotation.items?.map(item => ({
           materialDescription: item.materialDescription,
           quantity: Number(item.quantity),

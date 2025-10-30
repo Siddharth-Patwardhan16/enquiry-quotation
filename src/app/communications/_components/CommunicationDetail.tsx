@@ -149,44 +149,44 @@ export function CommunicationDetail({ communication, onBack, onEdit }: Communica
               <div>
                 <span className="font-medium text-gray-700">Name: </span>
                 <span className="text-gray-900">
-                  {communication.enquiry?.office?.contactPersons?.[0]?.name || 
-                   communication.enquiry?.plant?.contactPersons?.[0]?.name || 
-                   communication.contactPerson?.name || 
+                  {communication.enquiry?.office?.contactPersons?.[0]?.name ?? 
+                   communication.enquiry?.plant?.contactPersons?.[0]?.name ?? 
+                   communication.contactPerson?.name ?? 
                    'No contact person'}
                 </span>
               </div>
-              {(communication.enquiry?.office?.contactPersons?.[0]?.designation || 
-                communication.enquiry?.plant?.contactPersons?.[0]?.designation || 
+              {(communication.enquiry?.office?.contactPersons?.[0]?.designation ?? 
+                communication.enquiry?.plant?.contactPersons?.[0]?.designation ?? 
                 communication.contactPerson?.designation) && (
                 <div>
                   <span className="font-medium text-gray-700">Designation: </span>
                   <span className="text-gray-900">
-                    {communication.enquiry?.office?.contactPersons?.[0]?.designation || 
-                     communication.enquiry?.plant?.contactPersons?.[0]?.designation || 
-                     communication.contactPerson?.designation}
+                  {communication.enquiry?.office?.contactPersons?.[0]?.designation ?? 
+                   communication.enquiry?.plant?.contactPersons?.[0]?.designation ?? 
+                   communication.contactPerson?.designation}
                   </span>
                 </div>
               )}
-              {(communication.enquiry?.office?.contactPersons?.[0]?.phoneNumber || 
-                communication.enquiry?.plant?.contactPersons?.[0]?.phoneNumber || 
+              {(communication.enquiry?.office?.contactPersons?.[0]?.phoneNumber ?? 
+                communication.enquiry?.plant?.contactPersons?.[0]?.phoneNumber ?? 
                 communication.contactPerson?.phoneNumber) && (
                 <div>
                   <span className="font-medium text-gray-700">Phone: </span>
                   <span className="text-gray-900">
-                    {communication.enquiry?.office?.contactPersons?.[0]?.phoneNumber || 
-                     communication.enquiry?.plant?.contactPersons?.[0]?.phoneNumber || 
+                    {communication.enquiry?.office?.contactPersons?.[0]?.phoneNumber ?? 
+                     communication.enquiry?.plant?.contactPersons?.[0]?.phoneNumber ?? 
                      communication.contactPerson?.phoneNumber}
                   </span>
                 </div>
               )}
-              {(communication.enquiry?.office?.contactPersons?.[0]?.emailId || 
-                communication.enquiry?.plant?.contactPersons?.[0]?.emailId || 
+              {(communication.enquiry?.office?.contactPersons?.[0]?.emailId ?? 
+                communication.enquiry?.plant?.contactPersons?.[0]?.emailId ?? 
                 communication.contactPerson?.emailId) && (
                 <div>
                   <span className="font-medium text-gray-700">Email: </span>
                   <span className="text-gray-900">
-                    {communication.enquiry?.office?.contactPersons?.[0]?.emailId || 
-                     communication.enquiry?.plant?.contactPersons?.[0]?.emailId || 
+                    {communication.enquiry?.office?.contactPersons?.[0]?.emailId ?? 
+                     communication.enquiry?.plant?.contactPersons?.[0]?.emailId ?? 
                      communication.contactPerson?.emailId}
                   </span>
                 </div>

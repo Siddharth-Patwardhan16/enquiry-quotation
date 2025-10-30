@@ -213,7 +213,7 @@ export default function QuotationsPage() {
                         {formatCurrency(Number(q.totalValue) ?? 0)}
                       </td>
                       <td className="p-4 text-gray-900">
-                        {q.purchaseOrderNumber || '-'}
+                        {q.purchaseOrderNumber ?? '-'}
                       </td>
                       <td className="p-4">{getStatusBadge(q.status)}</td>
                       <td className="p-4 text-right">

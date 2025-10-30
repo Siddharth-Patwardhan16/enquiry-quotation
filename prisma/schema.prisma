@@ -171,6 +171,7 @@ model Enquiry {
   status            EnquiryStatus @default(LIVE)
   regretReason      String?
   quotationNumber   String?       @unique
+  quotationDate     DateTime?
   region            String?
   oaNumber          String?
   dateOfReceipt     DateTime?

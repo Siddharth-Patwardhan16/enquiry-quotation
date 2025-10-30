@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -103,7 +103,9 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
     // Filter contacts based on selected customer (unused for now)
   
   // Filter enquiries based on selected company
-  const filteredEnquiries = enquiries?.filter((enquiry) => enquiry.companyId === watchedCompanyId) ?? [];
+  const filteredEnquiries = useMemo(() => {
+    return enquiries?.filter((enquiry) => enquiry.companyId === watchedCompanyId) ?? [];
+  }, [enquiries, watchedCompanyId]);
 
   // Update company info when selection changes
   useEffect(() => {

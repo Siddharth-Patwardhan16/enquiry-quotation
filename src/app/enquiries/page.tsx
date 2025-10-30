@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { api } from '@/trpc/client';
 import { CreateEnquiryForm } from './_components/CreateEnquiryForm';
+import { ReceiptDateModal } from './_components/ReceiptDateModal';
 
 import { 
   Search, 
@@ -49,9 +50,9 @@ export default function EnquiriesPage() {
     source?: 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit';
     notes?: string;
     quotationNumber?: string;
+    quotationDate?: string;
     region?: string;
     oaNumber?: string;
-    dateOfReceipt?: string;
     blockModel?: string;
     numberOfBlocks?: number;
     designRequired?: 'Standard' | 'Custom' | 'Modified' | 'None';
@@ -63,6 +64,8 @@ export default function EnquiriesPage() {
   const [editingEnquiry, setEditingEnquiry] = useState<number | null>(null);
   const [editData, setEditData] = useState<EditEnquiryData>({});
   const [viewingEnquiry, setViewingEnquiry] = useState<number | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptModalEnquiryId, setReceiptModalEnquiryId] = useState<number | null>(null);
 
   if (error) return <div>Error: {error.message}</div>;
 
@@ -137,12 +140,12 @@ export default function EnquiriesPage() {
         enquiryDate: enquiry.enquiryDate ? new Date(enquiry.enquiryDate).toISOString().split('T')[0] : undefined,
         priority: (enquiry.priority ?? 'Medium') as 'Low' | 'Medium' | 'High' | 'Urgent',
         source: (enquiry.source ?? 'Website') as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit',
-        notes: enquiry.notes ?? undefined,
-        quotationNumber: enquiry.quotationNumber ?? undefined,
-        region: enquiry.region ?? undefined,
-        oaNumber: enquiry.oaNumber ?? undefined,
-        dateOfReceipt: enquiry.dateOfReceipt ? new Date(enquiry.dateOfReceipt).toISOString().split('T')[0] : undefined,
-        blockModel: enquiry.blockModel ?? undefined,
+              notes: enquiry.notes ?? undefined,
+              quotationNumber: enquiry.quotationNumber ?? undefined,
+              quotationDate: enquiry.quotationDate ? new Date(enquiry.quotationDate).toISOString().split('T')[0] : undefined,
+              region: enquiry.region ?? undefined,
+              oaNumber: enquiry.oaNumber ?? undefined,
+              blockModel: enquiry.blockModel ?? undefined,
         numberOfBlocks: enquiry.numberOfBlocks ? Number(enquiry.numberOfBlocks) : undefined,
         designRequired: (enquiry.designRequired ?? 'Standard') as 'Standard' | 'Custom' | 'Modified' | 'None',
         attendedById: enquiry.attendedById ?? undefined,
@@ -384,7 +387,37 @@ export default function EnquiriesPage() {
                             {new Date(enquiry.createdAt).toLocaleDateString()}
                           </td>
                           <td className="p-4 align-middle whitespace-nowrap">
-                            {getStatusBadge(enquiry.status)}
+                            <select
+                              value={enquiry.status}
+                              onChange={(e) => {
+                                const newStatus = e.target.value as 'LIVE' | 'DEAD' | 'RCD' | 'LOST';
+                                if (newStatus === 'RCD') {
+                                  // Open receipt modal for RCD status
+                                  setReceiptModalEnquiryId(enquiry.id);
+                                  setShowReceiptModal(true);
+                                } else {
+                                  // Update status directly for other statuses
+                                  updateEnquiryMutation.mutate({
+                                    id: enquiry.id,
+                                    status: newStatus,
+                                  });
+                                }
+                              }}
+                              className="text-xs px-2 py-1 rounded-full border-0 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                              style={{
+                                backgroundColor: enquiry.status === 'LIVE' ? '#dcfce7' : 
+                                               enquiry.status === 'DEAD' ? '#fecaca' :
+                                               enquiry.status === 'RCD' ? '#dbeafe' : '#f3f4f6',
+                                color: enquiry.status === 'LIVE' ? '#166534' :
+                                       enquiry.status === 'DEAD' ? '#991b1b' :
+                                       enquiry.status === 'RCD' ? '#1e40af' : '#374151'
+                              }}
+                            >
+                              <option value="LIVE">Live</option>
+                              <option value="DEAD">Dead</option>
+                              <option value="RCD">RCD (Received)</option>
+                              <option value="LOST">Lost</option>
+                            </select>
                           </td>
                           <td className="p-4 align-middle whitespace-nowrap text-right">
                             <div className="flex items-center justify-end space-x-2">
@@ -514,19 +547,6 @@ export default function EnquiriesPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <label htmlFor="edit-dateOfReceipt" className="block text-sm font-medium text-gray-900">
-                          Date of Receipt
-                        </label>
-                        <input
-                          type="date"
-                          id="edit-dateOfReceipt"
-                          value={editData.dateOfReceipt ?? ''}
-                          onChange={(e) => setEditData({ ...editData, dateOfReceipt: e.target.value || undefined })}
-                          className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
                         <label htmlFor="edit-subject" className="block text-sm font-medium text-gray-900">
                           Subject
                         </label>
@@ -617,13 +637,36 @@ export default function EnquiriesPage() {
                       </div>
 
                       <div className="space-y-2">
+                        <label htmlFor="edit-quotationDate" className="block text-sm font-medium text-gray-900">
+                          Quotation Date
+                        </label>
+                        <input
+                          type="date"
+                          id="edit-quotationDate"
+                          value={editData.quotationDate ?? ''}
+                          onChange={(e) => setEditData({ ...editData, quotationDate: e.target.value || undefined })}
+                          className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
                         <label htmlFor="edit-status" className="block text-sm font-medium text-gray-900">
                           Status
                         </label>
                         <select
                           id="edit-status"
                           value={editData.status ?? 'LIVE'}
-                          onChange={(e) => setEditData({ ...editData, status: e.target.value as 'LIVE' | 'DEAD' | 'RCD' | 'LOST' })}
+                          onChange={(e) => {
+                            const newStatus = e.target.value as 'LIVE' | 'DEAD' | 'RCD' | 'LOST';
+                            if (newStatus === 'RCD') {
+                              // Open receipt modal instead of directly updating
+                              setReceiptModalEnquiryId(editingEnquiry);
+                              setShowReceiptModal(true);
+                            } else {
+                              // Update status directly for other statuses
+                              setEditData({ ...editData, status: newStatus });
+                            }
+                          }}
                           className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
                         >
                           <option value="LIVE" className="text-black bg-white">LIVE</option>
@@ -867,12 +910,28 @@ export default function EnquiriesPage() {
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Date of Receipt
+                                Quotation Ref. Number
+                              </label>
+                              <p className="text-gray-900">{enquiry.quotationNumber ?? 'Not specified'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Quotation Date
                               </label>
                               <p className="text-gray-900">
-                                {enquiry.dateOfReceipt ? new Date(enquiry.dateOfReceipt).toLocaleDateString() : 'Not specified'}
+                                {enquiry.quotationDate ? new Date(enquiry.quotationDate).toLocaleDateString() : 'Not specified'}
                               </p>
                             </div>
+                            {enquiry.status === 'RCD' && (
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  Date of Receipt
+                                </label>
+                                <p className="text-gray-900">
+                                  {enquiry.dateOfReceipt ? new Date(enquiry.dateOfReceipt).toLocaleDateString() : 'Not received'}
+                                </p>
+                              </div>
+                            )}
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Subject
@@ -1007,6 +1066,23 @@ export default function EnquiriesPage() {
                   </button>
                 </div>
               </div>
+            )}
+
+            {/* Receipt Date Modal */}
+            {receiptModalEnquiryId && (
+              <ReceiptDateModal
+                isOpen={showReceiptModal}
+                onClose={() => {
+                  setShowReceiptModal(false);
+                  setReceiptModalEnquiryId(null);
+                }}
+                enquiryId={receiptModalEnquiryId}
+                onSuccess={() => {
+                  enquiriesQuery.refetch();
+                  setEditingEnquiry(null);
+                  setEditData({});
+                }}
+              />
             )}
           </div>
         </div>

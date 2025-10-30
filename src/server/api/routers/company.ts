@@ -8,7 +8,7 @@ export const companyRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       return ctx.prisma.$transaction(async (prisma) => {
         // Generate default company name if empty
-        const companyName = input.companyName?.trim() || `Unnamed Company ${Date.now()}`;
+        const companyName = input.companyName?.trim() ?? `Unnamed Company ${Date.now()}`;
 
         // Check if company with same name already exists (only if name was provided)
         if (input.companyName?.trim()) {
@@ -37,11 +37,11 @@ export const companyRouter = createTRPCRouter({
         });
 
         // Create offices with contacts (handle empty array)
-        const offices = input.offices || [];
+        const offices = input.offices ?? [];
         for (let index = 0; index < offices.length; index++) {
           const office = offices[index];
           // Generate default office name if empty
-          const officeName = office.name?.trim() || `Unnamed Office ${index + 1}`;
+          const officeName = office.name?.trim() ?? `Unnamed Office ${index + 1}`;
           
           const createdOffice = await prisma.office.create({
             data: {
@@ -75,11 +75,11 @@ export const companyRouter = createTRPCRouter({
         }
 
         // Create plants with contacts (handle empty array)
-        const plants = input.plants || [];
+        const plants = input.plants ?? [];
         for (let index = 0; index < plants.length; index++) {
           const plant = plants[index];
           // Generate default plant name if empty
-          const plantName = plant.name?.trim() || `Unnamed Plant ${index + 1}`;
+          const plantName = plant.name?.trim() ?? `Unnamed Plant ${index + 1}`;
           
           const createdPlant = await prisma.plant.create({
             data: {

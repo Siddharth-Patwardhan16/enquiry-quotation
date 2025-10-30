@@ -53,9 +53,9 @@ export const enquiryRouter = createTRPCRouter({
           source: input.source,
           notes: input.notes,
           quotationNumber: input.quotationNumber,
+          quotationDate: input.quotationDate ? new Date(input.quotationDate) : null,
           region: input.region,
           oaNumber: input.oaNumber,
-          dateOfReceipt: input.dateOfReceipt ? new Date(input.dateOfReceipt) : null,
           blockModel: input.blockModel,
           numberOfBlocks: input.numberOfBlocks,
           designRequired: input.designRequired,
@@ -184,7 +184,7 @@ export const enquiryRouter = createTRPCRouter({
   update: publicProcedure
     .input(UpdateEnquiryFullSchema)
     .mutation(async ({ input }) => {
-      const { id, enquiryDate, dateOfReceipt, attendedById, status, ...rest } = input;
+      const { id, enquiryDate, dateOfReceipt, quotationDate, attendedById, status, ...rest } = input;
       
       // Build update data with proper types
       const updateData: {
@@ -197,6 +197,7 @@ export const enquiryRouter = createTRPCRouter({
         source?: string | null;
         notes?: string | null;
         quotationNumber?: string | null;
+        quotationDate?: Date | null;
         region?: string | null;
         oaNumber?: string | null;
         dateOfReceipt?: Date | null;
@@ -215,6 +216,9 @@ export const enquiryRouter = createTRPCRouter({
       if (dateOfReceipt !== undefined) {
         updateData.dateOfReceipt = dateOfReceipt ? new Date(dateOfReceipt) : null;
       }
+      if (quotationDate !== undefined) {
+        updateData.quotationDate = quotationDate ? new Date(quotationDate) : null;
+      }
       
       // Handle attendedById - convert empty string to undefined
       if (attendedById !== undefined) {
@@ -229,6 +233,28 @@ export const enquiryRouter = createTRPCRouter({
       return db.enquiry.update({
         where: { id },
         data: updateData,
+      });
+    }),
+
+  // Procedure to update status with receipt date
+  updateStatusWithReceipt: publicProcedure
+    .input(z.object({
+      id: z.number(),
+      status: z.literal('RCD'),
+      dateOfReceipt: z.string(),
+      receiptNumber: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, dateOfReceipt, receiptNumber } = input;
+      
+      return db.enquiry.update({
+        where: { id },
+        data: {
+          status: 'RCD',
+          dateOfReceipt: dateOfReceipt ? new Date(dateOfReceipt) : null,
+          // Store receipt number in oaNumber if provided, or leave it as is
+          ...(receiptNumber ? { oaNumber: receiptNumber } : {}),
+        },
       });
     }),
 

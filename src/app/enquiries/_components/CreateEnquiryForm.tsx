@@ -218,7 +218,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
       if (company) {
         const office = company.offices?.find(o => o.id === selectedLocationId);
         const plant = company.plants?.find(p => p.id === selectedLocationId);
-        const location = office || plant;
+        const location = office ?? plant;
         
         if (location) {
           // Build region string from city and state
@@ -490,18 +490,6 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="dateOfReceipt" className="block text-sm font-medium text-gray-900">
-                    Date of Receipt
-                  </label>
-                  <input
-                    type="date"
-                    id="dateOfReceipt"
-                    {...register('dateOfReceipt')}
-                    className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <label htmlFor="subject" className="block text-sm font-medium text-gray-900">
                     Subject
                   </label>
@@ -596,6 +584,18 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                   {errors.quotationNumber && (
                     <p className="mt-2 text-sm text-red-600">{errors.quotationNumber.message}</p>
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="quotationDate" className="block text-sm font-medium text-gray-900">
+                    Quotation Date
+                  </label>
+                  <input
+                    type="date"
+                    id="quotationDate"
+                    {...register('quotationDate')}
+                    className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                  />
                 </div>
 
                 <div className="space-y-2">
