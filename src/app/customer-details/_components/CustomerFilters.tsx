@@ -59,7 +59,7 @@ export const CustomerFilters = memo(function CustomerFilters({
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Search by name, designation, phone, or email..."
+              placeholder="Search by name, location, designation, phone, email, office, plant..."
               value={searchTerm}
               onChange={handleSearchChange}
               disabled={isLoading}

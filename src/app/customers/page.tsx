@@ -158,9 +158,9 @@ export default function CustomersPage() {
           ) ||
           // Search in plant locations
           company.plants.some(plant => 
-            plant.city?.toLowerCase().includes(searchLower) ??
-            plant.state?.toLowerCase().includes(searchLower) ??
-            plant.area?.toLowerCase().includes(searchLower) ??
+            plant.city?.toLowerCase().includes(searchLower) ||
+            plant.state?.toLowerCase().includes(searchLower) ||
+            plant.area?.toLowerCase().includes(searchLower) ||
             plant.country?.toLowerCase().includes(searchLower)
           )
         );

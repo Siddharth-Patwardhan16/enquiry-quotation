@@ -36,6 +36,8 @@ export type Communication = {
   enquiry: {
     id: number;
     quotationNumber: string | null;
+    quotationStatus: string | null;
+    quotationTotalValue: number | null;
     subject: string;
     office: {
       id: string;

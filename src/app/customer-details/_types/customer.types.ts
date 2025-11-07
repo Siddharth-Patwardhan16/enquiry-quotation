@@ -261,7 +261,7 @@ export type CompanyApiResponse = {
 };
 
 export interface CustomerTableProps {
-  customers: CompanyApiResponse[];
+  customers: EntityApiResponse[];
   isLoading: boolean;
   isFetching: boolean;
   error: Error | null;
@@ -288,8 +288,11 @@ export interface PaginationProps {
   isLoading: boolean;
 }
 
+// Union type for both Company and Customer entities
+export type EntityApiResponse = CompanyApiResponse | (Customer & { type?: 'customer' });
+
 export interface CustomerRowProps {
-  customer: CompanyApiResponse;
+  customer: EntityApiResponse;
 }
 
 export interface CustomerActionsProps {

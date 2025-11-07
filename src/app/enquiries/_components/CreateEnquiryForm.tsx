@@ -58,7 +58,6 @@ type Company = {
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CreateEnquirySchema } from '@/lib/validators/enquiry';
-import type { z } from 'zod';
 import { api } from '@/trpc/client';
 import { useRouter } from 'next/navigation';
 import { useToastContext } from '@/components/providers/ToastProvider';
@@ -71,17 +70,6 @@ import {
   FileText
 } from 'lucide-react';
 import CustomerSelector, { type Customer } from '@/components/ui/CustomerSelector';
-
-type FormData = z.infer<typeof CreateEnquirySchema>;
-
-// Generate a unique quotation number
-const generateQuotationNumber = (): string => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const timestamp = now.getTime().toString().slice(-6);
-  return `Q${year}${month}${timestamp}`;
-};
 
 interface CreateEnquiryFormProps {
   onSuccess?: () => void;
@@ -147,16 +135,18 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
     control,
     setValue,
     formState: { errors },
-  } = useForm<FormData>({
+  } = useForm({
     resolver: zodResolver(CreateEnquirySchema),
     defaultValues: {
-      enquiryDate: new Date().toISOString().split('T')[0],
-      priority: 'Medium' as const,
-      source: 'Website' as const,
-      quotationNumber: generateQuotationNumber(),
-      status: 'LIVE' as const,
-      customerType: 'NEW' as const,
-      designRequired: 'Standard' as const,
+      enquiryDate: undefined,
+      priority: undefined,
+      source: undefined,
+      quotationNumber: undefined,
+      status: undefined,
+      customerType: undefined,
+      designRequired: undefined,
+      numberOfBlocks: undefined,
+      attendedById: undefined,
     },
     mode: 'onSubmit', // Change to onSubmit to avoid validation issues while typing
   });
@@ -277,30 +267,72 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
     },
     onError: (error) => {
       // Enquiry creation error
+      console.error('Enquiry creation error - Full error object:', error);
+      console.error('Error data:', error.data);
+      console.error('Error message:', error.message);
+      console.error('Error shape:', error.shape);
       
-      // Handle validation errors specifically
-      if (error.data?.code === 'BAD_REQUEST') {
-        try {
-          const validationErrors = JSON.parse(error.message) as { path?: string[]; message: string }[];
-          if (Array.isArray(validationErrors)) {
-            const errorMessages = validationErrors.map((err: { path?: string[]; message: string }) => {
-              if (err.path && err.path.length > 0) {
-                const fieldName = err.path.join('.');
-                return `${fieldName}: ${err.message}`;
-              }
-              return err.message;
-            });
-            showError('Validation Error', errorMessages.join('\n'));
-          } else {
-            showError('Validation Error', error.message);
-          }
-        } catch {
-          showError('Validation Error', error.message);
-        }
-      } else {
-        showError('Creation Failed', `Failed to create enquiry: ${error.message}`);
-      }
       setIsSubmitting(false);
+      
+      try {
+        // Handle validation errors specifically
+        if (error.data?.code === 'BAD_REQUEST' || error.message) {
+          try {
+            // Try to parse the error message if it's JSON (tRPC validation errors)
+            const validationErrors = JSON.parse(error.message) as Array<{ path?: string[] | string; message: string; code?: string }>;
+            console.log('Parsed validation errors:', validationErrors);
+            
+            if (Array.isArray(validationErrors) && validationErrors.length > 0) {
+              // Get the first error message for clarity
+              const firstError = validationErrors[0];
+              let errorMessage = firstError.message || 'Validation error occurred';
+              
+              // If there's a path, include it in the message
+              if (firstError.path) {
+                const fieldName = Array.isArray(firstError.path) ? firstError.path.join('.') : firstError.path;
+                if (fieldName) {
+                  errorMessage = `${fieldName}: ${firstError.message}`;
+                }
+              }
+              
+              console.error('Validation error message:', errorMessage);
+              showError('Validation Error', errorMessage);
+              return;
+            } else {
+              console.error('Validation errors array is empty or invalid');
+              showError('Validation Error', error.message || 'Please check all fields and try again.');
+              return;
+            }
+          } catch (parseError) {
+            console.error('Error parsing validation errors:', parseError);
+            // If not JSON, use the error message directly
+            let errorMessage = error.message || 'Failed to create enquiry. Please check all fields and try again.';
+            
+            // Provide user-friendly messages for common errors
+            if (errorMessage.includes('UUID')) {
+              if (errorMessage.includes('attendedById') || errorMessage.includes('Attended By')) {
+                errorMessage = 'Invalid employee selection. Please select a valid employee or leave the field empty.';
+              } else if (errorMessage.includes('customerId') || errorMessage.includes('Customer')) {
+                errorMessage = 'Invalid customer selection. Please select a valid customer.';
+              } else if (errorMessage.includes('locationId') || errorMessage.includes('Location')) {
+                errorMessage = 'Invalid location selection. Please select a valid location.';
+              }
+            }
+            
+            console.error('Showing error message:', errorMessage);
+            showError('Creation Failed', errorMessage);
+            return;
+          }
+        } else {
+          // Handle other types of errors
+          const errorMessage = error.message || error.shape?.message || 'Please check all fields and try again.';
+          console.error('Other error:', errorMessage);
+          showError('Creation Failed', `Failed to create enquiry: ${errorMessage}`);
+        }
+      } catch (handlerError) {
+        console.error('Error in error handler:', handlerError);
+        showError('Unexpected Error', 'An unexpected error occurred. Please check the console for details and try again.');
+      }
     },
   });
 
@@ -315,23 +347,78 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
     }
   };
 
-  const onSubmit = (data: FormData) => {
-    // Clean up data: convert empty strings to undefined for optional UUID fields
-    const cleanedData: FormData = {
-      ...data,
-      customerId: data.customerId && data.customerId.trim() !== '' ? data.customerId : undefined,
-      locationId: data.locationId && data.locationId.trim() !== '' ? data.locationId : undefined,
-      attendedById: data.attendedById && data.attendedById.trim() !== '' ? data.attendedById : undefined,
-    };
-    
-    // Use selectedCustomer to determine entity type, or default to 'company' if no customer selected
-    const entityType = selectedCustomer?.type === 'Company' ? 'company' : (selectedCustomer ? 'customer' : 'company');
-    
-    setIsSubmitting(true);
-    createEnquiry.mutate({
-      ...cleanedData,
-      entityType: entityType as 'customer' | 'company'
-    });
+  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+  const onSubmit = (data: any) => {
+    try {
+      console.log('Form submission started with data:', data);
+      
+      // Clean up data: convert empty strings to undefined for all optional fields
+      const cleanedData: any = {
+        ...data,
+        customerId: data.customerId && typeof data.customerId === 'string' && data.customerId.trim() !== '' ? data.customerId.trim() : undefined,
+        locationId: data.locationId && typeof data.locationId === 'string' && data.locationId.trim() !== '' ? data.locationId.trim() : undefined,
+        // attendedById: ensure empty values are converted to undefined
+        attendedById: (data.attendedById && typeof data.attendedById === 'string' && data.attendedById.trim() !== '') 
+          ? data.attendedById.trim() 
+          : undefined,
+        // numberOfBlocks: ensure empty values are converted to undefined
+        // setValueAs already handles this, but ensure it's undefined if empty
+        numberOfBlocks: (typeof data.numberOfBlocks === 'number' && !isNaN(data.numberOfBlocks)) 
+          ? data.numberOfBlocks 
+          : undefined,
+        // Ensure all enum/string fields can be undefined if empty
+        status: (data.status && typeof data.status === 'string' && data.status.trim() !== '') ? data.status : undefined,
+        customerType: (data.customerType && typeof data.customerType === 'string' && data.customerType.trim() !== '') ? data.customerType : undefined,
+        source: (data.source && typeof data.source === 'string' && data.source.trim() !== '') ? data.source : undefined,
+        designRequired: (data.designRequired && typeof data.designRequired === 'string' && data.designRequired.trim() !== '') ? data.designRequired : undefined,
+        priority: (data.priority && typeof data.priority === 'string' && data.priority.trim() !== '') ? data.priority : undefined,
+      };
+      
+      console.log('Cleaned data:', cleanedData);
+      
+      // Use selectedCustomer to determine entity type, or default to 'company' if no customer selected
+      const entityType = selectedCustomer?.type === 'Company' ? 'company' : (selectedCustomer ? 'customer' : 'company');
+      
+      console.log('Entity type:', entityType);
+      console.log('Selected customer:', selectedCustomer);
+      
+      const mutationData = {
+        ...cleanedData,
+        entityType: entityType as 'customer' | 'company'
+      };
+      
+      console.log('Mutation data:', mutationData);
+      
+      setIsSubmitting(true);
+      
+      try {
+        createEnquiry.mutate(mutationData);
+      } catch (mutationError) {
+        console.error('Mutation error caught:', mutationError);
+        setIsSubmitting(false);
+        showError('Submission Error', `Failed to submit enquiry: ${mutationError instanceof Error ? mutationError.message : 'Unknown error occurred'}`);
+      }
+    } catch (error) {
+      console.error('Form submission error:', error);
+      setIsSubmitting(false);
+      
+      let errorMessage = 'An unexpected error occurred while submitting the form.';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else {
+        console.error('Unknown error type:', error);
+      }
+      
+      showError('Form Submission Error', errorMessage);
+    }
   };
 
   const handleCancel = () => {
@@ -356,7 +443,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
         className="bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto transform transition-all"
         onClick={(e) => e.stopPropagation()}
       >
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
@@ -490,6 +577,18 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                 </div>
 
                 <div className="space-y-2">
+                  <label htmlFor="oaDate" className="block text-sm font-medium text-gray-900">
+                    O.A. Date
+                  </label>
+                  <input
+                    type="date"
+                    id="oaDate"
+                    {...register('oaDate')}
+                    className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <label htmlFor="subject" className="block text-sm font-medium text-gray-900">
                     Subject
                   </label>
@@ -526,9 +625,18 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                     type="number"
                     step="0.01"
                     id="numberOfBlocks"
-                    {...register('numberOfBlocks', { valueAsNumber: true })}
+                    {...register('numberOfBlocks', {
+                      setValueAs: (value) => {
+                        // Convert empty string, null, undefined, or whitespace to undefined
+                        if (value === '' || value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
+                          return undefined;
+                        }
+                        const num = parseFloat(String(value));
+                        return isNaN(num) ? undefined : num;
+                      }
+                    })}
                     className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
-                    placeholder="Enter number of blocks"
+                    placeholder="Enter number of blocks (optional)"
                   />
                 </div>
 
@@ -538,13 +646,20 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                   </label>
                   <select
                     id="designRequired"
-                    {...register('designRequired')}
+                    {...register('designRequired', {
+                      setValueAs: (value): 'Yes' | 'No' | undefined => {
+                        // Convert empty string, null, or undefined to undefined
+                        if (value === '' || value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
+                          return undefined;
+                        }
+                        return value as 'Yes' | 'No';
+                      }
+                    })}
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
                   >
-                    <option value="Standard" className="text-black bg-white">Standard</option>
-                    <option value="Custom" className="text-black bg-white">Custom</option>
-                    <option value="Modified" className="text-black bg-white">Modified</option>
-                    <option value="None" className="text-black bg-white">None</option>
+                    <option value="" className="text-black bg-white">Select (optional)</option>
+                    <option value="Yes" className="text-black bg-white">Yes</option>
+                    <option value="No" className="text-black bg-white">No</option>
                   </select>
                 </div>
 
@@ -554,12 +669,21 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                   </label>
                   <select
                     id="attendedById"
-                    {...register('attendedById')}
+                    {...register('attendedById', {
+                      setValueAs: (value): string | undefined => {
+                        // Convert empty string, null, or undefined to undefined
+                        if (value === '' || value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
+                          return undefined;
+                        }
+                        // Return the value as-is if it's a valid string
+                        return typeof value === 'string' ? value.trim() : undefined;
+                      }
+                    })}
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
                     disabled={isLoadingEmployees}
                   >
                     <option value="" className="text-black bg-white">
-                      {isLoadingEmployees ? 'Loading employees...' : 'Select employee'}
+                      {isLoadingEmployees ? 'Loading employees...' : 'Select employee (optional)'}
                     </option>
                     {employees?.map((employee) => (
                       <option key={employee.id} value={employee.id} className="text-black bg-white">
@@ -604,9 +728,18 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                   </label>
                   <select
                     id="status"
-                    {...register('status')}
+                    {...register('status', {
+                      setValueAs: (value): 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | undefined => {
+                        // Convert empty string, null, or undefined to undefined
+                        if (value === '' || value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
+                          return undefined;
+                        }
+                        return value as 'LIVE' | 'DEAD' | 'RCD' | 'LOST';
+                      }
+                    })}
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
                   >
+                    <option value="" className="text-black bg-white">Select status (optional)</option>
                     <option value="LIVE" className="text-black bg-white">LIVE</option>
                     <option value="DEAD" className="text-black bg-white">DEAD</option>
                     <option value="RCD" className="text-black bg-white">RCD (Received)</option>
@@ -620,41 +753,20 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                   </label>
                   <select
                     id="customerType"
-                    {...register('customerType')}
+                    {...register('customerType', {
+                      setValueAs: (value): 'NEW' | 'OLD' | undefined => {
+                        // Convert empty string, null, or undefined to undefined
+                        if (value === '' || value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
+                          return undefined;
+                        }
+                        return value as 'NEW' | 'OLD';
+                      }
+                    })}
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
                   >
+                    <option value="" className="text-black bg-white">Select (optional)</option>
                     <option value="NEW" className="text-black bg-white">NEW</option>
                     <option value="OLD" className="text-black bg-white">OLD</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Additional Details */}
-          <div className="bg-white rounded-xl border shadow-sm">
-            <div className="px-6 pt-6">
-              <h4 className="text-lg font-semibold text-gray-900 flex items-center">
-                <FileText className="w-5 h-5 mr-2 text-blue-600" />
-                Additional Details
-              </h4>
-              <p className="text-gray-900 text-sm">Optional additional information</p>
-            </div>
-            <div className="px-6 pb-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label htmlFor="priority" className="block text-sm font-medium text-gray-900">
-                    Priority
-                  </label>
-                  <select
-                    id="priority"
-                    {...register('priority')}
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
-                  >
-                    <option value="Low" className="text-black bg-white">Low</option>
-                    <option value="Medium" className="text-black bg-white">Medium</option>
-                    <option value="High" className="text-black bg-white">High</option>
-                    <option value="Urgent" className="text-black bg-white">Urgent</option>
                   </select>
                 </div>
 
@@ -664,9 +776,18 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                   </label>
                   <select
                     id="source"
-                    {...register('source')}
+                    {...register('source', {
+                      setValueAs: (value): 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit' | undefined => {
+                        // Convert empty string, null, or undefined to undefined
+                        if (value === '' || value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
+                          return undefined;
+                        }
+                        return value as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit';
+                      }
+                    })}
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
                   >
+                    <option value="" className="text-black bg-white">Select source (optional)</option>
                     <option value="Website" className="text-black bg-white">Website</option>
                     <option value="Email" className="text-black bg-white">Email</option>
                     <option value="Phone" className="text-black bg-white">Phone</option>
@@ -676,61 +797,6 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                     <option value="Visit" className="text-black bg-white">Visit</option>
                   </select>
                 </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="timeline" className="block text-sm font-medium text-gray-900">
-                    Timeline
-                  </label>
-                  <input
-                    id="timeline"
-                    {...register('timeline')}
-                    className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
-                    placeholder="e.g., 2-3 weeks"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="requirements" className="block text-sm font-medium text-gray-900">
-                    Requirements
-                  </label>
-                  <input
-                    id="requirements"
-                    {...register('requirements')}
-                    className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
-                    placeholder="e.g., Specific requirements"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="description" className="block text-sm font-medium text-gray-900">
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  {...register('description')}
-                  rows={4}
-                  className={`mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white placeholder-gray-500 ${
-                    errors.description ? 'border-red-300' : ''
-                  }`}
-                  placeholder="Provide a detailed description of the enquiry..."
-                />
-                {errors.description && (
-                  <p className="mt-2 text-sm text-red-600">{errors.description.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="notes" className="block text-sm font-medium text-gray-900">
-                  Notes
-                </label>
-                <textarea
-                  id="notes"
-                  {...register('notes')}
-                  rows={3}
-                  className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white placeholder-gray-500"
-                  placeholder="Additional notes..."
-                />
               </div>
             </div>
           </div>

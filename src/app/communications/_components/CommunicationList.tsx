@@ -33,6 +33,7 @@ export function CommunicationList({
   const [filterType, setFilterType] = useState<string>('all');
   const [filterCustomer, setFilterCustomer] = useState<string>('all');
   const [filterQuotation, setFilterQuotation] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
   const { data: communications, isLoading, refetch } = api.communication.getAll.useQuery({});
   const { data: customers } = api.company.getAll.useQuery();
@@ -103,10 +104,37 @@ export function CommunicationList({
     const matchesQuotation = filterQuotation === 'all' || 
       (filterQuotation === 'with' && (comm.enquiry?.quotationNumber ?? false)) ||
       (filterQuotation === 'without' && !comm.enquiry?.quotationNumber);
+    
+    // Filter by quotation status (WON/LIVE)
+    let matchesStatus = true;
+    if (filterStatus !== 'all') {
+      // When filtering by status, must have enquiry with quotationStatus
+      if (!comm.enquiry?.quotationStatus) {
+        return false;
+      }
+      // Status must match exactly
+      matchesStatus = comm.enquiry.quotationStatus === filterStatus;
+    }
 
-    return matchesSearch && matchesType && matchesCustomer && matchesQuotation;
+    return matchesSearch && matchesType && matchesCustomer && matchesQuotation && matchesStatus;
   }) ?? [];
+  
+  // Calculate total value from filtered communications
+  const totalValue = filteredCommunications.reduce((sum: number, comm: any) => {
+    const value = comm.enquiry?.quotationTotalValue ?? 0;
+    return sum + (typeof value === 'number' ? value : 0);
+  }, 0);
   /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
   const handleDelete = (communication: Communication) => {
     if (confirm('Are you sure you want to delete this communication?')) {
@@ -123,11 +151,33 @@ export function CommunicationList({
   }
 
   return (
-    <div className="bg-white rounded-lg border shadow-sm">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Communications</h2>
+    <div className="space-y-6">
+      {/* Stats Card - Total Value */}
+      <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="p-5">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-indigo-500 rounded-md flex items-center justify-center">
+                <div className="text-white font-bold text-sm">💰</div>
+              </div>
+            </div>
+            <div className="ml-5 w-0 flex-1">
+              <dl>
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  {filterStatus === 'WON' ? 'Total Won Value' : filterStatus === 'LIVE' ? 'Total Live Value' : 'Total Value'}
+                </dt>
+                <dd className="text-2xl font-bold text-gray-900">{formatCurrency(totalValue)}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg border shadow-sm">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">Communications</h2>
           {onCreateNew && (
             <button
               onClick={onCreateNew}
@@ -142,7 +192,7 @@ export function CommunicationList({
 
       {/* Filters */}
       <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -200,11 +250,38 @@ export function CommunicationList({
             </select>
           </div>
 
-          {/* Results Count */}
-          <div className="flex items-center justify-end">
-            <span className="text-sm text-gray-600">
-              {filteredCommunications.length} communication{filteredCommunications.length !== 1 ? 's' : ''}
+          {/* Status Filter */}
+          <div>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="all">All Status</option>
+              <option value="WON">Won</option>
+              <option value="LIVE">Live</option>
+            </select>
+          </div>
+
+          {/* Results Count and Total Value */}
+          <div className="flex flex-col items-end gap-1">
+            <span className="text-sm font-medium text-gray-700">
+              {(() => {
+                if (filterStatus === 'WON') return 'Won';
+                if (filterStatus === 'LIVE') return 'Live';
+                return 'Total';
+              })()}: {filteredCommunications.length} communication{filteredCommunications.length !== 1 ? 's' : ''}
             </span>
+            {filterStatus !== 'all' && (
+              <span className="text-sm font-semibold text-green-600">
+                Value: {formatCurrency(totalValue)}
+              </span>
+            )}
+            {filterStatus === 'all' && totalValue > 0 && (
+              <span className="text-sm font-semibold text-green-600">
+                Value: {formatCurrency(totalValue)}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -331,6 +408,7 @@ export function CommunicationList({
           ))
           /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
         )}
+      </div>
       </div>
     </div>
   );

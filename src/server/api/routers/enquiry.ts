@@ -56,11 +56,14 @@ export const enquiryRouter = createTRPCRouter({
           quotationDate: input.quotationDate ? new Date(input.quotationDate) : null,
           region: input.region,
           oaNumber: input.oaNumber,
+          oaDate: input.oaDate ? new Date(input.oaDate) : null,
           blockModel: input.blockModel,
           numberOfBlocks: input.numberOfBlocks,
           designRequired: input.designRequired,
           customerType: input.customerType,
-          status: input.status ?? 'LIVE',
+          // Status: if undefined, don't set it (let database default handle it)
+          // If provided, use it; otherwise Prisma will use the schema default
+          ...(input.status ? { status: input.status } : {}),
         },
       });
     }),
@@ -184,7 +187,7 @@ export const enquiryRouter = createTRPCRouter({
   update: publicProcedure
     .input(UpdateEnquiryFullSchema)
     .mutation(async ({ input }) => {
-      const { id, enquiryDate, dateOfReceipt, quotationDate, attendedById, status, ...rest } = input;
+      const { id, enquiryDate, dateOfReceipt, quotationDate, oaDate, attendedById, status, ...rest } = input;
       
       // Build update data with proper types
       const updateData: {
@@ -200,6 +203,7 @@ export const enquiryRouter = createTRPCRouter({
         quotationDate?: Date | null;
         region?: string | null;
         oaNumber?: string | null;
+        oaDate?: Date | null;
         dateOfReceipt?: Date | null;
         blockModel?: string | null;
         numberOfBlocks?: number | null;
@@ -218,6 +222,9 @@ export const enquiryRouter = createTRPCRouter({
       }
       if (quotationDate !== undefined) {
         updateData.quotationDate = quotationDate ? new Date(quotationDate) : null;
+      }
+      if (oaDate !== undefined) {
+        updateData.oaDate = oaDate ? new Date(oaDate) : null;
       }
       
       // Handle attendedById - convert empty string to undefined

@@ -49,12 +49,16 @@ export default function QuotationStatusPage() {
     dead: 0
   };
 
-  const displayTotalValue = stats?.activeTotalValue ?? 0;
-
   // Filter quotations based on status filter
   const filteredQuotations = statusFilter 
     ? quotations?.filter(q => q.status === statusFilter) ?? []
     : quotations ?? [];
+
+  // Calculate total value from filtered quotations
+  const displayTotalValue = filteredQuotations.reduce((sum, q) => {
+    const value = q.totalValue ? Number(q.totalValue) : 0;
+    return sum + value;
+  }, 0);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -220,8 +224,15 @@ export default function QuotationStatusPage() {
             </div>
             <div className="ml-5 w-0 flex-1">
               <dl>
-                <dt className="text-sm font-medium text-gray-500 truncate">Total Live Value</dt>
-                <dd className="text-2xl font-bold text-gray-900">{formatCurrency(Number(displayTotalValue))}</dd>
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  {statusFilter === 'WON' ? 'Total Won Value' :
+                   statusFilter === 'LIVE' ? 'Total Live Value' :
+                   statusFilter === 'LOST' ? 'Total Lost Value' :
+                   statusFilter === 'BUDGETARY' ? 'Total Budgetary Value' :
+                   statusFilter === 'DEAD' ? 'Total Dead Value' :
+                   'Total Value'}
+                </dt>
+                <dd className="text-2xl font-bold text-gray-900">{formatCurrency(displayTotalValue)}</dd>
               </dl>
             </div>
           </div>

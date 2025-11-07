@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { api } from '@/trpc/client';
+import { useToastContext } from '@/components/providers/ToastProvider';
 import { CreateEnquiryForm } from './_components/CreateEnquiryForm';
 import { ReceiptDateModal } from './_components/ReceiptDateModal';
 
@@ -21,19 +22,49 @@ import {
 
 
 export default function EnquiriesPage() {
+  const { success, error: showError } = useToastContext();
   const enquiriesQuery = api.enquiry.getAll.useQuery();
   const { data: stats } = api.enquiry.getStats.useQuery();
   const { data: enquiries, isLoading, error } = enquiriesQuery;
   const { data: employees } = api.employee.getAll.useQuery();
   const updateEnquiryMutation = api.enquiry.update.useMutation({
     onSuccess: () => {
+      success('Enquiry Updated', 'The enquiry has been successfully updated.');
       enquiriesQuery.refetch();
       setEditingEnquiry(null);
       setEditData({});
     },
     onError: (error) => {
-      // Error handling is managed by tRPC and toast notifications
-      alert('Failed to update enquiry: ' + error.message);
+      // Extract error message from tRPC error
+      let errorMessage = 'Failed to update enquiry. Please check all fields and try again.';
+      
+      if (error.message) {
+        // Try to parse the error message if it's JSON (tRPC validation errors)
+        try {
+          const parsed = JSON.parse(error.message) as Array<{ message?: string; path?: string | string[]; code?: string }>;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Get the first error message
+            const firstError = parsed[0];
+            if (firstError?.message) {
+              errorMessage = firstError.message;
+            } else if (firstError?.path && firstError?.code) {
+              // Format validation error
+              const fieldName = Array.isArray(firstError.path) ? firstError.path.join('.') : firstError.path;
+              errorMessage = `Invalid value for ${fieldName}. ${firstError.message ?? 'Please check the field and try again.'}`;
+            }
+          }
+        } catch {
+          // If not JSON, use the error message directly
+          if (error.message.includes('UUID')) {
+            errorMessage = 'Invalid employee selection. Please select a valid employee or leave the field empty.';
+          } else {
+            errorMessage = error.message;
+          }
+        }
+      }
+      
+      // Show user-friendly error toast
+      showError('Update Failed', errorMessage);
     },
   });
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -42,20 +73,16 @@ export default function EnquiriesPage() {
   // Define the edit data type
   type EditEnquiryData = {
     subject?: string;
-    description?: string;
-    requirements?: string;
-    timeline?: string;
     enquiryDate?: string;
-    priority?: 'Low' | 'Medium' | 'High' | 'Urgent';
     source?: 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit';
-    notes?: string;
     quotationNumber?: string;
     quotationDate?: string;
     region?: string;
     oaNumber?: string;
+    oaDate?: string;
     blockModel?: string;
     numberOfBlocks?: number;
-    designRequired?: 'Standard' | 'Custom' | 'Modified' | 'None';
+    designRequired?: 'Yes' | 'No';
     attendedById?: string;
     customerType?: 'NEW' | 'OLD';
     status?: 'LIVE' | 'DEAD' | 'RCD' | 'LOST';
@@ -135,23 +162,19 @@ export default function EnquiriesPage() {
       setEditingEnquiry(enquiryId);
       setEditData({
         subject: enquiry.subject ?? undefined,
-        description: enquiry.description ?? undefined,
-        requirements: enquiry.requirements ?? undefined,
-        timeline: enquiry.timeline ?? undefined,
         enquiryDate: enquiry.enquiryDate ? new Date(enquiry.enquiryDate).toISOString().split('T')[0] : undefined,
-        priority: (enquiry.priority ?? 'Medium') as 'Low' | 'Medium' | 'High' | 'Urgent',
-        source: (enquiry.source ?? 'Website') as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit',
-              notes: enquiry.notes ?? undefined,
-              quotationNumber: enquiry.quotationNumber ?? undefined,
-              quotationDate: enquiry.quotationDate ? new Date(enquiry.quotationDate).toISOString().split('T')[0] : undefined,
-              region: enquiry.region ?? undefined,
-              oaNumber: enquiry.oaNumber ?? undefined,
-              blockModel: enquiry.blockModel ?? undefined,
+        source: enquiry.source ? (enquiry.source as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit') : undefined,
+        quotationNumber: enquiry.quotationNumber ?? undefined,
+        quotationDate: enquiry.quotationDate ? new Date(enquiry.quotationDate).toISOString().split('T')[0] : undefined,
+        region: enquiry.region ?? undefined,
+        oaNumber: enquiry.oaNumber ?? undefined,
+        oaDate: enquiry.oaDate ? new Date(enquiry.oaDate).toISOString().split('T')[0] : undefined,
+        blockModel: enquiry.blockModel ?? undefined,
         numberOfBlocks: enquiry.numberOfBlocks ? Number(enquiry.numberOfBlocks) : undefined,
-        designRequired: (enquiry.designRequired ?? 'Standard') as 'Standard' | 'Custom' | 'Modified' | 'None',
+        designRequired: enquiry.designRequired ? (enquiry.designRequired as 'Yes' | 'No') : undefined,
         attendedById: enquiry.attendedById ?? undefined,
-        customerType: (enquiry.customerType ?? 'NEW') as 'NEW' | 'OLD',
-        status: (enquiry.status ?? 'LIVE') as 'LIVE' | 'DEAD' | 'RCD' | 'LOST',
+        customerType: enquiry.customerType ? (enquiry.customerType as 'NEW' | 'OLD') : undefined,
+        status: enquiry.status ? (enquiry.status as 'LIVE' | 'DEAD' | 'RCD' | 'LOST') : undefined,
         dateOfReceipt: enquiry.dateOfReceipt ? new Date(enquiry.dateOfReceipt).toISOString().split('T')[0] : undefined,
       });
     }
@@ -172,12 +195,37 @@ export default function EnquiriesPage() {
   const handleSaveEdit = () => {
     if (editingEnquiry) {
       try {
-        updateEnquiryMutation.mutate({
-          id: editingEnquiry,
-          ...editData
+        // Clean up editData: convert empty strings to undefined for UUID fields
+        const cleanedData: Partial<EditEnquiryData> & { id: number } = { 
+          id: editingEnquiry
+        };
+        
+        // Copy all fields from editData, but clean up attendedById
+        Object.keys(editData).forEach(key => {
+          const value = editData[key as keyof EditEnquiryData];
+          
+          // Special handling for attendedById - completely omit if empty
+          if (key === 'attendedById') {
+            // Only include if it's a non-empty string
+            if (value && 
+                typeof value === 'string' && 
+                value.trim() !== '' && 
+                value !== 'null' && 
+                value !== 'undefined') {
+              (cleanedData as Record<string, unknown>)[key] = value.trim();
+            }
+            // Otherwise, don't include the field at all
+            return;
+          }
+          
+          // For other fields, include them as-is (they can be undefined)
+          (cleanedData as Record<string, unknown>)[key] = value;
         });
+        
+        updateEnquiryMutation.mutate(cleanedData as any);
       } catch {
         // Error handling is managed by tRPC and toast notifications
+        showError('Update Error', 'An unexpected error occurred. Please try again.');
       }
     }
   };
@@ -377,10 +425,7 @@ export default function EnquiriesPage() {
                              {enquiry.quotationNumber ?? '-'}
                            </td>
                                                      <td className="p-4 align-middle">
-                             <div className="text-sm text-gray-900">{enquiry.subject}</div>
-                             <div className="text-xs text-gray-500 truncate max-w-xs">
-                               {enquiry.description ?? 'No description'}
-                             </div>
+                             <div className="text-sm text-gray-900">{enquiry.subject ?? 'No subject'}</div>
                            </td>
                           <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900">
                             {enquiry.company?.name ?? 'N/A'}
@@ -402,7 +447,7 @@ export default function EnquiriesPage() {
                                   updateEnquiryMutation.mutate({
                                     id: enquiry.id,
                                     status: newStatus,
-                                  });
+                                  } as any);
                                 }
                               }}
                               className="text-xs px-2 py-1 rounded-full border-0 focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -549,6 +594,19 @@ export default function EnquiriesPage() {
                       </div>
 
                       <div className="space-y-2">
+                        <label htmlFor="edit-oaDate" className="block text-sm font-medium text-gray-900">
+                          O.A. Date
+                        </label>
+                        <input
+                          type="date"
+                          id="edit-oaDate"
+                          value={editData.oaDate ?? ''}
+                          onChange={(e) => setEditData({ ...editData, oaDate: e.target.value || undefined })}
+                          className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
                         <label htmlFor="edit-subject" className="block text-sm font-medium text-gray-900">
                       Subject
                     </label>
@@ -583,7 +641,13 @@ export default function EnquiriesPage() {
                           step="0.01"
                           id="edit-numberOfBlocks"
                           value={editData.numberOfBlocks ?? ''}
-                          onChange={(e) => setEditData({ ...editData, numberOfBlocks: e.target.value ? parseFloat(e.target.value) : undefined })}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setEditData({ 
+                              ...editData, 
+                              numberOfBlocks: value && value.trim() !== '' ? parseFloat(value) : undefined 
+                            });
+                          }}
                           className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
                           placeholder="Enter number of blocks"
                         />
@@ -595,14 +659,13 @@ export default function EnquiriesPage() {
                         </label>
                         <select
                           id="edit-designRequired"
-                          value={editData.designRequired ?? 'Standard'}
-                          onChange={(e) => setEditData({ ...editData, designRequired: e.target.value as 'Standard' | 'Custom' | 'Modified' | 'None' })}
+                          value={editData.designRequired ?? ''}
+                          onChange={(e) => setEditData({ ...editData, designRequired: e.target.value ? (e.target.value as 'Yes' | 'No') : undefined })}
                           className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
                         >
-                          <option value="Standard" className="text-black bg-white">Standard</option>
-                          <option value="Custom" className="text-black bg-white">Custom</option>
-                          <option value="Modified" className="text-black bg-white">Modified</option>
-                          <option value="None" className="text-black bg-white">None</option>
+                          <option value="" className="text-black bg-white">Select</option>
+                          <option value="Yes" className="text-black bg-white">Yes</option>
+                          <option value="No" className="text-black bg-white">No</option>
                         </select>
                       </div>
 
@@ -613,7 +676,7 @@ export default function EnquiriesPage() {
                         <select
                           id="edit-attendedById"
                           value={editData.attendedById ?? ''}
-                          onChange={(e) => setEditData({ ...editData, attendedById: e.target.value || undefined })}
+                          onChange={(e) => setEditData({ ...editData, attendedById: e.target.value && e.target.value.trim() !== '' ? e.target.value : undefined })}
                           className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
                         >
                           <option value="" className="text-black bg-white">Select employee</option>
@@ -657,9 +720,9 @@ export default function EnquiriesPage() {
                         </label>
                         <select
                           id="edit-status"
-                          value={editData.status ?? 'LIVE'}
+                          value={editData.status ?? ''}
                           onChange={(e) => {
-                            const newStatus = e.target.value as 'LIVE' | 'DEAD' | 'RCD' | 'LOST';
+                            const newStatus = e.target.value ? (e.target.value as 'LIVE' | 'DEAD' | 'RCD' | 'LOST') : undefined;
                             if (newStatus === 'RCD') {
                               // Open receipt modal instead of directly updating
                               setReceiptModalEnquiryId(editingEnquiry);
@@ -671,6 +734,7 @@ export default function EnquiriesPage() {
                           }}
                           className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
                         >
+                          <option value="" className="text-black bg-white">Select status (optional)</option>
                           <option value="LIVE" className="text-black bg-white">LIVE</option>
                           <option value="DEAD" className="text-black bg-white">DEAD</option>
                           <option value="RCD" className="text-black bg-white">RCD (Received)</option>
@@ -701,10 +765,11 @@ export default function EnquiriesPage() {
                         </label>
                         <select
                           id="edit-customerType"
-                          value={editData.customerType ?? 'NEW'}
-                          onChange={(e) => setEditData({ ...editData, customerType: e.target.value as 'NEW' | 'OLD' })}
+                          value={editData.customerType ?? ''}
+                          onChange={(e) => setEditData({ ...editData, customerType: e.target.value ? (e.target.value as 'NEW' | 'OLD') : undefined })}
                           className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
                         >
+                          <option value="" className="text-black bg-white">Select (optional)</option>
                           <option value="NEW" className="text-black bg-white">NEW</option>
                           <option value="OLD" className="text-black bg-white">OLD</option>
                         </select>
@@ -713,44 +778,28 @@ export default function EnquiriesPage() {
                   </div>
                 </div>
 
-                {/* Additional Details Section */}
+                {/* Source field - moved here from Additional Details */}
                 <div className="bg-white rounded-xl border shadow-sm">
                   <div className="px-6 pt-6">
                     <h4 className="text-lg font-semibold text-gray-900 flex items-center">
                       <FileText className="w-5 h-5 mr-2 text-blue-600" />
-                      Additional Details
+                      Additional Information
                     </h4>
-                    <p className="text-gray-900 text-sm">Optional additional information</p>
+                    <p className="text-gray-900 text-sm">Optional information</p>
                   </div>
                   <div className="px-6 pb-6 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label htmlFor="edit-priority" className="block text-sm font-medium text-gray-900">
-                      Priority
-                    </label>
-                    <select
-                          id="edit-priority"
-                          value={editData.priority ?? 'Medium'}
-                      onChange={(e) => setEditData({ ...editData, priority: e.target.value as 'Low' | 'Medium' | 'High' | 'Urgent' })}
-                          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
-                        >
-                          <option value="Low" className="text-black bg-white">Low</option>
-                          <option value="Medium" className="text-black bg-white">Medium</option>
-                          <option value="High" className="text-black bg-white">High</option>
-                          <option value="Urgent" className="text-black bg-white">Urgent</option>
-                    </select>
-                  </div>
-
-                      <div className="space-y-2">
                         <label htmlFor="edit-source" className="block text-sm font-medium text-gray-900">
-                      Source
-                    </label>
-                    <select
+                          Source
+                        </label>
+                        <select
                           id="edit-source"
-                          value={editData.source ?? 'Website'}
-                      onChange={(e) => setEditData({ ...editData, source: e.target.value as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit' })}
+                          value={editData.source ?? ''}
+                          onChange={(e) => setEditData({ ...editData, source: e.target.value ? (e.target.value as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit') : undefined })}
                           className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
                         >
+                          <option value="" className="text-black bg-white">Select source (optional)</option>
                           <option value="Website" className="text-black bg-white">Website</option>
                           <option value="Email" className="text-black bg-white">Email</option>
                           <option value="Phone" className="text-black bg-white">Phone</option>
@@ -758,64 +807,10 @@ export default function EnquiriesPage() {
                           <option value="Trade Show" className="text-black bg-white">Trade Show</option>
                           <option value="Social Media" className="text-black bg-white">Social Media</option>
                           <option value="Visit" className="text-black bg-white">Visit</option>
-                    </select>
-                  </div>
-
-                      <div className="space-y-2">
-                        <label htmlFor="edit-timeline" className="block text-sm font-medium text-gray-900">
-                      Timeline
-                    </label>
-                    <input
-                          id="edit-timeline"
-                          value={editData.timeline ?? ''}
-                          onChange={(e) => setEditData({ ...editData, timeline: e.target.value || undefined })}
-                          className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
-                      placeholder="e.g., 2-3 weeks"
-                    />
-                  </div>
-
-                      <div className="space-y-2">
-                        <label htmlFor="edit-requirements" className="block text-sm font-medium text-gray-900">
-                      Requirements
-                    </label>
-                    <input
-                          id="edit-requirements"
-                          value={editData.requirements ?? ''}
-                          onChange={(e) => setEditData({ ...editData, requirements: e.target.value || undefined })}
-                          className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
-                      placeholder="e.g., Specific requirements"
-                    />
-                  </div>
+                        </select>
+                      </div>
                     </div>
-
-                    <div className="space-y-2">
-                      <label htmlFor="edit-description" className="block text-sm font-medium text-gray-900">
-                      Description
-                    </label>
-                    <textarea
-                        id="edit-description"
-                        value={editData.description ?? ''}
-                        onChange={(e) => setEditData({ ...editData, description: e.target.value || undefined })}
-                        rows={4}
-                        className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white placeholder-gray-500"
-                        placeholder="Provide a detailed description of the enquiry..."
-                    />
                   </div>
-
-                    <div className="space-y-2">
-                      <label htmlFor="edit-notes" className="block text-sm font-medium text-gray-900">
-                      Notes
-                    </label>
-                    <textarea
-                        id="edit-notes"
-                        value={editData.notes ?? ''}
-                        onChange={(e) => setEditData({ ...editData, notes: e.target.value || undefined })}
-                        rows={3}
-                        className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white placeholder-gray-500"
-                        placeholder="Additional notes..."
-                    />
-                  </div>
-                </div>
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
@@ -929,6 +924,12 @@ export default function EnquiriesPage() {
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
+                                O.A. Date
+                              </label>
+                              <p className="text-gray-900">{enquiry.oaDate ? new Date(enquiry.oaDate).toLocaleDateString() : 'Not specified'}</p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Quotation Ref. Number
                               </label>
                               <p className="text-gray-900">{enquiry.quotationNumber ?? 'Not specified'}</p>
@@ -1001,22 +1002,16 @@ export default function EnquiriesPage() {
                         </div>
                       </div>
 
-                      {/* Additional Details */}
+                      {/* Additional Information */}
                       <div className="bg-white rounded-xl border shadow-sm">
                         <div className="px-6 pt-6">
                           <h4 className="text-lg font-semibold text-gray-900 flex items-center">
                             <FileText className="w-5 h-5 mr-2 text-blue-600" />
-                            Additional Details
+                            Additional Information
                           </h4>
                         </div>
                         <div className="px-6 pb-6">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Priority
-                        </label>
-                              <p className="text-gray-900">{enquiry.priority ?? 'Not specified'}</p>
-                            </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Source
@@ -1025,40 +1020,16 @@ export default function EnquiriesPage() {
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Timeline
+                                Created Date
                               </label>
-                              <p className="text-gray-900">{enquiry.timeline ?? 'Not specified'}</p>
+                              <p className="text-gray-900">
+                                {new Date(enquiry.createdAt).toLocaleDateString()}
+                              </p>
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Requirements
-                              </label>
-                              <p className="text-gray-900">{enquiry.requirements ?? 'Not specified'}</p>
-                            </div>
-                            <div className="md:col-span-2">
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Description
-                              </label>
-                              <p className="text-gray-900">{enquiry.description ?? 'No description provided'}</p>
-                            </div>
-                            <div className="md:col-span-2">
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Notes
-                              </label>
-                              <p className="text-gray-900">{enquiry.notes ?? 'No notes provided'}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Created Date
-                        </label>
-                        <p className="text-gray-900">
-                          {new Date(enquiry.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                            <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Last Updated
-                        </label>
+                              </label>
                               <p className="text-gray-900">
                                 {new Date(enquiry.updatedAt).toLocaleDateString()}
                               </p>

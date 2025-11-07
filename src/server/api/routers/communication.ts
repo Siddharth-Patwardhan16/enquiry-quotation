@@ -121,9 +121,29 @@ export const communicationRouter = createTRPCRouter({
                 },
               },
             });
+            
+            // Fetch quotation status and totalValue if quotationNumber exists
+            let quotationStatus: string | null = null;
+            let quotationTotalValue: number | null = null;
+            if (enquiry?.quotationNumber) {
+              const quotation = await db.quotation.findUnique({
+                where: { quotationNumber: enquiry.quotationNumber },
+                select: { 
+                  status: true,
+                  totalValue: true,
+                },
+              });
+              quotationStatus = quotation?.status ?? null;
+              quotationTotalValue = quotation?.totalValue ? Number(quotation.totalValue) : null;
+            }
+            
             return {
               ...comm,
-              enquiry: enquiry,
+              enquiry: enquiry ? {
+                ...enquiry,
+                quotationStatus,
+                quotationTotalValue,
+              } : null,
             };
           }
           return {

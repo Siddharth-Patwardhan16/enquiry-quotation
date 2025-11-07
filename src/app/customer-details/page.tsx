@@ -31,21 +31,229 @@ function CustomerDetailsContent() {
   // Debounce search term to avoid excessive API calls
   const debouncedSearchTerm = useDebounce(filterState.searchTerm, 500);
 
-  // Fetch companies only (new company-based structure)
+  // Fetch both companies and customers
   const { 
     data: companiesData, 
-    isLoading, 
-    error, 
-    isFetching,
-    refetch 
+    isLoading: isLoadingCompanies, 
+    error: companiesError, 
+    isFetching: isFetchingCompanies,
+    refetch: refetchCompanies 
   } = api.company.getAll.useQuery();
 
-  // Apply client-side filtering and pagination since we're only using companies
-  const filteredEntities = (companiesData ?? []).filter(company => {
-    const searchTerm = debouncedSearchTerm.toLowerCase();
+  const { 
+    data: customersData, 
+    isLoading: isLoadingCustomers, 
+    error: customersError, 
+    isFetching: isFetchingCustomers,
+    refetch: refetchCustomers 
+  } = api.customer.getAll.useQuery();
+
+  const isLoading = isLoadingCompanies || isLoadingCustomers;
+  const isFetching = isFetchingCompanies || isFetchingCustomers;
+  const error = companiesError || customersError;
+  const refetch = () => {
+    refetchCompanies();
+    refetchCustomers();
+  };
+
+  // Combine companies and customers into a single list
+  const allEntities = [
+    ...(companiesData ?? []).map(company => ({
+      ...company,
+      type: 'company' as const,
+    })),
+    ...(customersData ?? []).map(customer => ({
+      ...customer,
+      type: 'customer' as const,
+      offices: [],
+      plants: [],
+      contactPersons: [],
+    })),
+  ];
+
+  // Helper function to get location string for search
+  const getLocationStringForSearch = (entity: typeof allEntities[0]): string => {
+    const locationParts: string[] = [];
+    
+    // For companies, get office and plant locations
+    if (entity.type === 'company' || 'offices' in entity) {
+      // Get all office locations
+      entity.offices?.forEach(office => {
+        if (office.address) locationParts.push(office.address);
+        if (office.city) locationParts.push(office.city);
+        if (office.state) locationParts.push(office.state);
+        if (office.country) locationParts.push(office.country);
+        if (office.area) locationParts.push(office.area);
+        if (office.name) locationParts.push(office.name);
+      });
+      
+      // Get all plant locations
+      entity.plants?.forEach(plant => {
+        if (plant.address) locationParts.push(plant.address);
+        if (plant.city) locationParts.push(plant.city);
+        if (plant.state) locationParts.push(plant.state);
+        if (plant.country) locationParts.push(plant.country);
+        if (plant.area) locationParts.push(plant.area);
+        if (plant.name) locationParts.push(plant.name);
+      });
+    }
+    
+    // For customers, get location data
+    if ((entity.type === 'customer' || 'locations' in entity) && 'locations' in entity && Array.isArray(entity.locations)) {
+      const locations = entity.locations as Array<{ address?: string | null; city?: string | null; state?: string | null; country?: string | null; name?: string }>;
+      for (const location of locations) {
+        if (location.address) locationParts.push(location.address);
+        if (location.city) locationParts.push(location.city);
+        if (location.state) locationParts.push(location.state);
+        if (location.country) locationParts.push(location.country);
+        if (location.name) locationParts.push(location.name);
+      }
+    }
+    
+    return locationParts.join(' ');
+  };
+
+  // Apply client-side filtering and pagination - search across ALL fields
+  const filteredEntities = allEntities.filter(entity => {
+    const searchTerm = debouncedSearchTerm.toLowerCase().trim();
     if (!searchTerm) return true;
     
-    return company.name.toLowerCase().includes(searchTerm);
+    // Search in entity name
+    if (entity.name?.toLowerCase().includes(searchTerm)) {
+      return true;
+    }
+    
+    // For companies, search in contact persons
+    if ((entity.type === 'company' || 'contactPersons' in entity) && 'contactPersons' in entity && Array.isArray(entity.contactPersons) && entity.contactPersons.length > 0) {
+      const contactPersons = entity.contactPersons as Array<{ name?: string; designation?: string | null; phoneNumber?: string | null; emailId?: string | null; office?: { name?: string } | null; plant?: { name?: string } | null }>;
+      for (const contact of contactPersons) {
+        // Search in contact name
+        if (contact.name?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        // Search in designation
+        if (contact.designation?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        // Search in phone number
+        if (contact.phoneNumber?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        // Search in email
+        if (contact.emailId?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        // Search in office/plant names
+        if (contact.office?.name?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (contact.plant?.name?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+      }
+    }
+    
+    // For customers, search in contacts
+    if ((entity.type === 'customer' || 'contacts' in entity) && 'contacts' in entity && Array.isArray(entity.contacts) && entity.contacts.length > 0) {
+      const contacts = entity.contacts as Array<{ name?: string; designation?: string | null; officialCellNumber?: string | null; personalCellNumber?: string | null; location?: { name?: string } | null }>;
+      for (const contact of contacts) {
+        if (contact.name?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (contact.designation?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (contact.officialCellNumber?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (contact.personalCellNumber?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (contact.location?.name?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+      }
+    }
+    
+    // Search in office names and locations (for companies)
+    if ((entity.type === 'company' || 'offices' in entity) && 'offices' in entity && Array.isArray(entity.offices) && entity.offices.length > 0) {
+      const offices = entity.offices as Array<{ name?: string; address?: string | null; city?: string | null; state?: string | null; country?: string | null; area?: string | null }>;
+      for (const office of offices) {
+        if (office.name?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (office.address?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (office.city?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (office.state?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (office.country?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (office.area?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+      }
+    }
+    
+    // Search in plant names and locations (for companies)
+    if ((entity.type === 'company' || 'plants' in entity) && 'plants' in entity && Array.isArray(entity.plants) && entity.plants.length > 0) {
+      const plants = entity.plants as Array<{ name?: string; address?: string | null; city?: string | null; state?: string | null; country?: string | null; area?: string | null }>;
+      for (const plant of plants) {
+        if (plant.name?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (plant.address?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (plant.city?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (plant.state?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (plant.country?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (plant.area?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+      }
+    }
+    
+    // Search in customer locations
+    if ((entity.type === 'customer' || 'locations' in entity) && 'locations' in entity && Array.isArray(entity.locations) && entity.locations.length > 0) {
+      const locations = entity.locations as Array<{ name?: string; address?: string | null; city?: string | null; state?: string | null; country?: string | null }>;
+      for (const location of locations) {
+        if (location.name?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (location.address?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (location.city?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (location.state?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        if (location.country?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+      }
+    }
+    
+    // Search in all location strings combined
+    const locationString = getLocationStringForSearch(entity).toLowerCase();
+    if (locationString.includes(searchTerm)) {
+      return true;
+    }
+    
+    return false;
   });
 
   const totalCount = filteredEntities.length;
