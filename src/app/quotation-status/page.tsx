@@ -12,7 +12,7 @@ type Quotation = inferRouterOutputs<AppRouter>['quotation']['getAll'][0];
 export default function QuotationStatusPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const { data: quotations, isLoading, error } = api.quotation.getAll.useQuery();
-  const { data: stats } = api.quotation.getStats.useQuery();
+  const { data: stats, isLoading: isLoadingStats, error: statsError } = api.quotation.getStats.useQuery();
 
   if (error) {
     return (
@@ -32,21 +32,26 @@ export default function QuotationStatusPage() {
     );
   }
 
-  // Use backend stats if available, otherwise show loading
+  // Log stats error if any (for debugging)
+  if (statsError) {
+    console.error('Stats query error:', statsError);
+  }
+
+  // Use backend stats if available, otherwise show loading or 0
   const displayStats = stats ? {
-    total: stats.total,
-    live: stats.live,
-    won: stats.won,
-    lost: stats.lost,
-    budgetary: stats.budgetary,
-    dead: stats.dead
+    total: stats.total ?? 0,
+    live: stats.live ?? 0,
+    won: stats.won ?? 0,
+    lost: stats.lost ?? 0,
+    budgetary: stats.budgetary ?? 0,
+    dead: stats.dead ?? 0
   } : {
-    total: 0,
-    live: 0,
-    won: 0,
-    lost: 0,
-    budgetary: 0,
-    dead: 0
+    total: isLoadingStats ? '...' : 0,
+    live: isLoadingStats ? '...' : 0,
+    won: isLoadingStats ? '...' : 0,
+    lost: isLoadingStats ? '...' : 0,
+    budgetary: isLoadingStats ? '...' : 0,
+    dead: isLoadingStats ? '...' : 0
   };
 
   // Filter quotations based on status filter
@@ -90,7 +95,7 @@ export default function QuotationStatusPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Total</dt>
-                  <dd className="text-lg font-medium text-gray-900">{displayStats.total}</dd>
+                  <dd className="text-lg font-medium text-gray-900">{typeof displayStats.total === 'number' ? displayStats.total.toLocaleString() : displayStats.total}</dd>
                 </dl>
               </div>
             </div>
@@ -113,7 +118,7 @@ export default function QuotationStatusPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Budgetary</dt>
-                  <dd className="text-lg font-medium text-gray-900">{displayStats.budgetary}</dd>
+                  <dd className="text-lg font-medium text-gray-900">{typeof displayStats.budgetary === 'number' ? displayStats.budgetary.toLocaleString() : displayStats.budgetary}</dd>
                 </dl>
               </div>
             </div>
@@ -136,7 +141,7 @@ export default function QuotationStatusPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Live</dt>
-                  <dd className="text-lg font-medium text-gray-900">{displayStats.live}</dd>
+                  <dd className="text-lg font-medium text-gray-900">{typeof displayStats.live === 'number' ? displayStats.live.toLocaleString() : displayStats.live}</dd>
                 </dl>
               </div>
             </div>
@@ -159,7 +164,7 @@ export default function QuotationStatusPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Won</dt>
-                  <dd className="text-lg font-medium text-gray-900">{displayStats.won}</dd>
+                  <dd className="text-lg font-medium text-gray-900">{typeof displayStats.won === 'number' ? displayStats.won.toLocaleString() : displayStats.won}</dd>
                 </dl>
               </div>
             </div>
@@ -182,7 +187,7 @@ export default function QuotationStatusPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Lost</dt>
-                  <dd className="text-lg font-medium text-gray-900">{displayStats.lost}</dd>
+                  <dd className="text-lg font-medium text-gray-900">{typeof displayStats.lost === 'number' ? displayStats.lost.toLocaleString() : displayStats.lost}</dd>
                 </dl>
               </div>
             </div>
@@ -205,7 +210,7 @@ export default function QuotationStatusPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Dead</dt>
-                  <dd className="text-lg font-medium text-gray-900">{displayStats.dead}</dd>
+                  <dd className="text-lg font-medium text-gray-900">{typeof displayStats.dead === 'number' ? displayStats.dead.toLocaleString() : displayStats.dead}</dd>
                 </dl>
               </div>
             </div>
@@ -301,7 +306,9 @@ export default function QuotationStatusPage() {
                       <div className="text-sm font-medium text-gray-900">{quotation.quotationNumber}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{quotation.enquiry?.customer?.name ?? 'N/A'}</div>
+                      <div className="text-sm text-gray-900">
+                        {quotation.enquiry?.company?.name ?? quotation.enquiry?.customer?.name ?? 'N/A'}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                                           <div className="text-sm text-gray-900 max-w-xs truncate" title={quotation.enquiry?.subject ?? 'N/A'}>

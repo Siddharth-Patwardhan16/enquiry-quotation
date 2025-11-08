@@ -91,6 +91,7 @@ export default function EnquiriesPage() {
 
   const [editingEnquiry, setEditingEnquiry] = useState<number | null>(null);
   const [editData, setEditData] = useState<EditEnquiryData>({});
+  const [originalAttendedById, setOriginalAttendedById] = useState<string | null | undefined>(undefined);
   const [viewingEnquiry, setViewingEnquiry] = useState<number | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptModalEnquiryId, setReceiptModalEnquiryId] = useState<number | null>(null);
@@ -160,6 +161,8 @@ export default function EnquiriesPage() {
       }
       // Open edit form
       setEditingEnquiry(enquiryId);
+      // Store original attendedById to detect if we're clearing it
+      setOriginalAttendedById(enquiry.attendedById ?? null);
       setEditData({
         subject: enquiry.subject ?? undefined,
         enquiryDate: enquiry.enquiryDate ? new Date(enquiry.enquiryDate).toISOString().split('T')[0] : undefined,
@@ -204,17 +207,25 @@ export default function EnquiriesPage() {
         Object.keys(editData).forEach(key => {
           const value = editData[key as keyof EditEnquiryData];
           
-          // Special handling for attendedById - completely omit if empty
+          // Special handling for attendedById
           if (key === 'attendedById') {
-            // Only include if it's a non-empty string
-            if (value && 
+            const cleanedValue = value && 
                 typeof value === 'string' && 
                 value.trim() !== '' && 
-                value !== 'null' && 
-                value !== 'undefined') {
-              (cleanedData as Record<string, unknown>)[key] = value.trim();
+                value.trim().toLowerCase() !== 'null' && 
+                value.trim().toLowerCase() !== 'undefined'
+              ? value.trim()
+              : undefined;
+            
+            // If it was originally set but is now empty, send null to clear it
+            // Otherwise, if it has a value, send it; if it was never set, omit it
+            if (cleanedValue) {
+              (cleanedData as Record<string, unknown>)[key] = cleanedValue;
+            } else if (originalAttendedById !== undefined && originalAttendedById !== null) {
+              // Was originally set, now empty - send null to clear
+              (cleanedData as Record<string, unknown>)[key] = null;
             }
-            // Otherwise, don't include the field at all
+            // Otherwise omit (was never set, still not set)
             return;
           }
           
@@ -233,6 +244,7 @@ export default function EnquiriesPage() {
   const handleCancelEdit = () => {
     setEditingEnquiry(null);
     setEditData({});
+    setOriginalAttendedById(undefined);
   };
 
   const handleCloseView = () => {
@@ -676,7 +688,14 @@ export default function EnquiriesPage() {
                         <select
                           id="edit-attendedById"
                           value={editData.attendedById ?? ''}
-                          onChange={(e) => setEditData({ ...editData, attendedById: e.target.value && e.target.value.trim() !== '' ? e.target.value : undefined })}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Convert empty string, "null", "undefined" to undefined
+                            const cleanedValue = value && value.trim() !== '' && value !== 'null' && value !== 'undefined' 
+                              ? value.trim() 
+                              : undefined;
+                            setEditData({ ...editData, attendedById: cleanedValue });
+                          }}
                           className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
                         >
                           <option value="" className="text-black bg-white">Select employee</option>

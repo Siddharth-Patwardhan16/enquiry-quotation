@@ -208,7 +208,7 @@ export const enquiryRouter = createTRPCRouter({
         blockModel?: string | null;
         numberOfBlocks?: number | null;
         designRequired?: string | null;
-        attendedById?: string | undefined;
+        attendedById?: string | null;
         customerType?: string | null;
         status?: 'LIVE' | 'DEAD' | 'RCD' | 'LOST';
       } = { ...rest };
@@ -227,9 +227,18 @@ export const enquiryRouter = createTRPCRouter({
         updateData.oaDate = oaDate ? new Date(oaDate) : null;
       }
       
-      // Handle attendedById - convert empty string to undefined
+      // Handle attendedById - convert empty string to undefined, but allow null to clear
       if (attendedById !== undefined) {
-        updateData.attendedById = attendedById && attendedById.trim() !== '' ? attendedById : undefined;
+        if (attendedById === null) {
+          // Explicitly set to null to clear the field
+          updateData.attendedById = null;
+        } else if (typeof attendedById === 'string' && attendedById.trim() !== '') {
+          // Valid UUID string
+          updateData.attendedById = attendedById.trim();
+        } else {
+          // Empty string or invalid - set to undefined (don't update)
+          updateData.attendedById = undefined;
+        }
       }
       
       // Handle status - ensure it's a valid enum value

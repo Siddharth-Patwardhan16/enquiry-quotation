@@ -48,16 +48,25 @@ export const CreateEnquirySchema = z.object({
   ),
   attendedById: z.preprocess(
     (val) => {
-      // Convert empty strings, null, or whitespace to undefined BEFORE validation
-      if (val === '' || val === null || val === undefined) {
+      // Allow null to pass through (for clearing the field)
+      if (val === null) {
+        return null;
+      }
+      // Convert empty strings, undefined, or string "null"/"undefined" to undefined BEFORE validation
+      if (val === '' || val === undefined) {
         return undefined;
       }
-      if (typeof val === 'string' && val.trim() === '') {
-        return undefined;
+      if (typeof val === 'string') {
+        const trimmed = val.trim();
+        // Handle empty string, whitespace-only, or string representations of null/undefined
+        if (trimmed === '' || trimmed === 'null' || trimmed === 'undefined' || trimmed.toLowerCase() === 'null' || trimmed.toLowerCase() === 'undefined') {
+          return undefined;
+        }
+        return trimmed;
       }
       return val;
     },
-    z.string().uuid().optional()
+    z.string().uuid().optional().nullable()
   ),
   customerType: z.preprocess(
     (val) => {
@@ -185,16 +194,25 @@ export const UpdateEnquiryFullSchema = z.object({
   ),
   attendedById: z.preprocess(
     (val) => {
-      // Convert empty strings, null, or whitespace to undefined BEFORE validation
-      if (val === '' || val === null || val === undefined) {
+      // Allow null to pass through (for clearing the field)
+      if (val === null) {
+        return null;
+      }
+      // Convert empty strings, undefined, or string "null"/"undefined" to undefined BEFORE validation
+      if (val === '' || val === undefined) {
         return undefined;
       }
-      if (typeof val === 'string' && val.trim() === '') {
-        return undefined;
+      if (typeof val === 'string') {
+        const trimmed = val.trim();
+        // Handle empty string, whitespace-only, or string representations of null/undefined
+        if (trimmed === '' || trimmed === 'null' || trimmed === 'undefined' || trimmed.toLowerCase() === 'null' || trimmed.toLowerCase() === 'undefined') {
+          return undefined;
+        }
+        return trimmed;
       }
       return val;
     },
-    z.string().uuid().optional()
+    z.string().uuid().optional().nullable()
   ),
   customerType: z.preprocess(
     (val) => {
