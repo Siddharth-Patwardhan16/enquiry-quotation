@@ -4,8 +4,11 @@ import { db } from '@/server/db';
 /**
  * Vercel Cron Job endpoint to keep Supabase database connection alive
  * 
- * This endpoint is called by Vercel Cron Jobs every 10 minutes to prevent
- * Supabase from going into a paused state due to inactivity.
+ * This endpoint is called by Vercel Cron Jobs once per day (at midnight UTC)
+ * to prevent Supabase from going into a paused state due to inactivity.
+ * 
+ * Note: Vercel Hobby plan only allows daily cron jobs (once per day).
+ * For more frequent pings, upgrade to Pro plan or use external cron services.
  * 
  * Security: Protected by CRON_SECRET environment variable
  */
