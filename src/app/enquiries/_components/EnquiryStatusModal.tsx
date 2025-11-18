@@ -6,23 +6,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FileText, Calendar, Building } from 'lucide-react';
+import { FileText, Building, CheckCircle } from 'lucide-react';
 import { useToastContext } from '@/components/providers/ToastProvider';
 
-interface ReceiptDateModalProps {
+interface EnquiryStatusModalProps {
   isOpen: boolean;
   onClose: () => void;
   enquiryId: number;
+  newStatus: 'WON';
   onSuccess?: () => void;
 }
 
-export function ReceiptDateModal({ 
+export function EnquiryStatusModal({ 
   isOpen, 
   onClose, 
   enquiryId, 
+  newStatus,
   onSuccess 
-}: ReceiptDateModalProps) {
-  const [receiptDate, setReceiptDate] = useState('');
+}: EnquiryStatusModalProps) {
   const [purchaseOrderNumber, setPurchaseOrderNumber] = useState('');
   const [poValue, setPoValue] = useState('');
   const [poDate, setPoDate] = useState('');
@@ -33,14 +34,13 @@ export function ReceiptDateModal({
   const { data: enquiries } = api.enquiry.getAll.useQuery();
   const enquiry = enquiries?.find((e) => e.id === enquiryId);
 
-  const updateEnquiryMutation = api.enquiry.updateStatusWithReceipt.useMutation({
+  const updateEnquiryMutation = api.enquiry.updateStatus.useMutation({
     onSuccess: () => {
-      success('Status Updated', 'Enquiry status has been updated to RCD with receipt date and PO details.');
+      success('Status Updated', `Enquiry status has been updated to ${newStatus} with PO details.`);
       setIsSubmitting(false);
       onSuccess?.();
       onClose();
       // Reset form
-      setReceiptDate('');
       setPurchaseOrderNumber('');
       setPoValue('');
       setPoDate('');
@@ -51,26 +51,22 @@ export function ReceiptDateModal({
     },
   });
 
-
-
   const handleStatusUpdate = () => {
-    if (!receiptDate) {
-      showError('Validation Error', 'Please enter receipt date.');
+    if (!purchaseOrderNumber) {
+      showError('Validation Error', 'Please enter Purchase Order Number.');
       return;
     }
-    
-    if (purchaseOrderNumber && !poValue) {
-      showError('Validation Error', 'Please enter PO Value when PO Number is provided.');
+    if (!poValue) {
+      showError('Validation Error', 'Please enter PO Value.');
       return;
     }
-    
-    if (poValue && !purchaseOrderNumber) {
-      showError('Validation Error', 'Please enter PO Number when PO Value is provided.');
+    if (!poDate) {
+      showError('Validation Error', 'Please enter PO Date.');
       return;
     }
 
-    const poValueNum = poValue ? parseFloat(poValue) : undefined;
-    if (poValue && (isNaN(poValueNum!) || poValueNum! <= 0)) {
+    const poValueNum = parseFloat(poValue);
+    if (isNaN(poValueNum) || poValueNum <= 0) {
       showError('Validation Error', 'Please enter a valid PO Value (must be a positive number).');
       return;
     }
@@ -78,11 +74,10 @@ export function ReceiptDateModal({
     setIsSubmitting(true);
     updateEnquiryMutation.mutate({
       id: enquiryId,
-      status: 'RCD',
-      dateOfReceipt: receiptDate,
-      purchaseOrderNumber: purchaseOrderNumber || undefined,
+      status: newStatus,
+      purchaseOrderNumber,
       poValue: poValueNum,
-      poDate: poDate || undefined,
+      poDate,
     });
   };
 
@@ -105,8 +100,8 @@ export function ReceiptDateModal({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-blue-600" />
-            Update Status to RCD (Received) - Receipt & PO Details
+            <CheckCircle className="w-5 h-5 text-green-600" />
+            Update Status to WON - Purchase Order Details
           </DialogTitle>
         </DialogHeader>
 
@@ -131,72 +126,54 @@ export function ReceiptDateModal({
             </div>
           </div>
 
-          {/* Receipt Date and PO Fields */}
+          {/* PO Fields */}
           <div className="space-y-4">
             <div>
-              <Label htmlFor="receiptDate" className="text-sm font-medium text-gray-700">
-                Receipt Date <span className="text-red-500">*</span>
+              <Label htmlFor="purchaseOrderNumber" className="text-sm font-medium text-gray-700">
+                Purchase Order Number <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="receiptDate"
+                id="purchaseOrderNumber"
+                type="text"
+                value={purchaseOrderNumber}
+                onChange={(e) => setPurchaseOrderNumber(e.target.value)}
+                className="mt-2"
+                placeholder="Enter PO Number"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="poValue" className="text-sm font-medium text-gray-700">
+                PO Value <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="poValue"
+                type="number"
+                step="0.01"
+                min="0"
+                value={poValue}
+                onChange={(e) => setPoValue(e.target.value)}
+                className="mt-2"
+                placeholder="Enter PO Value"
+                required
+              />
+              <p className="mt-1 text-sm text-gray-500">Enter the purchase order value</p>
+            </div>
+
+            <div>
+              <Label htmlFor="poDate" className="text-sm font-medium text-gray-700">
+                PO Date <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="poDate"
                 type="date"
-                value={receiptDate}
-                onChange={(e) => setReceiptDate(e.target.value)}
+                value={poDate}
+                onChange={(e) => setPoDate(e.target.value)}
                 className="mt-2"
                 required
               />
-              <p className="mt-1 text-sm text-gray-500">Date when the order was received</p>
-            </div>
-
-            <div className="pt-4 border-t border-gray-200">
-              <h4 className="text-sm font-semibold text-gray-900 mb-3">Purchase Order Details (Optional)</h4>
-              
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="purchaseOrderNumber" className="text-sm font-medium text-gray-700">
-                    Purchase Order Number
-                  </Label>
-                  <Input
-                    id="purchaseOrderNumber"
-                    type="text"
-                    value={purchaseOrderNumber}
-                    onChange={(e) => setPurchaseOrderNumber(e.target.value)}
-                    className="mt-2"
-                    placeholder="Enter PO Number"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="poValue" className="text-sm font-medium text-gray-700">
-                    PO Value
-                  </Label>
-                  <Input
-                    id="poValue"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={poValue}
-                    onChange={(e) => setPoValue(e.target.value)}
-                    className="mt-2"
-                    placeholder="Enter PO Value"
-                  />
-                  <p className="mt-1 text-sm text-gray-500">Enter the purchase order value</p>
-                </div>
-
-                <div>
-                  <Label htmlFor="poDate" className="text-sm font-medium text-gray-700">
-                    PO Date
-                  </Label>
-                  <Input
-                    id="poDate"
-                    type="date"
-                    value={poDate}
-                    onChange={(e) => setPoDate(e.target.value)}
-                    className="mt-2"
-                  />
-                  <p className="mt-1 text-sm text-gray-500">Date of the purchase order</p>
-                </div>
-              </div>
+              <p className="mt-1 text-sm text-gray-500">Date of the purchase order</p>
             </div>
           </div>
 
@@ -213,11 +190,11 @@ export function ReceiptDateModal({
             <Button
               type="button"
               onClick={handleStatusUpdate}
-              disabled={!receiptDate || isSubmitting}
+              disabled={!purchaseOrderNumber || !poValue || !poDate || isSubmitting}
               className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
             >
-              <Calendar className="w-4 h-4" />
-              {isSubmitting ? 'Updating...' : 'Update Status to RCD'}
+              <CheckCircle className="w-4 h-4" />
+              {isSubmitting ? 'Updating...' : 'Update Status to WON'}
             </Button>
           </div>
         </div>

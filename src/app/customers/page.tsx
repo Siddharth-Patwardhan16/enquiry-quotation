@@ -90,8 +90,15 @@ type Company = {
 };
 
 export default function CustomersPage() {
-  // Fetch companies only (new company-based structure)
-  const { data: companies, isLoading: companiesLoading, error: companiesError } = api.company.getAll.useQuery();
+  // Sort state
+  const [sortBy, setSortBy] = useState<'name' | 'createdAt' | 'updatedAt' | 'type'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  
+  // Fetch companies only (new company-based structure) with sorting
+  const { data: companies, isLoading: companiesLoading, error: companiesError } = api.company.getAll.useQuery({
+    sortBy,
+    sortOrder,
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState<'all' | 'office' | 'plant'>('all');
   const [showForm, setShowForm] = useState(false);
@@ -151,17 +158,17 @@ export default function CustomersPage() {
           company.name.toLowerCase().includes(searchLower) ||
           // Search in office locations
           company.offices.some(office => 
-            office.city?.toLowerCase().includes(searchLower) ||
-            office.state?.toLowerCase().includes(searchLower) ||
-            office.area?.toLowerCase().includes(searchLower) ||
-            office.country?.toLowerCase().includes(searchLower)
+            (office.city?.toLowerCase() ?? '').includes(searchLower) ||
+            (office.state?.toLowerCase() ?? '').includes(searchLower) ||
+            (office.area?.toLowerCase() ?? '').includes(searchLower) ||
+            (office.country?.toLowerCase() ?? '').includes(searchLower)
           ) ||
           // Search in plant locations
           company.plants.some(plant => 
-            plant.city?.toLowerCase().includes(searchLower) ||
-            plant.state?.toLowerCase().includes(searchLower) ||
-            plant.area?.toLowerCase().includes(searchLower) ||
-            plant.country?.toLowerCase().includes(searchLower)
+            (plant.city?.toLowerCase() ?? '').includes(searchLower) ||
+            (plant.state?.toLowerCase() ?? '').includes(searchLower) ||
+            (plant.area?.toLowerCase() ?? '').includes(searchLower) ||
+            (plant.country?.toLowerCase() ?? '').includes(searchLower)
           )
         );
       })
@@ -268,32 +275,59 @@ export default function CustomersPage() {
         
         <div className="px-6 pb-6">
           {/* Search and Filters */}
-          <div className="flex items-center space-x-4 mb-6">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                placeholder="Search by company name, city, state, location, or country..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="flex items-center space-x-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  placeholder="Search by company name, city, state, location, or country..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              {/* Search Type Selector */}
+              <select
+                value={searchType}
+                onChange={(e) => setSearchType(e.target.value as 'all' | 'office' | 'plant')}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-700"
+              >
+                <option value="all">All Fields</option>
+                <option value="office">Office Name</option>
+                <option value="plant">Plant Name</option>
+              </select>
+              
+              <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-4 py-2">
+                <Filter className="h-4 w-4" />
+                Filters
+              </button>
             </div>
             
-            {/* Search Type Selector */}
-            <select
-              value={searchType}
-              onChange={(e) => setSearchType(e.target.value as 'all' | 'office' | 'plant')}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-700"
-            >
-              <option value="all">All Fields</option>
-              <option value="office">Office Name</option>
-              <option value="plant">Plant Name</option>
-            </select>
-            
-            <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-4 py-2">
-              <Filter className="h-4 w-4" />
-              Filters
-            </button>
+            {/* Sort Dropdown */}
+            <div className="flex items-center space-x-2">
+              <label htmlFor="sort-by" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Sort by:
+              </label>
+              <select
+                id="sort-by"
+                value={`${sortBy}-${sortOrder}`}
+                onChange={(e) => {
+                  const [field, order] = e.target.value.split('-') as ['name' | 'createdAt' | 'updatedAt' | 'type', 'asc' | 'desc'];
+                  setSortBy(field);
+                  setSortOrder(order);
+                }}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-700"
+              >
+                <option value="name-asc">Name (A-Z)</option>
+                <option value="name-desc">Name (Z-A)</option>
+                <option value="createdAt-desc">Created Date (Newest)</option>
+                <option value="createdAt-asc">Created Date (Oldest)</option>
+                <option value="updatedAt-desc">Updated Date (Newest)</option>
+                <option value="updatedAt-asc">Updated Date (Oldest)</option>
+                <option value="type-asc">Type (Company/Customer)</option>
+              </select>
+            </div>
           </div>
 
           {/* Customer Table */}

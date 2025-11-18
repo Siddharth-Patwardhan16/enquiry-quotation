@@ -24,6 +24,7 @@ function CustomerDetailsContent() {
     updateSearch,
     updatePage,
     updatePageSize,
+    updateSort,
     updateFilters,
     resetFilters,
   } = useCustomerFilters();
@@ -31,14 +32,17 @@ function CustomerDetailsContent() {
   // Debounce search term to avoid excessive API calls
   const debouncedSearchTerm = useDebounce(filterState.searchTerm, 500);
 
-  // Fetch both companies and customers
+  // Fetch both companies and customers with sorting
   const { 
     data: companiesData, 
     isLoading: isLoadingCompanies, 
     error: companiesError, 
     isFetching: isFetchingCompanies,
     refetch: refetchCompanies 
-  } = api.company.getAll.useQuery();
+  } = api.company.getAll.useQuery({
+    sortBy: filterState.sortBy,
+    sortOrder: filterState.sortOrder,
+  });
 
   const { 
     data: customersData, 
@@ -46,11 +50,14 @@ function CustomerDetailsContent() {
     error: customersError, 
     isFetching: isFetchingCustomers,
     refetch: refetchCustomers 
-  } = api.customer.getAll.useQuery();
+  } = api.customer.getAll.useQuery({
+    sortBy: filterState.sortBy,
+    sortOrder: filterState.sortOrder,
+  });
 
   const isLoading = isLoadingCompanies || isLoadingCustomers;
   const isFetching = isFetchingCompanies || isFetchingCustomers;
-  const error = companiesError || customersError;
+  const error = companiesError ?? customersError;
   const refetch = () => {
     refetchCompanies();
     refetchCustomers();
@@ -333,6 +340,9 @@ function CustomerDetailsContent() {
           onFiltersChange={handleFiltersChange}
           onClearFilters={resetFilters}
           isLoading={isLoading}
+          sortBy={filterState.sortBy}
+          sortOrder={filterState.sortOrder}
+          onSortChange={updateSort}
         />
 
         {/* Customer Table */}

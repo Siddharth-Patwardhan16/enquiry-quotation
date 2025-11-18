@@ -5,6 +5,8 @@ import { api } from '@/trpc/client';
 import { useToastContext } from '@/components/providers/ToastProvider';
 import { CreateEnquiryForm } from './_components/CreateEnquiryForm';
 import { ReceiptDateModal } from './_components/ReceiptDateModal';
+import { EnquiryStatusModal } from './_components/EnquiryStatusModal';
+import { EnquiryCommunicationDrawer } from './_components/EnquiryCommunicationDrawer';
 
 import { 
   Search, 
@@ -17,7 +19,8 @@ import {
   Edit,
   Trash2,
   X,
-  Building
+  Building,
+  MessageSquare
 } from 'lucide-react';
 
 
@@ -33,6 +36,13 @@ export default function EnquiriesPage() {
       enquiriesQuery.refetch();
       setEditingEnquiry(null);
       setEditData({});
+    },
+  });
+
+  const updateStatusMutation = api.enquiry.updateStatus.useMutation({
+    onSuccess: () => {
+      success('Status Updated', 'The enquiry status has been successfully updated.');
+      enquiriesQuery.refetch();
     },
     onError: (error) => {
       // Extract error message from tRPC error
@@ -95,6 +105,10 @@ export default function EnquiriesPage() {
   const [viewingEnquiry, setViewingEnquiry] = useState<number | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptModalEnquiryId, setReceiptModalEnquiryId] = useState<number | null>(null);
+  const [showWonModal, setShowWonModal] = useState(false);
+  const [wonModalEnquiryId, setWonModalEnquiryId] = useState<number | null>(null);
+  const [selectedEnquiryId, setSelectedEnquiryId] = useState<number | null>(null);
+  const [isCommunicationDrawerOpen, setIsCommunicationDrawerOpen] = useState(false);
 
   if (error) return <div>Error: {error.message}</div>;
 
@@ -233,6 +247,8 @@ export default function EnquiriesPage() {
           (cleanedData as Record<string, unknown>)[key] = value;
         });
         
+        // Type assertion needed because cleanedData is built dynamically
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         updateEnquiryMutation.mutate(cleanedData as any);
       } catch {
         // Error handling is managed by tRPC and toast notifications
@@ -446,40 +462,72 @@ export default function EnquiriesPage() {
                             {new Date(enquiry.createdAt).toLocaleDateString()}
                           </td>
                           <td className="p-4 align-middle whitespace-nowrap">
-                            <select
-                              value={enquiry.status}
-                              onChange={(e) => {
-                                const newStatus = e.target.value as 'LIVE' | 'DEAD' | 'RCD' | 'LOST';
-                                if (newStatus === 'RCD') {
-                                  // Open receipt modal for RCD status
-                                  setReceiptModalEnquiryId(enquiry.id);
-                                  setShowReceiptModal(true);
-                                } else {
-                                  // Update status directly for other statuses
-                                  updateEnquiryMutation.mutate({
-                                    id: enquiry.id,
-                                    status: newStatus,
-                                  } as any);
-                                }
-                              }}
-                              className="text-xs px-2 py-1 rounded-full border-0 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                              style={{
-                                backgroundColor: enquiry.status === 'LIVE' ? '#dcfce7' : 
-                                               enquiry.status === 'DEAD' ? '#fecaca' :
-                                               enquiry.status === 'RCD' ? '#dbeafe' : '#f3f4f6',
-                                color: enquiry.status === 'LIVE' ? '#166534' :
-                                       enquiry.status === 'DEAD' ? '#991b1b' :
-                                       enquiry.status === 'RCD' ? '#1e40af' : '#374151'
-                              }}
-                            >
-                              <option value="LIVE">Live</option>
-                              <option value="DEAD">Dead</option>
-                              <option value="RCD">RCD (Received)</option>
-                              <option value="LOST">Lost</option>
-                            </select>
+                            <div className="space-y-1">
+                              <select
+                                value={enquiry.status}
+                                onChange={(e) => {
+                                  const newStatus = e.target.value as 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'WON';
+                                  if (newStatus === 'RCD') {
+                                    // Open receipt modal for RCD status
+                                    setReceiptModalEnquiryId(enquiry.id);
+                                    setShowReceiptModal(true);
+                                  } else if (newStatus === 'WON') {
+                                    // Open WON modal for PO details
+                                    setWonModalEnquiryId(enquiry.id);
+                                    setShowWonModal(true);
+                                  } else {
+                                    // Update status directly for other statuses
+                                    updateStatusMutation.mutate({
+                                      id: enquiry.id,
+                                      status: newStatus,
+                                    });
+                                  }
+                                }}
+                                className="text-xs px-2 py-1 rounded-full border-0 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                style={{
+                                  backgroundColor: enquiry.status === 'LIVE' ? '#dcfce7' : 
+                                                 enquiry.status === 'DEAD' ? '#fecaca' :
+                                                 enquiry.status === 'RCD' ? '#dbeafe' :
+                                                 enquiry.status === 'WON' ? '#d1fae5' : '#f3f4f6',
+                                  color: enquiry.status === 'LIVE' ? '#166534' :
+                                         enquiry.status === 'DEAD' ? '#991b1b' :
+                                         enquiry.status === 'RCD' ? '#1e40af' :
+                                         enquiry.status === 'WON' ? '#065f46' : '#374151'
+                                }}
+                              >
+                                <option value="LIVE">Live</option>
+                                <option value="DEAD">Dead</option>
+                                <option value="RCD">RCD (Received)</option>
+                                <option value="WON">WON</option>
+                                <option value="LOST">Lost</option>
+                              </select>
+                              {(enquiry.status === 'WON' || enquiry.status === 'RCD') && (enquiry.purchaseOrderNumber ?? enquiry.poValue ?? enquiry.poDate) && (
+                                <div className="text-xs text-gray-600 mt-1 space-y-0.5">
+                                  {enquiry.purchaseOrderNumber && (
+                                    <div>PO: {enquiry.purchaseOrderNumber}</div>
+                                  )}
+                                  {enquiry.poValue && (
+                                    <div>Value: ₹{Number(enquiry.poValue).toLocaleString()}</div>
+                                  )}
+                                  {enquiry.poDate && (
+                                    <div>Date: {new Date(enquiry.poDate).toLocaleDateString()}</div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </td>
                           <td className="p-4 align-middle whitespace-nowrap text-right">
                             <div className="flex items-center justify-end space-x-2">
+                              <button
+                                onClick={() => {
+                                  setSelectedEnquiryId(enquiry.id);
+                                  setIsCommunicationDrawerOpen(true);
+                                }}
+                                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all hover:bg-purple-100 h-8 w-8 rounded-md text-purple-600 hover:text-purple-700"
+                                title="View Communications"
+                              >
+                                <MessageSquare className="h-4 w-4" />
+                              </button>
                               <button
                                 onClick={() => handleViewEnquiry(enquiry.id)}
                                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all hover:bg-blue-100 h-8 w-8 rounded-md text-blue-600 hover:text-blue-700"
@@ -1091,6 +1139,34 @@ export default function EnquiriesPage() {
                   setEditingEnquiry(null);
                   setEditData({});
                 }}
+              />
+            )}
+            {/* WON Status Modal */}
+            {wonModalEnquiryId && (
+              <EnquiryStatusModal
+                isOpen={showWonModal}
+                onClose={() => {
+                  setShowWonModal(false);
+                  setWonModalEnquiryId(null);
+                }}
+                enquiryId={wonModalEnquiryId}
+                newStatus="WON"
+                onSuccess={() => {
+                  enquiriesQuery.refetch();
+                  setEditingEnquiry(null);
+                  setEditData({});
+                }}
+              />
+            )}
+            {/* Communication Drawer */}
+            {selectedEnquiryId && (
+              <EnquiryCommunicationDrawer
+                isOpen={isCommunicationDrawerOpen}
+                onClose={() => {
+                  setIsCommunicationDrawerOpen(false);
+                  setSelectedEnquiryId(null);
+                }}
+                enquiryId={selectedEnquiryId}
               />
             )}
           </div>

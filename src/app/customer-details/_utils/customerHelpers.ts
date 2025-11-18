@@ -113,17 +113,20 @@ export function sortCustomers(
         aValue = a.name.toLowerCase();
         bValue = b.name.toLowerCase();
         break;
-      case 'designation':
-        aValue = a.designation?.toLowerCase() ?? '';
-        bValue = b.designation?.toLowerCase() ?? '';
-        break;
-      case 'emailId':
-        aValue = a.emailId?.toLowerCase() ?? '';
-        bValue = b.emailId?.toLowerCase() ?? '';
-        break;
       case 'createdAt':
         aValue = new Date(a.createdAt).getTime();
         bValue = new Date(b.createdAt).getTime();
+        break;
+      case 'updatedAt':
+        aValue = new Date(a.updatedAt).getTime();
+        bValue = new Date(b.updatedAt).getTime();
+        break;
+      case 'type':
+        // For Customer type, we don't have a type field, so treat as 'customer'
+        const aType = 'type' in a && a.type ? String(a.type) : 'customer';
+        const bType = 'type' in b && b.type ? String(b.type) : 'customer';
+        aValue = aType.toLowerCase();
+        bValue = bType.toLowerCase();
         break;
       default:
         return 0;

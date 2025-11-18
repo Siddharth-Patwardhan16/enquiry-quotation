@@ -9,6 +9,7 @@ const CreateCommunicationSchema = z.object({
   companyId: z.string().optional(),
   subject: z.string().optional(),
   enquiryRelated: z.string().optional(),
+  enquiryId: z.number().optional(),
   description: z.string().optional(),
   type: z.enum(['TELEPHONIC', 'VIRTUAL_MEETING', 'EMAIL', 'PLANT_VISIT', 'OFFICE_VISIT']),
   nextCommunicationDate: z.string().optional(),
@@ -249,6 +250,53 @@ export const communicationRouter = createTRPCRouter({
       }
     }),
 
+  // Get communications by enquiry ID
+  getCommunicationsByEnquiryId: publicProcedure
+    .input(z.object({ enquiryId: z.number() }))
+    .query(async ({ input }) => {
+      try {
+        const communications = await db.communication.findMany({
+          where: { enquiryId: input.enquiryId },
+          orderBy: { createdAt: 'desc' },
+          include: {
+            company: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            customer: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            contact: {
+              select: {
+                id: true,
+                name: true,
+                designation: true,
+              },
+            },
+            employee: {
+              select: {
+                id: true,
+                name: true,
+                role: true,
+              },
+            },
+          },
+        });
+
+        return communications;
+      } catch {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch communications for enquiry',
+        });
+      }
+    }),
+
   // Create new communication
   create: publicProcedure
     .input(CreateCommunicationSchema)
@@ -259,15 +307,42 @@ export const communicationRouter = createTRPCRouter({
           where: { role: 'MARKETING' },
         });
 
+        // If enquiryId is provided, fetch enquiry to get companyId/customerId if not provided
+        let companyId = input.companyId;
+        let customerId: string | undefined = undefined;
+
+        if (input.enquiryId) {
+          const enquiry = await db.enquiry.findUnique({
+            where: { id: input.enquiryId },
+            select: {
+              companyId: true,
+              customerId: true,
+              subject: true,
+            },
+          });
+
+          if (enquiry) {
+            // Use enquiry's companyId/customerId if not provided in input
+            if (!companyId && enquiry.companyId) {
+              companyId = enquiry.companyId;
+            }
+            if (!input.companyId && enquiry.customerId) {
+              customerId = enquiry.customerId;
+            }
+          }
+        }
+
         const communication = await db.communication.create({
           data: {
             subject: input.subject ?? '',
             description: input.description ?? '',
             type: input.type ?? 'TELEPHONIC',
             enquiryRelated: input.enquiryRelated,
+            enquiryId: input.enquiryId ?? null,
             nextCommunicationDate: input.nextCommunicationDate ? new Date(input.nextCommunicationDate) : null,
             proposedNextAction: input.proposedNextAction,
-            companyId: input.companyId,
+            companyId: companyId,
+            ...(customerId && { customerId }),
             ...(input.contactId && { contactId: input.contactId }),
             employeeId: employee?.id ?? null,
           },

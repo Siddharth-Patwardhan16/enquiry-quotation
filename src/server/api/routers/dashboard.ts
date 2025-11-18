@@ -137,6 +137,8 @@ export const dashboardRouter = createTRPCRouter({
         totalValue: true,
         status: true,
         quotationDate: true,
+        poValue: true,
+        enquiryId: true,
       },
       where: {
         totalValue: {
@@ -144,6 +146,31 @@ export const dashboardRouter = createTRPCRouter({
         },
       },
     });
+
+    // Get enquiries with PO values (RCD and WON status)
+    const enquiriesWithPO = await db.enquiry.findMany({
+      select: {
+        id: true,
+        status: true,
+        poValue: true,
+      },
+      where: {
+        status: {
+          in: ['RCD', 'WON'],
+        },
+        poValue: {
+          not: null,
+        },
+      },
+    });
+
+    // Get set of enquiry IDs that have WON quotations (to avoid double counting)
+    const enquiryIdsWithWonQuotations = new Set(
+      quotations
+        .filter(q => q.status === 'WON')
+        .map(q => q.enquiryId)
+        .filter((id): id is number => id !== null)
+    );
 
     // Group by status and calculate totals
     const statusGroups = quotations.reduce((acc, quotation) => {
@@ -155,9 +182,35 @@ export const dashboardRouter = createTRPCRouter({
         };
       }
       acc[status].count += 1;
-      acc[status].totalValue += Number(quotation.totalValue ?? 0);
+      // Use PO value if available (for WON), otherwise use totalValue
+      const valueToUse = quotation.status === 'WON' && quotation.poValue 
+        ? Number(quotation.poValue) 
+        : Number(quotation.totalValue ?? 0);
+      acc[status].totalValue += valueToUse;
       return acc;
     }, {} as Record<string, { count: number; totalValue: number }>);
+
+    // Add enquiry PO values to RCD and WON status groups
+    // For WON, only count enquiries that don't have a WON quotation (to avoid double counting)
+    enquiriesWithPO.forEach((enquiry) => {
+      const status = enquiry.status;
+      
+      // Skip WON enquiries that already have a WON quotation (use quotation PO value instead)
+      if (status === 'WON' && enquiryIdsWithWonQuotations.has(enquiry.id)) {
+        return;
+      }
+      
+      if (!statusGroups[status]) {
+        statusGroups[status] = {
+          count: 0,
+          totalValue: 0,
+        };
+      }
+      // Count enquiries with PO values
+      statusGroups[status].count += 1;
+      // Add PO value to total
+      statusGroups[status].totalValue += Number(enquiry.poValue ?? 0);
+    });
 
     // Convert to array format for charts
     return Object.entries(statusGroups).map(([status, data]) => ({

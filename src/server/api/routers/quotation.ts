@@ -205,19 +205,25 @@ export const quotationRouter = createTRPCRouter({
   updateStatus: publicProcedure
     .input(UpdateQuotationStatusSchema)
     .mutation(async ({ input }) => {
-      const { quotationId, status, lostReason, purchaseOrderNumber, poValue } = input;
+      const { quotationId, status, lostReason, purchaseOrderNumber, poValue, poDate } = input;
 
       // Ensure the quotation exists before trying to update it
       const existingQuotation = await db.quotation.findUnique({
         where: { id: quotationId },
+        include: {
+          enquiry: true,
+        },
       });
 
       if (!existingQuotation) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Quotation not found.' });
       }
 
+      // Prepare poDate as DateTime if provided
+      const poDateValue = poDate ? new Date(poDate) : null;
+
       // Update the quotation in the database
-      return db.quotation.update({
+      const updatedQuotation = await db.quotation.update({
         where: {
           id: quotationId,
         },
@@ -226,9 +232,54 @@ export const quotationRouter = createTRPCRouter({
           lostReason: status === 'LOST' ? lostReason : null, // Only set lostReason if status is LOST
           purchaseOrderNumber: status === 'WON' ? purchaseOrderNumber : null,
           poValue: status === 'WON' ? poValue : null,
-          // Add other fields here
+          poDate: status === 'WON' ? poDateValue : null,
         },
       });
+
+      // Sync status and PO fields to related enquiry (preserve RCD status)
+      if (existingQuotation.enquiryId && existingQuotation.enquiry) {
+        const enquiry = existingQuotation.enquiry;
+        
+        // Don't override RCD status
+        if (enquiry.status !== 'RCD') {
+          let enquiryStatus: 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'WON' | undefined;
+          
+          // Map quotation status to enquiry status
+          if (status === 'WON') {
+            enquiryStatus = 'WON';
+          } else if (status === 'LOST') {
+            enquiryStatus = 'LOST';
+          } else if (status === 'DEAD') {
+            enquiryStatus = 'DEAD';
+          }
+          
+          // Update enquiry with status and PO fields if status is WON
+          if (enquiryStatus) {
+            const enquiryUpdateData: {
+              status: 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'WON';
+              purchaseOrderNumber?: string | null;
+              poValue?: number | null;
+              poDate?: Date | null;
+            } = {
+              status: enquiryStatus,
+            };
+            
+            // Sync PO fields when status is WON
+            if (status === 'WON') {
+              enquiryUpdateData.purchaseOrderNumber = purchaseOrderNumber ?? null;
+              enquiryUpdateData.poValue = poValue ?? null;
+              enquiryUpdateData.poDate = poDateValue;
+            }
+            
+            await db.enquiry.update({
+              where: { id: enquiry.id },
+              data: enquiryUpdateData,
+            });
+          }
+        }
+      }
+
+      return updatedQuotation;
     }),
 
   getById: publicProcedure

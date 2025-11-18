@@ -177,9 +177,35 @@ export const enquiryRouter = createTRPCRouter({
   updateStatus: publicProcedure
     .input(UpdateEnquirySchema)
     .mutation(async ({ input }) => {
+      const { id, status, purchaseOrderNumber, poValue, poDate } = input;
+      
+      // Prepare poDate as DateTime if provided
+      const poDateValue = poDate ? new Date(poDate) : null;
+      
+      const updateData: {
+        status: 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'WON';
+        purchaseOrderNumber?: string | null;
+        poValue?: number | null;
+        poDate?: Date | null;
+      } = {
+        status: status,
+      };
+      
+      // Store PO fields when status is WON
+      if (status === 'WON') {
+        updateData.purchaseOrderNumber = purchaseOrderNumber ?? null;
+        updateData.poValue = poValue ?? null;
+        updateData.poDate = poDateValue;
+      } else {
+        // Clear PO fields when status is not WON
+        updateData.purchaseOrderNumber = null;
+        updateData.poValue = null;
+        updateData.poDate = null;
+      }
+      
       return db.enquiry.update({
-        where: { id: input.id },
-        data: { status: input.status },
+        where: { id },
+        data: updateData,
       });
     }),
 
@@ -259,9 +285,15 @@ export const enquiryRouter = createTRPCRouter({
       status: z.literal('RCD'),
       dateOfReceipt: z.string(),
       receiptNumber: z.string().optional(),
+      purchaseOrderNumber: z.string().optional(),
+      poValue: z.number().optional(),
+      poDate: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const { id, dateOfReceipt, receiptNumber } = input;
+      const { id, dateOfReceipt, receiptNumber, purchaseOrderNumber, poValue, poDate } = input;
+      
+      // Prepare poDate as DateTime if provided
+      const poDateValue = poDate ? new Date(poDate) : null;
       
       return db.enquiry.update({
         where: { id },
@@ -270,6 +302,10 @@ export const enquiryRouter = createTRPCRouter({
           dateOfReceipt: dateOfReceipt ? new Date(dateOfReceipt) : null,
           // Store receipt number in oaNumber if provided, or leave it as is
           ...(receiptNumber ? { oaNumber: receiptNumber } : {}),
+          // Store PO fields
+          purchaseOrderNumber: purchaseOrderNumber ?? null,
+          poValue: poValue ?? null,
+          poDate: poDateValue,
         },
       });
     }),

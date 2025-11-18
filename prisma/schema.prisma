@@ -180,6 +180,9 @@ model Enquiry {
   numberOfBlocks    Decimal?
   designRequired    String?
   customerType      String?
+  purchaseOrderNumber String?
+  poValue           Decimal?
+  poDate            DateTime?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   locationId        String?
@@ -198,6 +201,7 @@ model Enquiry {
   office            Office?       @relation(fields: [officeId], references: [id], onDelete: Cascade)
   plant             Plant?        @relation(fields: [plantId], references: [id], onDelete: Cascade)
   quotations        Quotation[]
+  communications    Communication[]
 }
 
 model Quotation {
@@ -223,6 +227,7 @@ model Quotation {
   lostReason                  String?
   purchaseOrderNumber         String?
   poValue                     Decimal?
+  poDate                      DateTime?
   createdAt                   DateTime        @default(now())
   updatedAt                   DateTime        @updatedAt
   createdById                 String?
@@ -252,6 +257,7 @@ model Communication {
   type                  CommunicationType
   status                CommunicationStatus @default(SCHEDULED)
   enquiryRelated        String?
+  enquiryId             Int?
   nextCommunicationDate DateTime?
   proposedNextAction    String?
   createdAt             DateTime            @default(now())
@@ -266,6 +272,7 @@ model Communication {
   contactPerson         ContactPerson?      @relation(fields: [contactPersonId], references: [id], onDelete: Cascade)
   customer              Customer?           @relation(fields: [customerId], references: [id])
   employee              Employee?           @relation(fields: [employeeId], references: [id])
+  enquiry               Enquiry?            @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
 }
 
 model Document {
@@ -296,6 +303,7 @@ enum EnquiryStatus {
   DEAD
   RCD
   LOST
+  WON
 }
 
 enum QuotationStatus {

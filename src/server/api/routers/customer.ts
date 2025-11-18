@@ -4,32 +4,47 @@ import { z } from 'zod';
 
 export const customerRouter = createTRPCRouter({
   // Get all customers with locations and contacts
-  getAll: publicProcedure.query(async () => {
-    return db.customer.findMany({
-      include: {
-        locations: {
-          orderBy: { name: 'asc' },
-        },
-        contacts: {
-          include: {
-            location: true,
+  getAll: publicProcedure
+    .input(z.object({
+      sortBy: z.enum(['name', 'createdAt', 'updatedAt', 'type']).optional().default('name'),
+      sortOrder: z.enum(['asc', 'desc']).optional().default('asc'),
+    }).optional())
+    .query(async ({ input }) => {
+      const sortBy = input?.sortBy ?? 'name';
+      const sortOrder = input?.sortOrder ?? 'asc';
+      
+      // Build orderBy object
+      let orderBy: Record<string, 'asc' | 'desc'>;
+      if (sortBy === 'type') {
+        // For type, we'll sort by isNew (new customers first) or name as fallback
+        orderBy = { name: sortOrder };
+      } else {
+        orderBy = { [sortBy]: sortOrder };
+      }
+      
+      return db.customer.findMany({
+        include: {
+          locations: {
+            orderBy: { name: 'asc' },
           },
-          orderBy: { name: 'asc' },
-        },
-        createdBy: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
+          contacts: {
+            include: {
+              location: true,
+            },
+            orderBy: { name: 'asc' },
+          },
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-  }),
+        orderBy,
+      });
+    }),
 
   // Get customer by ID with locations and contacts
   getById: publicProcedure

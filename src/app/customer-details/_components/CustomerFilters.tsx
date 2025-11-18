@@ -2,7 +2,7 @@
 
 import { memo, useState } from 'react';
 import { Search, Filter, X } from 'lucide-react';
-import { CustomerFiltersProps } from '../_types/customer.types';
+import { CustomerFiltersProps, SortField, SortOrder } from '../_types/customer.types';
 
 export const CustomerFilters = memo(function CustomerFilters({
   searchTerm,
@@ -11,6 +11,9 @@ export const CustomerFilters = memo(function CustomerFilters({
   onFiltersChange,
   onClearFilters,
   isLoading,
+  sortBy,
+  sortOrder,
+  onSortChange,
 }: CustomerFiltersProps) {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
@@ -53,7 +56,7 @@ export const CustomerFilters = memo(function CustomerFilters({
   return (
     <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
       {/* Search Bar */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col gap-4">
         <div className="flex-1">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -68,41 +71,68 @@ export const CustomerFilters = memo(function CustomerFilters({
           </div>
         </div>
 
-        {/* Filter Controls */}
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className={`inline-flex items-center px-4 py-2 border rounded-md text-sm font-medium transition-colors ${
-                  showAdvancedFilters || hasActiveFilters
-                    ? 'bg-blue-50 border-blue-300 text-blue-700'
-                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                }`}
-                disabled={isLoading}
-              >
-                <Filter className="w-4 h-4 mr-2" />
-                Filters
-                {hasActiveFilters && (
-                  <span className="ml-2 bg-blue-600 text-white text-xs rounded-full px-2 py-0.5">
-                    {[
-                      searchTerm && 'search',
-                      filters.designation && 'designation',
-                      filters.hasPhone && 'phone',
-                      filters.hasEmail && 'email',
-                    ].filter(Boolean).length}
-                  </span>
-                )}
-              </button>
+        {/* Sort and Filter Controls */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* Sort Dropdown */}
+          <div className="flex items-center space-x-2 flex-1 sm:flex-initial">
+            <label htmlFor="sort-by" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+              Sort by:
+            </label>
+            <select
+              id="sort-by"
+              value={`${sortBy}-${sortOrder}`}
+              onChange={(e) => {
+                const [field, order] = e.target.value.split('-') as [SortField, SortOrder];
+                onSortChange(field, order);
+              }}
+              disabled={isLoading}
+              className="flex-1 sm:flex-initial px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              <option value="name-asc">Name (A-Z)</option>
+              <option value="name-desc">Name (Z-A)</option>
+              <option value="createdAt-desc">Created Date (Newest)</option>
+              <option value="createdAt-asc">Created Date (Oldest)</option>
+              <option value="updatedAt-desc">Updated Date (Newest)</option>
+              <option value="updatedAt-asc">Updated Date (Oldest)</option>
+              <option value="type-asc">Type (Company/Customer)</option>
+            </select>
+          </div>
 
-          {hasActiveFilters && (
+          <div className="flex items-center space-x-2">
             <button
-              onClick={handleClearFilters}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className={`inline-flex items-center px-4 py-2 border rounded-md text-sm font-medium transition-colors ${
+                showAdvancedFilters || hasActiveFilters
+                  ? 'bg-blue-50 border-blue-300 text-blue-700'
+                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
               disabled={isLoading}
             >
-              <X className="w-4 h-4 mr-2" />
-              Clear
+              <Filter className="w-4 h-4 mr-2" />
+              Filters
+              {hasActiveFilters && (
+                <span className="ml-2 bg-blue-600 text-white text-xs rounded-full px-2 py-0.5">
+                  {[
+                    searchTerm && 'search',
+                    filters.designation && 'designation',
+                    filters.hasPhone && 'phone',
+                    filters.hasEmail && 'email',
+                  ].filter(Boolean).length}
+                </span>
+              )}
             </button>
-          )}
+
+            {hasActiveFilters && (
+              <button
+                onClick={handleClearFilters}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                disabled={isLoading}
+              >
+                <X className="w-4 h-4 mr-2" />
+                Clear
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

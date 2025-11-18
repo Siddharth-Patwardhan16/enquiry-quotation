@@ -37,6 +37,9 @@ export const tasksRouter = createTRPCRouter({
       include: {
         enquiry: {
           include: {
+            company: {
+              select: { name: true, id: true },
+            },
             customer: {
               select: { name: true, id: true },
             },
@@ -53,7 +56,18 @@ export const tasksRouter = createTRPCRouter({
           not: null, // Only communications with scheduled dates
         },
       },
-      include: {
+      select: {
+        id: true,
+        subject: true,
+        description: true,
+        type: true,
+        nextCommunicationDate: true,
+        proposedNextAction: true,
+        enquiryId: true,
+        enquiryRelated: true,
+        company: {
+          select: { name: true, id: true },
+        },
         customer: {
           select: { name: true, id: true },
         },
@@ -64,12 +78,15 @@ export const tasksRouter = createTRPCRouter({
       orderBy: { nextCommunicationDate: 'asc' },
     });
 
-    // Fetch enquiry information for communications that have enquiryRelated
+    // Fetch enquiry information for communications that have enquiryId or enquiryRelated
     const communicationsWithEnquiry = await Promise.all(
       allCommunications.map(async (comm) => {
-        if (comm.enquiryRelated) {
+        // Prefer enquiryId (new foreign key) over enquiryRelated (legacy string field)
+        const enquiryIdToUse = comm.enquiryId ?? (comm.enquiryRelated ? parseInt(comm.enquiryRelated) : null);
+        
+        if (enquiryIdToUse) {
           const enquiry = await db.enquiry.findUnique({
-            where: { id: parseInt(comm.enquiryRelated) },
+            where: { id: enquiryIdToUse },
             select: {
               id: true,
               quotationNumber: true,
@@ -101,7 +118,7 @@ export const tasksRouter = createTRPCRouter({
       return {
         type: 'QUOTATION' as const,
         dueDate,
-        customerName: q.enquiry?.customer?.name ?? 'Unknown Customer',
+        customerName: q.enquiry?.company?.name ?? q.enquiry?.customer?.name ?? 'Unknown Customer',
         taskDescription: `Quotation #${q.quotationNumber}`,
         status: q.status,
         link: `/quotations/${q.id}`,
@@ -139,7 +156,7 @@ export const tasksRouter = createTRPCRouter({
       return {
         type: 'COMMUNICATION' as const,
         dueDate,
-        customerName: c.customer?.name ?? 'Unknown Customer',
+        customerName: c.company?.name ?? c.customer?.name ?? 'Unknown Customer',
         taskDescription,
         status,
         link: `/communications`,
@@ -329,6 +346,7 @@ export const tasksRouter = createTRPCRouter({
         include: {
           enquiry: {
             include: {
+              company: { select: { name: true } },
               customer: { select: { name: true } }
             }
           }
@@ -346,6 +364,7 @@ export const tasksRouter = createTRPCRouter({
           }
         },
         include: {
+          company: { select: { name: true } },
           customer: { select: { name: true } },
           contact: { select: { name: true } },
           employee: { select: { name: true } }
@@ -378,7 +397,7 @@ export const tasksRouter = createTRPCRouter({
           dueDate: quotation.validityPeriod ?? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
           priority: 'medium' as const,
           status: quotation.status === 'LIVE' ? 'pending' as const : 'in-progress' as const,
-          customerName: quotation.enquiry?.customer?.name ?? 'Unknown Customer',
+          customerName: quotation.enquiry?.company?.name ?? quotation.enquiry?.customer?.name ?? 'Unknown Customer',
           description: `Quotation ${quotation.status.toLowerCase()} - needs completion`,
           assignedTo: 'Marketing Team',
           sourceId: quotation.id,
@@ -393,7 +412,7 @@ export const tasksRouter = createTRPCRouter({
           dueDate: communication.nextCommunicationDate ?? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
           priority: 'medium' as const,
           status: 'pending' as const,
-          customerName: communication.customer?.name ?? 'Unknown Customer',
+          customerName: communication.company?.name ?? communication.customer?.name ?? 'Unknown Customer',
           description: communication.proposedNextAction ?? communication.description,
           assignedTo: communication.employee?.name ?? 'Unassigned',
           sourceId: communication.id,
@@ -595,6 +614,14 @@ export const tasksRouter = createTRPCRouter({
       const communication = await db.communication.findUnique({
         where: { id: input.communicationId },
         include: {
+          company: {
+            select: {
+              id: true,
+              name: true,
+              createdAt: true,
+              updatedAt: true
+            }
+          },
           customer: {
             select: {
               id: true,
@@ -637,6 +664,12 @@ export const tasksRouter = createTRPCRouter({
         include: {
           enquiry: {
             include: {
+              company: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              },
               customer: {
                 select: {
                   id: true,

@@ -117,7 +117,24 @@ export const companyRouter = createTRPCRouter({
     }),
 
   getAll: publicProcedure
-    .query(async ({ ctx }) => {
+    .input(z.object({
+      sortBy: z.enum(['name', 'createdAt', 'updatedAt', 'type']).optional().default('name'),
+      sortOrder: z.enum(['asc', 'desc']).optional().default('asc'),
+    }).optional())
+    .query(async ({ ctx, input }) => {
+      const sortBy = input?.sortBy ?? 'name';
+      const sortOrder = input?.sortOrder ?? 'asc';
+      
+      // Build orderBy object
+      let orderBy: Record<string, 'asc' | 'desc'>;
+      if (sortBy === 'type') {
+        // For type, we'll sort by a constant since all companies have the same type
+        // We'll use name as a fallback for type sorting
+        orderBy = { name: sortOrder };
+      } else {
+        orderBy = { [sortBy]: sortOrder };
+      }
+      
       return ctx.prisma.company.findMany({
         include: {
           offices: {
@@ -144,9 +161,7 @@ export const companyRouter = createTRPCRouter({
             }
           }
         },
-        orderBy: {
-          createdAt: 'desc'
-        }
+        orderBy,
       });
     }),
 

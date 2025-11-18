@@ -166,7 +166,7 @@ export interface PaginatedResponse<T> {
   hasPreviousPage: boolean;
 }
 
-export type SortField = 'name' | 'designation' | 'emailId' | 'createdAt';
+export type SortField = 'name' | 'createdAt' | 'updatedAt' | 'type';
 export type SortOrder = 'asc' | 'desc';
 
 export interface FilterState {
@@ -274,6 +274,9 @@ export interface CustomerFiltersProps {
   onFiltersChange: (_filters: CustomerFilters) => void;
   onClearFilters: () => void;
   isLoading: boolean;
+  sortBy: SortField;
+  sortOrder: SortOrder;
+  onSortChange: (_sortBy: SortField, _sortOrder: SortOrder) => void;
 }
 
 export interface PaginationProps {

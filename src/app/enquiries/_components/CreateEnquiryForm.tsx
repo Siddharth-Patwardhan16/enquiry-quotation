@@ -325,7 +325,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
           }
         } else {
           // Handle other types of errors
-          const errorMessage = error.message || error.shape?.message || 'Please check all fields and try again.';
+          const errorMessage = error.message ?? error.shape?.message ?? 'Please check all fields and try again.';
           console.error('Other error:', errorMessage);
           showError('Creation Failed', `Failed to create enquiry: ${errorMessage}`);
         }

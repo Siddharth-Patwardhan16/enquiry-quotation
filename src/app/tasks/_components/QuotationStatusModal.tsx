@@ -28,6 +28,7 @@ export function QuotationStatusModal({
   const [lostReason, setLostReason] = useState('');
   const [purchaseOrderNumber, setPurchaseOrderNumber] = useState('');
   const [poValue, setPoValue] = useState('');
+  const [poDate, setPoDate] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { success, error: showError } = useToast();
@@ -50,6 +51,7 @@ export function QuotationStatusModal({
       setLostReason('');
       setPurchaseOrderNumber('');
       setPoValue('');
+      setPoDate('');
       setNotes('');
     },
     onError: (error) => {
@@ -82,6 +84,7 @@ export function QuotationStatusModal({
       lostReason: lostReason as 'PRICE' | 'DELIVERY_SCHEDULE' | 'LACK_OF_CONFIDENCE' | 'OTHER' | undefined,
       purchaseOrderNumber: purchaseOrderNumber || undefined,
       poValue: poValue ? parseFloat(poValue) : undefined,
+      poDate: poDate || undefined,
     });
   };
 
@@ -342,6 +345,21 @@ export function QuotationStatusModal({
                           value={poValue}
                           onChange={(e) => setPoValue(e.target.value)}
                           placeholder="Enter PO value/amount"
+                          className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="poDate" className="text-sm font-medium text-gray-700">
+                        PO Date <span className="text-gray-500">(Optional)</span>
+                      </Label>
+                      <div className="mt-2">
+                        <Input
+                          id="poDate"
+                          type="date"
+                          value={poDate}
+                          onChange={(e) => setPoDate(e.target.value)}
                           className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>

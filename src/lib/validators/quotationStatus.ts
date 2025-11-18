@@ -19,5 +19,6 @@ export const UpdateQuotationStatusSchema = z.object({
   ]).optional(),
   purchaseOrderNumber: z.string().optional(),
   poValue: z.number().optional(),
+  poDate: z.string().optional(),
   // Add other fields like 'OA No' and 'Total Basic Price' if needed
 });
