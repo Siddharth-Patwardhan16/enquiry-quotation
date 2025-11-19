@@ -17,6 +17,7 @@ type Company = {
     id: string;
     name: string;
     address: string | null;
+    area?: string | null;
     city: string | null;
     state: string | null;
     country: string | null;
@@ -33,6 +34,7 @@ type Company = {
     id: string;
     name: string;
     address: string | null;
+    area?: string | null;
     city: string | null;
     state: string | null;
     country: string | null;
@@ -211,13 +213,13 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
         const location = office ?? plant;
         
         if (location) {
-          // Build region string from city and state
+          // Build region string from area (Location) field
           const regionParts: string[] = [];
+          if (location.area) {
+            regionParts.push(location.area);
+          }
           if (location.city) {
             regionParts.push(location.city);
-          }
-          if (location.state) {
-            regionParts.push(location.state);
           }
           if (location.country) {
             regionParts.push(location.country);
