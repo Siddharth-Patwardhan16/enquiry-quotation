@@ -658,8 +658,91 @@ async function testQuotationFormEdit() {
     }
     console.log('');
 
-    // Test 7: Quotation number immutability (should not change)
-    console.log('Test 7: Quotation number immutability');
+    // Test 7: Update poDate (optional)
+    console.log('Test 7: Update poDate (optional)');
+    try {
+      // First set poDate
+      const poDate = new Date();
+      const updated = await prisma.quotation.update({
+        where: { id: testQuotation.id },
+        data: {
+          poDate: poDate,
+        },
+      });
+
+      const mutationPassed = updated.poDate?.toISOString().split('T')[0] === poDate.toISOString().split('T')[0];
+
+      if (mutationPassed) {
+        console.log(`   ✅ SUCCESS: poDate updated correctly`);
+        results.push({
+          name: 'Update poDate (optional)',
+          success: true,
+          validationPassed: true,
+          mutationPassed: true,
+        });
+      } else {
+        throw new Error('poDate not updated correctly');
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.log(`   ❌ FAILED: ${message}`);
+      results.push({
+        name: 'Update poDate (optional)',
+        success: false,
+        validationPassed: false,
+        mutationPassed: false,
+        error: message,
+      });
+    }
+    console.log('');
+
+    // Test 8: Clear poDate (set to null)
+    console.log('Test 8: Clear poDate (set to null)');
+    try {
+      // First set poDate
+      await prisma.quotation.update({
+        where: { id: testQuotation.id },
+        data: {
+          poDate: new Date(),
+        },
+      });
+
+      // Clear poDate
+      const updated = await prisma.quotation.update({
+        where: { id: testQuotation.id },
+        data: {
+          poDate: null,
+        },
+      });
+
+      const mutationPassed = updated.poDate === null;
+
+      if (mutationPassed) {
+        console.log(`   ✅ SUCCESS: poDate cleared (set to null)`);
+        results.push({
+          name: 'Clear poDate (set to null)',
+          success: true,
+          validationPassed: true,
+          mutationPassed: true,
+        });
+      } else {
+        throw new Error('poDate not cleared correctly');
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.log(`   ❌ FAILED: ${message}`);
+      results.push({
+        name: 'Clear poDate (set to null)',
+        success: false,
+        validationPassed: false,
+        mutationPassed: false,
+        error: message,
+      });
+    }
+    console.log('');
+
+    // Test 9: Quotation number immutability (should not change)
+    console.log('Test 9: Quotation number immutability');
     try {
       const originalQuotationNumber = testQuotation.quotationNumber;
       const updateData = {

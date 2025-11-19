@@ -455,8 +455,78 @@ async function testEnquiryFormCreate() {
     }
     console.log('');
 
-    // Test 7: Enquiry with invalid UUID for customerId (should fail)
-    console.log('Test 7: Enquiry with invalid UUID for customerId (should fail)');
+    // Test 7: Enquiry with PO fields (all optional)
+    console.log('Test 7: Enquiry with PO fields (all optional)');
+    try {
+      const formData = {
+        customerId: testCompany.id,
+        entityType: 'company' as const,
+        subject: 'Test Enquiry with PO',
+        purchaseOrderNumber: 'PO-TEST-001',
+        poValue: 25000.50,
+        poDate: new Date().toISOString().split('T')[0],
+      };
+
+      const cleanedData = simulateFormSubmission(formData);
+      // Note: PO fields are not in CreateEnquirySchema, they're only in UpdateEnquirySchema
+      // So we'll test that they can be omitted during creation
+      const validation = CreateEnquirySchema.safeParse(cleanedData);
+      const validationPassed = validation.success;
+
+      if (!validationPassed) {
+        const errorMessages = validation.error.errors
+          .map((e) => `${e.path.join('.')}: ${e.message}`)
+          .join(', ');
+        console.log(`   ❌ Validation failed: ${errorMessages}`);
+        results.push({
+          name: 'Enquiry with PO fields (all optional)',
+          success: false,
+          validationPassed: false,
+          mutationPassed: false,
+          validationError: errorMessages,
+        });
+      } else {
+        // Create enquiry without PO fields (they're not in create schema)
+        const enquiry = await prisma.enquiry.create({
+          data: {
+            subject: formData.subject,
+            companyId: formData.customerId,
+            marketingPersonId: testEmployee?.id ?? null,
+            // PO fields are not part of create, they're set during status updates
+          },
+        });
+
+        const mutationPassed = !!enquiry.id && enquiry.subject === formData.subject;
+
+        if (mutationPassed) {
+          console.log(`   ✅ SUCCESS: Enquiry created without PO fields (PO fields are optional and set during status updates)`);
+          // Cleanup
+          await prisma.enquiry.delete({ where: { id: enquiry.id } });
+          results.push({
+            name: 'Enquiry with PO fields (all optional)',
+            success: true,
+            validationPassed: true,
+            mutationPassed: true,
+          });
+        } else {
+          throw new Error('Enquiry creation failed');
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.log(`   ❌ FAILED: ${message}`);
+      results.push({
+        name: 'Enquiry with PO fields (all optional)',
+        success: false,
+        validationPassed: false,
+        mutationPassed: false,
+        error: message,
+      });
+    }
+    console.log('');
+
+    // Test 8: Enquiry with invalid UUID for customerId (should fail)
+    console.log('Test 8: Enquiry with invalid UUID for customerId (should fail)');
     try {
       const formData = {
         customerId: 'invalid-uuid',

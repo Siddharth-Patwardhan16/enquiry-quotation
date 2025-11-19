@@ -558,8 +558,105 @@ async function testQuotationFormCreate() {
     }
     console.log('');
 
-    // Test 6: Quotation with decimal prices (quantity is Int, pricePerUnit is Decimal)
-    console.log('Test 6: Quotation with decimal prices');
+    // Test 6: Quotation without poDate (poDate is optional and not in create schema)
+    console.log('Test 6: Quotation without poDate (poDate is optional)');
+    try {
+      const formData = {
+        enquiryId: testEnquiry.id,
+        currency: 'INR',
+        revisionNumber: 0,
+        items: [
+          {
+            materialDescription: 'Item without PO Date',
+            quantity: 5,
+            pricePerUnit: 100,
+          },
+        ],
+        // poDate is not included - it's optional and not part of CreateQuotationSchema
+      };
+
+      const cleanedData = simulateFormSubmission(formData);
+      // Note: poDate is not in CreateQuotationSchema, it's only in UpdateQuotationStatusSchema
+      // So we'll test that it can be omitted during creation
+      const validation = CreateQuotationSchema.safeParse(cleanedData);
+      const validationPassed = validation.success;
+
+      if (!validationPassed) {
+        const errorMessages = validation.error.errors
+          .map((e) => `${e.path.join('.')}: ${e.message}`)
+          .join(', ');
+        console.log(`   ❌ Validation failed: ${errorMessages}`);
+        results.push({
+          name: 'Quotation without poDate (poDate is optional)',
+          success: false,
+          validationPassed: false,
+          mutationPassed: false,
+          validationError: errorMessages,
+        });
+      } else {
+        const subtotal = 500;
+        const uniqueQuotationNumber = `TEST-Q-PODATE-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        const quotation = await prisma.$transaction(async (prisma) => {
+          const newQuotation = await prisma.quotation.create({
+            data: {
+              enquiryId: testEnquiry.id,
+              quotationNumber: uniqueQuotationNumber,
+              currency: formData.currency,
+              revisionNumber: 0,
+              subtotal: subtotal,
+              tax: 0,
+              totalValue: subtotal,
+              // poDate is not part of create, it's set during status updates
+            },
+          });
+
+          await prisma.quotationItem.createMany({
+            data: [
+              {
+                quotationId: newQuotation.id,
+                materialDescription: 'Item without PO Date',
+                quantity: 5,
+                pricePerUnit: 100,
+                total: 500,
+              },
+            ],
+          });
+
+          return newQuotation;
+        });
+
+        const mutationPassed = !!quotation.id && quotation.subtotal === subtotal && quotation.poDate === null;
+
+        if (mutationPassed) {
+          console.log(`   ✅ SUCCESS: Quotation created without poDate (poDate is optional and set during status updates)`);
+          // Cleanup
+          await prisma.quotationItem.deleteMany({ where: { quotationId: quotation.id } });
+          await prisma.quotation.delete({ where: { id: quotation.id } });
+          results.push({
+            name: 'Quotation without poDate (poDate is optional)',
+            success: true,
+            validationPassed: true,
+            mutationPassed: true,
+          });
+        } else {
+          throw new Error('Quotation creation failed or poDate should be null');
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.log(`   ❌ FAILED: ${message}`);
+      results.push({
+        name: 'Quotation without poDate (poDate is optional)',
+        success: false,
+        validationPassed: false,
+        mutationPassed: false,
+        error: message,
+      });
+    }
+    console.log('');
+
+    // Test 7: Quotation with decimal prices (quantity is Int, pricePerUnit is Decimal)
+    console.log('Test 7: Quotation with decimal prices');
     try {
       const formData = {
         enquiryId: testEnquiry.id,
