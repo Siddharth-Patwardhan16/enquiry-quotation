@@ -146,6 +146,21 @@ export default function CustomersPage() {
     isNew: false // You can determine this based on your business logic
   }));
 
+  // Update selectedCustomer when companies data changes (e.g., after edit)
+  useEffect(() => {
+    if (selectedCustomer && companies && companies.length > 0) {
+      const updatedCompany = companiesList.find(c => c.id === selectedCustomer.id);
+      if (updatedCompany) {
+        setSelectedCustomer({
+          ...updatedCompany,
+          type: 'company' as const,
+          isNew: false
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companies]);
+
   if (companiesError) {
     return <div>Error: {companiesError?.message}</div>;
   }
@@ -527,10 +542,14 @@ export default function CustomersPage() {
           onCancel={() => {
             setCustomerToEdit(null);
           }}
-          onSuccess={() => {
+          onSuccess={async () => {
             setCustomerToEdit(null);
-            // Refresh data
-            utils.company.getAll.invalidate();
+            // Refresh data and wait for it to complete
+            await utils.company.getAll.invalidate();
+            // Refetch to ensure we have the latest data
+            await utils.company.getAll.refetch();
+            // Show success toast
+            success('Company Updated', 'The company information has been successfully updated.');
           }}
         />
       )}

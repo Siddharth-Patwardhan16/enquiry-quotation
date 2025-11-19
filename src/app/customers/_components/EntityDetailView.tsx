@@ -21,6 +21,7 @@ interface Office {
   country: string | null;
   pincode?: string | null;
   isHeadOffice: boolean;
+  receptionNumber?: string | null;
   contactPersons: ContactPerson[];
 }
 
@@ -53,6 +54,8 @@ interface Entity {
   name: string;
   type: 'customer' | 'company';
   isNew: boolean;
+  website?: string | null;
+  industry?: string | null;
   createdAt: Date;
   updatedAt: Date;
   createdBy?: {
@@ -71,6 +74,7 @@ interface Entity {
   locations?: Location[];
   offices?: Office[];
   plants?: Plant[];
+  contactPersons?: ContactPerson[];
 }
 
 interface EntityDetailViewProps {
@@ -145,6 +149,23 @@ export function EntityDetailView({ entity, isOpen, onClose }: EntityDetailViewPr
                   {getStatusBadge(entity.isNew, entity.type)}
                 </div>
               </div>
+              {entity.website && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                  <p className="text-sm text-gray-900 flex items-center">
+                    <Globe className="w-4 h-4 mr-1 text-gray-400" />
+                    <a href={entity.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                      {entity.website}
+                    </a>
+                  </p>
+                </div>
+              )}
+              {entity.industry && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
+                  <p className="text-sm text-gray-900">{entity.industry}</p>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Created Date</label>
                 <p className="text-sm text-gray-900 flex items-center">
@@ -246,30 +267,35 @@ export function EntityDetailView({ entity, isOpen, onClose }: EntityDetailViewPr
                             <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                             <p className="text-sm text-gray-900">{office.address ?? 'Not provided'}</p>
                           </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                <p className="text-sm text-gray-900">{office.area ?? 'Not provided'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                <p className="text-sm text-gray-900">{office.name}</p>
-              </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Area</label>
+                            <p className="text-sm text-gray-900">{office.area ?? 'Not provided'}</p>
+                          </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                            <p className="text-sm text-gray-900">{office.city}</p>
+                            <p className="text-sm text-gray-900">{office.city ?? 'Not provided'}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                            <p className="text-sm text-gray-900">{office.state}</p>
+                            <p className="text-sm text-gray-900">{office.state ?? 'Not provided'}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                            <p className="text-sm text-gray-900">{office.country}</p>
+                            <p className="text-sm text-gray-900">{office.country ?? 'Not provided'}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code</label>
                             <p className="text-sm text-gray-900">{office.pincode ?? 'Not provided'}</p>
                           </div>
+                          {office.receptionNumber && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Reception Number</label>
+                              <p className="text-sm text-gray-900 flex items-center">
+                                <Phone className="w-4 h-4 mr-1 text-gray-400" />
+                                {office.receptionNumber}
+                              </p>
+                            </div>
+                          )}
                         </div>
 
                         {/* Office Contact Persons */}
@@ -341,24 +367,24 @@ export function EntityDetailView({ entity, isOpen, onClose }: EntityDetailViewPr
                             <p className="text-sm text-gray-900">{plant.address ?? 'Not provided'}</p>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Area</label>
                             <p className="text-sm text-gray-900">{plant.area ?? 'Not provided'}</p>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                            <p className="text-sm text-gray-900">{plant.name}</p>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Plant Type</label>
+                            <p className="text-sm text-gray-900">{plant.plantType ?? 'Not provided'}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                            <p className="text-sm text-gray-900">{plant.city}</p>
+                            <p className="text-sm text-gray-900">{plant.city ?? 'Not provided'}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                            <p className="text-sm text-gray-900">{plant.state}</p>
+                            <p className="text-sm text-gray-900">{plant.state ?? 'Not provided'}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                            <p className="text-sm text-gray-900">{plant.country}</p>
+                            <p className="text-sm text-gray-900">{plant.country ?? 'Not provided'}</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code</label>
@@ -408,6 +434,63 @@ export function EntityDetailView({ entity, isOpen, onClose }: EntityDetailViewPr
                   </div>
                 </div>
               )}
+
+              {/* Company-level Contact Persons (not associated with offices/plants) */}
+              {(() => {
+                // Collect all contact person IDs from offices and plants
+                const officeContactIds = new Set(
+                  entity.offices?.flatMap(office => office.contactPersons.map(cp => cp.id)) ?? []
+                );
+                const plantContactIds = new Set(
+                  entity.plants?.flatMap(plant => plant.contactPersons.map(cp => cp.id)) ?? []
+                );
+                const allLocationContactIds = new Set([...officeContactIds, ...plantContactIds]);
+                
+                // Filter to show only company-level contacts (not in offices/plants)
+                const companyLevelContacts = entity.contactPersons?.filter(
+                  contact => !allLocationContactIds.has(contact.id)
+                ) ?? [];
+                
+                return companyLevelContacts.length > 0 ? (
+                  <div className="bg-purple-50 rounded-lg p-4">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <Users className="w-5 h-5 mr-2 text-purple-600" />
+                      Company Contact Persons ({companyLevelContacts.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {companyLevelContacts.map((contact) => (
+                        <div key={contact.id} className="bg-white rounded-lg p-4 border">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <Users className="w-4 h-4 text-gray-500" />
+                              <span className="font-medium text-sm text-gray-900">{contact.name}</span>
+                              {contact.isPrimary && (
+                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                  Primary
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-600">
+                            <div className="flex items-center">
+                              <span className="font-medium">Designation:</span>
+                              <span className="ml-1">{contact.designation ?? 'Not provided'}</span>
+                            </div>
+                            <div className="flex items-center">
+                              <Phone className="w-4 h-4 mr-1" />
+                              <span>{contact.phoneNumber ?? 'Not provided'}</span>
+                            </div>
+                            <div className="flex items-center">
+                              <Mail className="w-4 h-4 mr-1" />
+                              <span>{contact.emailId ?? 'Not provided'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
             </>
           )}
 

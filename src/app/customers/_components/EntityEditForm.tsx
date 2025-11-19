@@ -68,8 +68,6 @@ interface Entity {
   poHeatExchanger: boolean;
   poMiscellaneous: boolean;
   poWaterJetSteamJet: boolean;
-  existingGraphiteSuppliers?: string | null;
-  problemsFaced?: string | null;
   locations?: Location[];
   offices?: Office[];
   plants?: Plant[];
@@ -100,8 +98,10 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
     onSuccess: () => {
       onSuccess();
     },
-    onError: (_error) => {
+    onError: (error) => {
       // Error updating company
+      console.error('Error updating company:', error);
+      alert(`Failed to update company: ${error.message}`);
     },
   });
 
@@ -121,10 +121,49 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
           poWaterJetSteamJet: formData.poWaterJetSteamJet,
           existingGraphiteSuppliers: null,
           problemsFaced: null,
+          offices: formData.offices.map(office => ({
+            id: office.id,
+            name: office.name,
+            address: office.address,
+            area: office.area,
+            city: office.city,
+            state: office.state,
+            country: office.country,
+            pincode: office.pincode,
+            isHeadOffice: office.isHeadOffice,
+            contactPersons: office.contactPersons.map(contact => ({
+              id: contact.id,
+              name: contact.name,
+              designation: contact.designation,
+              phoneNumber: contact.phoneNumber,
+              emailId: contact.emailId,
+              isPrimary: contact.isPrimary,
+            })),
+          })),
+          plants: formData.plants.map(plant => ({
+            id: plant.id,
+            name: plant.name,
+            address: plant.address,
+            area: plant.area,
+            city: plant.city,
+            state: plant.state,
+            country: plant.country,
+            pincode: plant.pincode,
+            plantType: plant.plantType,
+            contactPersons: plant.contactPersons.map(contact => ({
+              id: contact.id,
+              name: contact.name,
+              designation: contact.designation,
+              phoneNumber: contact.phoneNumber,
+              emailId: contact.emailId,
+              isPrimary: contact.isPrimary,
+            })),
+          })),
         });
       }
-    } catch {
+    } catch (error) {
       // Error updating entity
+      console.error('Error in handleSubmit:', error);
     } finally {
       setIsLoading(false);
     }
@@ -348,14 +387,13 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {entity.type === 'company' ? 'Company' : 'Customer'} Name *
+                  {entity.type === 'company' ? 'Company' : 'Customer'} Name
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
                 />
               </div>
             </div>
@@ -415,7 +453,6 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
               </div>
             </div>
           </div>
-
 
           {/* Company-specific sections */}
           {entity.type === 'company' && (
@@ -479,6 +516,15 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                           <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Office Name</label>
+                            <input
+                              type="text"
+                              value={office.name}
+                              onChange={(e) => handleOfficeChange(_index, 'name', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </div>
+                          <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                             <input
                               type="text"
@@ -504,7 +550,6 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                               value={office.city ?? ''}
                               onChange={(e) => handleOfficeChange(_index, 'city', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              required
                             />
                           </div>
                           <div>
@@ -514,7 +559,6 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                               value={office.state ?? ''}
                               onChange={(e) => handleOfficeChange(_index, 'state', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              required
                             />
                           </div>
                           <div>
@@ -524,7 +568,6 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                               value={office.country ?? ''}
                               onChange={(e) => handleOfficeChange(_index, 'country', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              required
                             />
                           </div>
                         </div>
@@ -567,13 +610,12 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                                   
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                                       <input
                                         type="text"
                                         value={contact.name}
                                         onChange={(e) => handleOfficeContactChange(_index, contactIndex, 'name', e.target.value)}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        required
                                       />
                                     </div>
                                     <div>
@@ -663,6 +705,24 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                           <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Plant Name</label>
+                            <input
+                              type="text"
+                              value={plant.name}
+                              onChange={(e) => handlePlantChange(_index, 'name', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Plant Type</label>
+                            <input
+                              type="text"
+                              value={plant.plantType ?? ''}
+                              onChange={(e) => handlePlantChange(_index, 'plantType', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            />
+                          </div>
+                          <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                             <input
                               type="text"
@@ -688,7 +748,6 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                               value={plant.city ?? ''}
                               onChange={(e) => handlePlantChange(_index, 'city', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                              required
                             />
                           </div>
                           <div>
@@ -698,7 +757,6 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                               value={plant.state ?? ''}
                               onChange={(e) => handlePlantChange(_index, 'state', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                              required
                             />
                           </div>
                           <div>
@@ -708,7 +766,6 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                               value={plant.country ?? ''}
                               onChange={(e) => handlePlantChange(_index, 'country', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                              required
                             />
                           </div>
                         </div>
@@ -751,13 +808,12 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
                                   
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                                       <input
                                         type="text"
                                         value={contact.name}
                                         onChange={(e) => handlePlantContactChange(_index, contactIndex, 'name', e.target.value)}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                        required
                                       />
                                     </div>
                                     <div>
@@ -860,28 +916,27 @@ export function EntityEditForm({ entity, onCancel, onSuccess }: EntityEditFormPr
               </div>
             </div>
           )}
-        </form>
 
-        {/* Footer */}
-        <div className="flex justify-end space-x-3 p-6 border-t border-gray-200">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Cancel
-          </button>
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={isLoading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center disabled:opacity-50"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {isLoading ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
+          {/* Footer */}
+          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center disabled:opacity-50"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {isLoading ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

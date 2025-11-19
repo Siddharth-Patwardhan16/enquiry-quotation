@@ -204,20 +204,261 @@ export const companyRouter = createTRPCRouter({
       poWaterJetSteamJet: z.boolean(),
       existingGraphiteSuppliers: z.string().nullable(),
       problemsFaced: z.string().nullable(),
+      offices: z.array(z.object({
+        id: z.string().optional(),
+        name: z.string().optional(),
+        address: z.string().nullable().optional(),
+        area: z.string().nullable().optional(),
+        city: z.string().nullable().optional(),
+        state: z.string().nullable().optional(),
+        country: z.string().nullable().optional(),
+        pincode: z.string().nullable().optional(),
+        isHeadOffice: z.boolean().optional(),
+        contactPersons: z.array(z.object({
+          id: z.string().optional(),
+          name: z.string().optional(),
+          designation: z.string().nullable().optional(),
+          phoneNumber: z.string().nullable().optional(),
+          emailId: z.string().nullable().optional(),
+          isPrimary: z.boolean().optional(),
+        })).optional(),
+      })).optional(),
+      plants: z.array(z.object({
+        id: z.string().optional(),
+        name: z.string().optional(),
+        address: z.string().nullable().optional(),
+        area: z.string().nullable().optional(),
+        city: z.string().nullable().optional(),
+        state: z.string().nullable().optional(),
+        country: z.string().nullable().optional(),
+        pincode: z.string().nullable().optional(),
+        plantType: z.string().nullable().optional(),
+        contactPersons: z.array(z.object({
+          id: z.string().optional(),
+          name: z.string().optional(),
+          designation: z.string().nullable().optional(),
+          phoneNumber: z.string().nullable().optional(),
+          emailId: z.string().nullable().optional(),
+          isPrimary: z.boolean().optional(),
+        })).optional(),
+      })).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.company.update({
-        where: { id: input.id },
-        data: {
-          name: input.name,
-          poRuptureDiscs: input.poRuptureDiscs,
-          poThermowells: input.poThermowells,
-          poHeatExchanger: input.poHeatExchanger,
-          poMiscellaneous: input.poMiscellaneous,
-          poWaterJetSteamJet: input.poWaterJetSteamJet,
-          existingGraphiteSuppliers: input.existingGraphiteSuppliers,
-          problemsFaced: input.problemsFaced,
+      return ctx.prisma.$transaction(async (prisma) => {
+        // Update company basic info
+        const company = await prisma.company.update({
+          where: { id: input.id },
+          data: {
+            name: input.name,
+            poRuptureDiscs: input.poRuptureDiscs,
+            poThermowells: input.poThermowells,
+            poHeatExchanger: input.poHeatExchanger,
+            poMiscellaneous: input.poMiscellaneous,
+            poWaterJetSteamJet: input.poWaterJetSteamJet,
+            existingGraphiteSuppliers: input.existingGraphiteSuppliers,
+            problemsFaced: input.problemsFaced,
+          }
+        });
+
+        // Handle offices update
+        if (input.offices !== undefined) {
+          // Get existing office IDs
+          const existingOffices = await prisma.office.findMany({
+            where: { companyId: input.id },
+            select: { id: true }
+          });
+          const existingOfficeIds = new Set(existingOffices.map(o => o.id));
+          const submittedOfficeIds = new Set(
+            input.offices
+              .map(o => o.id)
+              .filter((id): id is string => typeof id === 'string' && !id.startsWith('temp-'))
+          );
+
+          // Delete offices that are no longer in the list
+          const officesToDelete = Array.from(existingOfficeIds).filter(id => !submittedOfficeIds.has(id));
+          if (officesToDelete.length > 0) {
+            await prisma.office.deleteMany({
+              where: { id: { in: officesToDelete }, companyId: input.id }
+            });
+          }
+
+          // Update or create offices
+          for (let index = 0; index < input.offices.length; index++) {
+            const office = input.offices[index];
+            const officeName = office.name?.trim() ? office.name.trim() : `Unnamed Office ${index + 1}`;
+            
+            if (office.id && !office.id.startsWith('temp-') && existingOfficeIds.has(office.id)) {
+              // Update existing office
+              const updatedOffice = await prisma.office.update({
+                where: { id: office.id },
+                data: {
+                  name: officeName,
+                  address: office.address ?? null,
+                  area: office.area ?? null,
+                  city: office.city ?? null,
+                  state: office.state ?? null,
+                  country: office.country ?? null,
+                  pincode: office.pincode ?? null,
+                  isHeadOffice: office.isHeadOffice ?? (index === 0),
+                }
+              });
+
+              // Handle contact persons for this office
+              if (office.contactPersons) {
+                // Delete existing contacts
+                await prisma.contactPerson.deleteMany({
+                  where: { officeId: office.id }
+                });
+
+                // Create new contacts
+                if (office.contactPersons.length > 0) {
+                  await prisma.contactPerson.createMany({
+                    data: office.contactPersons.map(contact => ({
+                      name: contact.name?.trim() ? contact.name : 'Unnamed Contact',
+                      designation: contact.designation ?? null,
+                      phoneNumber: contact.phoneNumber ?? null,
+                      emailId: contact.emailId ?? null,
+                      isPrimary: contact.isPrimary ?? false,
+                      officeId: updatedOffice.id,
+                      companyId: input.id
+                    }))
+                  });
+                }
+              }
+            } else {
+              // Create new office
+              const createdOffice = await prisma.office.create({
+                data: {
+                  companyId: input.id,
+                  name: officeName,
+                  address: office.address ?? null,
+                  area: office.area ?? null,
+                  city: office.city ?? null,
+                  state: office.state ?? null,
+                  country: office.country ?? null,
+                  pincode: office.pincode ?? null,
+                  isHeadOffice: office.isHeadOffice ?? (index === 0),
+                }
+              });
+
+              // Create contacts for this office
+              if (office.contactPersons && office.contactPersons.length > 0) {
+                await prisma.contactPerson.createMany({
+                  data: office.contactPersons.map(contact => ({
+                    name: contact.name?.trim() ? contact.name : 'Unnamed Contact',
+                    designation: contact.designation ?? null,
+                    phoneNumber: contact.phoneNumber ?? null,
+                    emailId: contact.emailId ?? null,
+                    isPrimary: contact.isPrimary ?? false,
+                    officeId: createdOffice.id,
+                    companyId: input.id
+                  }))
+                });
+              }
+            }
+          }
         }
+
+        // Handle plants update
+        if (input.plants !== undefined) {
+          // Get existing plant IDs
+          const existingPlants = await prisma.plant.findMany({
+            where: { companyId: input.id },
+            select: { id: true }
+          });
+          const existingPlantIds = new Set(existingPlants.map(p => p.id));
+          const submittedPlantIds = new Set(
+            input.plants
+              .map(p => p.id)
+              .filter((id): id is string => typeof id === 'string' && !id.startsWith('temp-'))
+          );
+
+          // Delete plants that are no longer in the list
+          const plantsToDelete = Array.from(existingPlantIds).filter(id => !submittedPlantIds.has(id));
+          if (plantsToDelete.length > 0) {
+            await prisma.plant.deleteMany({
+              where: { id: { in: plantsToDelete }, companyId: input.id }
+            });
+          }
+
+          // Update or create plants
+          for (let index = 0; index < input.plants.length; index++) {
+            const plant = input.plants[index];
+            const plantName = plant.name?.trim() ? plant.name.trim() : `Unnamed Plant ${index + 1}`;
+            
+            if (plant.id && !plant.id.startsWith('temp-') && existingPlantIds.has(plant.id)) {
+              // Update existing plant
+              const updatedPlant = await prisma.plant.update({
+                where: { id: plant.id },
+                data: {
+                  name: plantName,
+                  address: plant.address ?? null,
+                  area: plant.area ?? null,
+                  city: plant.city ?? null,
+                  state: plant.state ?? null,
+                  country: plant.country ?? null,
+                  pincode: plant.pincode ?? null,
+                  plantType: plant.plantType ?? null,
+                }
+              });
+
+              // Handle contact persons for this plant
+              if (plant.contactPersons) {
+                // Delete existing contacts
+                await prisma.contactPerson.deleteMany({
+                  where: { plantId: plant.id }
+                });
+
+                // Create new contacts
+                if (plant.contactPersons.length > 0) {
+                  await prisma.contactPerson.createMany({
+                    data: plant.contactPersons.map(contact => ({
+                      name: contact.name?.trim() ? contact.name : 'Unnamed Contact',
+                      designation: contact.designation ?? null,
+                      phoneNumber: contact.phoneNumber ?? null,
+                      emailId: contact.emailId ?? null,
+                      isPrimary: contact.isPrimary ?? false,
+                      plantId: updatedPlant.id,
+                      companyId: input.id
+                    }))
+                  });
+                }
+              }
+            } else {
+              // Create new plant
+              const createdPlant = await prisma.plant.create({
+                data: {
+                  companyId: input.id,
+                  name: plantName,
+                  address: plant.address ?? null,
+                  area: plant.area ?? null,
+                  city: plant.city ?? null,
+                  state: plant.state ?? null,
+                  country: plant.country ?? null,
+                  pincode: plant.pincode ?? null,
+                  plantType: plant.plantType ?? null,
+                }
+              });
+
+              // Create contacts for this plant
+              if (plant.contactPersons && plant.contactPersons.length > 0) {
+                await prisma.contactPerson.createMany({
+                  data: plant.contactPersons.map(contact => ({
+                    name: contact.name?.trim() ? contact.name : 'Unnamed Contact',
+                    designation: contact.designation ?? null,
+                    phoneNumber: contact.phoneNumber ?? null,
+                    emailId: contact.emailId ?? null,
+                    isPrimary: contact.isPrimary ?? false,
+                    plantId: createdPlant.id,
+                    companyId: input.id
+                  }))
+                });
+              }
+            }
+          }
+        }
+
+        return company;
       });
     }),
 

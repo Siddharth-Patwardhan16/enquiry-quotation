@@ -58,10 +58,10 @@ function CustomerDetailsContent() {
   const isLoading = isLoadingCompanies || isLoadingCustomers;
   const isFetching = isFetchingCompanies || isFetchingCustomers;
   const error = companiesError ?? customersError;
-  const refetch = () => {
+  const refetch = useCallback(() => {
     refetchCompanies();
     refetchCustomers();
-  };
+  }, [refetchCompanies, refetchCustomers]);
 
   // Combine companies and customers into a single list
   const allEntities = [
