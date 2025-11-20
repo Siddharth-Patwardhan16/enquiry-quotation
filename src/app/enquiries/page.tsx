@@ -12,10 +12,7 @@ import {
   Search, 
   Plus, 
   Eye, 
-  Filter,
   FileText,
-  Calendar,
-  User,
   Edit,
   Trash2,
   X,
@@ -79,7 +76,7 @@ export default function EnquiriesPage() {
   });
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   // Define the edit data type
   type EditEnquiryData = {
     subject?: string;
@@ -125,7 +122,7 @@ export default function EnquiriesPage() {
       entityName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       marketingPersonName.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === 'all' || enquiry.status === statusFilter;
+    const matchesStatus = statusFilter === null || enquiry.status === statusFilter;
     
     return matchesSearch && matchesStatus;
   }) ?? [];
@@ -136,13 +133,17 @@ export default function EnquiriesPage() {
     live: stats.live,
     dead: stats.dead,
     rcd: stats.rcd,
-    lost: stats.lost
+    lost: stats.lost,
+    won: stats.won,
+    budgetary: stats.budgetary
   } : {
     total: 0,
     live: 0,
     dead: 0,
     rcd: 0,
-    lost: 0
+    lost: 0,
+    won: 0,
+    budgetary: 0
   };
 
   const getStatusBadge = (status: string) => {
@@ -304,7 +305,7 @@ export default function EnquiriesPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4 md:gap-6 mb-8">
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="p-5">
               <div className="flex items-center">
@@ -315,68 +316,169 @@ export default function EnquiriesPage() {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Total Enquiries</dt>
-                    <dd className="text-lg font-medium text-gray-900">{displayStats.total}</dd>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Total</dt>
+                    <dd className="text-lg font-medium text-gray-900">{typeof displayStats.total === 'number' ? displayStats.total.toLocaleString() : displayStats.total}</dd>
                   </dl>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div 
+            className={`bg-white overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg ${
+              statusFilter === 'LIVE' ? 'ring-2 ring-yellow-500' : ''
+            }`}
+            onClick={() => setStatusFilter(statusFilter === 'LIVE' ? null : 'LIVE')}
+          >
             <div className="p-5">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
-                    <Plus className="w-5 h-5 text-white" />
+                  <div className="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
+                    <div className="text-white font-bold text-sm">⏳</div>
                   </div>
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Live Enquiries</dt>
-                    <dd className="text-lg font-medium text-gray-900">{displayStats.live}</dd>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Live</dt>
+                    <dd className="text-lg font-medium text-gray-900">{typeof displayStats.live === 'number' ? displayStats.live.toLocaleString() : displayStats.live}</dd>
                   </dl>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div 
+            className={`bg-white overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg ${
+              statusFilter === 'DEAD' ? 'ring-2 ring-gray-500' : ''
+            }`}
+            onClick={() => setStatusFilter(statusFilter === 'DEAD' ? null : 'DEAD')}
+          >
             <div className="p-5">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-red-500 rounded-md flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-white" />
+                  <div className="w-8 h-8 bg-gray-500 rounded-md flex items-center justify-center">
+                    <div className="text-white font-bold text-sm">💀</div>
                   </div>
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Dead Enquiries</dt>
-                    <dd className="text-lg font-medium text-gray-900">{displayStats.dead}</dd>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Dead</dt>
+                    <dd className="text-lg font-medium text-gray-900">{typeof displayStats.dead === 'number' ? displayStats.dead.toLocaleString() : displayStats.dead}</dd>
                   </dl>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div 
+            className={`bg-white overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg ${
+              statusFilter === 'RCD' ? 'ring-2 ring-blue-500' : ''
+            }`}
+            onClick={() => setStatusFilter(statusFilter === 'RCD' ? null : 'RCD')}
+          >
             <div className="p-5">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
                   <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
-                    <User className="w-5 h-5 text-white" />
+                    <div className="text-white font-bold text-sm">📥</div>
                   </div>
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">RCD (Received)</dt>
-                    <dd className="text-lg font-medium text-gray-900">{displayStats.rcd}</dd>
+                    <dt className="text-sm font-medium text-gray-500 truncate">RCD</dt>
+                    <dd className="text-lg font-medium text-gray-900">{typeof displayStats.rcd === 'number' ? displayStats.rcd.toLocaleString() : displayStats.rcd}</dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div 
+            className={`bg-white overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg ${
+              statusFilter === 'LOST' ? 'ring-2 ring-red-500' : ''
+            }`}
+            onClick={() => setStatusFilter(statusFilter === 'LOST' ? null : 'LOST')}
+          >
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-red-500 rounded-md flex items-center justify-center">
+                    <div className="text-white font-bold text-sm">❌</div>
+                  </div>
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Lost</dt>
+                    <dd className="text-lg font-medium text-gray-900">{typeof displayStats.lost === 'number' ? displayStats.lost.toLocaleString() : displayStats.lost}</dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div 
+            className={`bg-white overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg ${
+              statusFilter === 'WON' ? 'ring-2 ring-green-500' : ''
+            }`}
+            onClick={() => setStatusFilter(statusFilter === 'WON' ? null : 'WON')}
+          >
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+                    <div className="text-white font-bold text-sm">🏆</div>
+                  </div>
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Won</dt>
+                    <dd className="text-lg font-medium text-gray-900">{typeof displayStats.won === 'number' ? displayStats.won.toLocaleString() : displayStats.won}</dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div 
+            className={`bg-white overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg ${
+              statusFilter === 'BUDGETARY' ? 'ring-2 ring-orange-500' : ''
+            }`}
+            onClick={() => setStatusFilter(statusFilter === 'BUDGETARY' ? null : 'BUDGETARY')}
+          >
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-orange-500 rounded-md flex items-center justify-center">
+                    <div className="text-white font-bold text-sm">💰</div>
+                  </div>
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Budgetary</dt>
+                    <dd className="text-lg font-medium text-gray-900">{typeof displayStats.budgetary === 'number' ? displayStats.budgetary.toLocaleString() : displayStats.budgetary}</dd>
                   </dl>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Filter Status */}
+        {statusFilter && (
+          <div className="mb-4 flex items-center justify-between bg-blue-50 p-4 rounded-lg">
+            <div className="flex items-center">
+              <span className="text-sm text-blue-700">
+                Showing enquiries with status: <strong>{statusFilter}</strong>
+              </span>
+            </div>
+            <button
+              onClick={() => setStatusFilter(null)}
+              className="text-sm text-blue-600 hover:text-blue-800 underline"
+            >
+              Clear Filter
+            </button>
+          </div>
+        )}
 
         {/* Enquiries Table */}
         <div className="bg-white shadow rounded-lg">
@@ -390,7 +492,7 @@ export default function EnquiriesPage() {
           </div>
           
           <div className="px-6 pb-6">
-            {/* Search and Filters */}
+            {/* Search */}
             <div className="flex items-center space-x-4 mb-6">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -401,21 +503,6 @@ export default function EnquiriesPage() {
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">All Statuses</option>
-                <option value="LIVE">Live</option>
-                <option value="DEAD">Dead</option>
-                <option value="RCD">RCD (Received)</option>
-                <option value="LOST">Lost</option>
-              </select>
-              <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-4 py-2">
-                <Filter className="h-4 w-4" />
-                More Filters
-              </button>
             </div>
 
             {/* Table */}

@@ -108,12 +108,14 @@ export const enquiryRouter = createTRPCRouter({
 
   // Get enquiry statistics - moved from frontend calculations
   getStats: publicProcedure.query(async () => {
-    const [total, liveCount, deadCount, rcdCount, lostCount] = await Promise.all([
+    const [total, liveCount, deadCount, rcdCount, lostCount, wonCount, budgetaryCount] = await Promise.all([
       db.enquiry.count(),
       db.enquiry.count({ where: { status: 'LIVE' } }),
       db.enquiry.count({ where: { status: 'DEAD' } }),
       db.enquiry.count({ where: { status: 'RCD' } }),
-      db.enquiry.count({ where: { status: 'LOST' } })
+      db.enquiry.count({ where: { status: 'LOST' } }),
+      db.enquiry.count({ where: { status: 'WON' } }),
+      db.enquiry.count({ where: { status: 'BUDGETARY' } })
     ]);
 
     return {
@@ -121,7 +123,9 @@ export const enquiryRouter = createTRPCRouter({
       live: liveCount,
       dead: deadCount,
       rcd: rcdCount,
-      lost: lostCount
+      lost: lostCount,
+      won: wonCount,
+      budgetary: budgetaryCount
     };
   }),
 
