@@ -393,7 +393,7 @@ async function testEnquiryFormCreate() {
 
     // Test 6: Enquiry with different status values
     console.log('Test 6: Enquiry with different status values');
-    const statuses: Array<'LIVE' | 'DEAD' | 'RCD' | 'LOST'> = ['LIVE', 'DEAD', 'RCD', 'LOST'];
+    const statuses: Array<'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'BUDGETARY'> = ['LIVE', 'DEAD', 'RCD', 'LOST', 'BUDGETARY'];
     let statusTestPassed = true;
 
     for (const status of statuses) {

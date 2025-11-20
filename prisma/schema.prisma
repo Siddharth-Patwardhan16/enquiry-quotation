@@ -304,6 +304,7 @@ enum EnquiryStatus {
   RCD
   LOST
   WON
+  BUDGETARY
 }
 
 enum QuotationStatus {
@@ -313,6 +314,7 @@ enum QuotationStatus {
   LOST
   BUDGETARY
   DEAD
+  RECEIVED
 }
 
 enum LostReason {

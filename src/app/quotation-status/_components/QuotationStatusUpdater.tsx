@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DollarSign, Calendar, Shield, HelpCircle, AlertTriangle } from 'lucide-react';
 
 type Quotation = inferRouterOutputs<AppRouter>['quotation']['getAll'][0];
 
@@ -126,6 +127,7 @@ export function QuotationStatusUpdater({ quotation }: { quotation: Quotation }) 
             <option value="WON">Won</option>
             <option value="LOST">Lost</option>
             <option value="BUDGETARY">Budgetary</option>
+            <option value="RECEIVED">Received</option>
             <option value="DEAD">Dead</option>
           </select>
         </div>
@@ -159,30 +161,65 @@ export function QuotationStatusUpdater({ quotation }: { quotation: Quotation }) 
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              Update Status to {pendingStatus === 'LOST' ? 'Lost' : 'Won'}
+            <DialogTitle className="flex items-center gap-3">
+              {pendingStatus === 'LOST' && (
+                <div className="p-2 bg-gradient-to-br from-orange-100 to-orange-50 rounded-xl shadow-sm border border-orange-200/50">
+                  <AlertTriangle className="h-5 w-5 text-orange-600" />
+                </div>
+              )}
+              <span className="text-xl font-bold tracking-tight">Update Status to {pendingStatus === 'LOST' ? 'Lost' : 'Won'}</span>
             </DialogTitle>
           </DialogHeader>
           
           <div className="space-y-4">
             {pendingStatus === 'LOST' && (
               <div>
-                <Label htmlFor="lostReason" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="lostReason" className="text-sm font-semibold text-gray-900 mb-2 block">
                   Reason for Loss <span className="text-red-500">*</span>
                 </Label>
-                <div className="mt-2">
-                  <Select value={lostReason} onValueChange={setLostReason}>
-                    <SelectTrigger className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                      <SelectValue placeholder="Select reason" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="PRICE">Price</SelectItem>
-                      <SelectItem value="DELIVERY_SCHEDULE">Delivery Schedule</SelectItem>
-                      <SelectItem value="LACK_OF_CONFIDENCE">Lack of Confidence</SelectItem>
-                      <SelectItem value="OTHER">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select value={lostReason} onValueChange={setLostReason}>
+                  <SelectTrigger className="w-full h-12 rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-900 hover:border-blue-300 hover:shadow-md focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200">
+                    <SelectValue placeholder="Choose a reason..." />
+                  </SelectTrigger>
+                  <SelectContent className="z-[100] max-h-[260px] rounded-xl border-2 border-gray-200 shadow-xl bg-white">
+                    <SelectItem 
+                      value="PRICE" 
+                      className="flex items-center gap-3 py-3.5 px-4 cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 focus:bg-blue-50 transition-all duration-150 rounded-lg m-1"
+                    >
+                      <div className="p-1.5 bg-blue-100 rounded-lg">
+                        <DollarSign className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <span className="font-semibold text-gray-900">Price</span>
+                    </SelectItem>
+                    <SelectItem 
+                      value="DELIVERY_SCHEDULE" 
+                      className="flex items-center gap-3 py-3.5 px-4 cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 focus:bg-blue-50 transition-all duration-150 rounded-lg m-1"
+                    >
+                      <div className="p-1.5 bg-blue-100 rounded-lg">
+                        <Calendar className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <span className="font-semibold text-gray-900">Delivery Schedule</span>
+                    </SelectItem>
+                    <SelectItem 
+                      value="LACK_OF_CONFIDENCE" 
+                      className="flex items-center gap-3 py-3.5 px-4 cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 focus:bg-blue-50 transition-all duration-150 rounded-lg m-1"
+                    >
+                      <div className="p-1.5 bg-blue-100 rounded-lg">
+                        <Shield className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <span className="font-semibold text-gray-900">Lack of Confidence</span>
+                    </SelectItem>
+                    <SelectItem 
+                      value="OTHER" 
+                      className="flex items-center gap-3 py-3.5 px-4 cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 focus:bg-blue-50 transition-all duration-150 rounded-lg m-1"
+                    >
+                      <div className="p-1.5 bg-blue-100 rounded-lg">
+                        <HelpCircle className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <span className="font-semibold text-gray-900">Other</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             )}
 

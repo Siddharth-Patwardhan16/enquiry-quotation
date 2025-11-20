@@ -731,12 +731,12 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                   <select
                     id="status"
                     {...register('status', {
-                      setValueAs: (value): 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | undefined => {
+                      setValueAs: (value): 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'BUDGETARY' | undefined => {
                         // Convert empty string, null, or undefined to undefined
                         if (value === '' || value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
                           return undefined;
                         }
-                        return value as 'LIVE' | 'DEAD' | 'RCD' | 'LOST';
+                        return value as 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'BUDGETARY';
                       }
                     })}
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
@@ -746,6 +746,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                     <option value="DEAD" className="text-black bg-white">DEAD</option>
                     <option value="RCD" className="text-black bg-white">RCD (Received)</option>
                     <option value="LOST" className="text-black bg-white">LOST</option>
+                    <option value="BUDGETARY" className="text-black bg-white">BUDGETARY</option>
                   </select>
                 </div>
 

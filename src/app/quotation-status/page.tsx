@@ -75,7 +75,7 @@ export default function QuotationStatusPage() {
   };
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="min-w-0 p-4 md:p-8 max-w-full overflow-x-hidden">
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Quotation Status</h1>
@@ -83,7 +83,7 @@ export default function QuotationStatusPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6 mb-8">
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="p-5">
             <div className="flex items-center">
@@ -275,67 +275,72 @@ export default function QuotationStatusPage() {
             <p className="text-gray-500 text-sm mt-1">Please wait while we fetch your data</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Quotation #
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Subject
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total Value
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredQuotations?.map((quotation: Quotation) => (
-                  <tr key={quotation.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{quotation.quotationNumber}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {quotation.enquiry?.company?.name ?? quotation.enquiry?.customer?.name ?? 'N/A'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                                          <div className="text-sm text-gray-900 max-w-xs truncate" title={quotation.enquiry?.subject ?? 'N/A'}>
-                      {quotation.enquiry?.subject ?? 'N/A'}
-                    </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {quotation.totalValue ? formatCurrency(Number(quotation.totalValue)) : 'N/A'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <QuotationStatusUpdater quotation={quotation} />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <button
-                        onClick={() => window.open(`/quotations/${quotation.id}`, '_blank')}
-                        className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                      >
-                        <div className="w-4 h-4 mr-1">👁️</div>
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="overflow-x-auto -mx-6 px-6">
+            <div className="inline-block min-w-full align-middle">
+              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Quotation #
+                      </th>
+                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Customer
+                      </th>
+                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
+                        Subject
+                      </th>
+                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Total Value
+                      </th>
+                      <th className="px-4 md:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-4 md:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredQuotations?.map((quotation: Quotation) => (
+                      <tr key={quotation.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 md:px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{quotation.quotationNumber}</div>
+                        </td>
+                        <td className="px-4 md:px-6 py-4">
+                          <div className="text-sm text-gray-900 max-w-[150px] truncate" title={quotation.enquiry?.company?.name ?? quotation.enquiry?.customer?.name ?? 'N/A'}>
+                            {quotation.enquiry?.company?.name ?? quotation.enquiry?.customer?.name ?? 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-4 md:px-6 py-4">
+                          <div className="text-sm text-gray-900 max-w-[200px] truncate" title={quotation.enquiry?.subject ?? 'N/A'}>
+                            {quotation.enquiry?.subject ?? 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-4 md:px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {quotation.totalValue ? formatCurrency(Number(quotation.totalValue)) : 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-center">
+                          <QuotationStatusUpdater quotation={quotation} />
+                        </td>
+                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-center">
+                          <button
+                            onClick={() => window.open(`/quotations/${quotation.id}`, '_blank')}
+                            className="inline-flex items-center px-2 md:px-3 py-1 border border-transparent text-xs md:text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                          >
+                            <span className="hidden sm:inline mr-1">👁️</span>
+                            <span className="sm:hidden">👁</span>
+                            <span className="hidden sm:inline">View</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
         

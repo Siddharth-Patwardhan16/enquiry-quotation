@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Calendar, DollarSign, User, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { FileText, Calendar, DollarSign, User, AlertCircle, CheckCircle, XCircle, Shield, HelpCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 
 interface QuotationStatusModalProps {
@@ -280,22 +280,52 @@ export function QuotationStatusModal({
 
                 {status === 'LOST' && (
                   <div>
-                    <Label htmlFor="lostReason" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="lostReason" className="text-sm font-semibold text-gray-900 mb-2 block">
                       Reason for Loss <span className="text-red-500">*</span>
                     </Label>
-                    <div className="mt-2">
-                      <Select value={lostReason} onValueChange={setLostReason}>
-                        <SelectTrigger className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                          <SelectValue placeholder="Select reason" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="PRICE">Price</SelectItem>
-                          <SelectItem value="DELIVERY_SCHEDULE">Delivery Schedule</SelectItem>
-                          <SelectItem value="LACK_OF_CONFIDENCE">Lack of Confidence</SelectItem>
-                          <SelectItem value="OTHER">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <Select value={lostReason} onValueChange={setLostReason}>
+                      <SelectTrigger className="w-full h-12 rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-900 hover:border-blue-300 hover:shadow-md focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200">
+                        <SelectValue placeholder="Choose a reason..." />
+                      </SelectTrigger>
+                      <SelectContent className="z-[100] max-h-[260px] rounded-xl border-2 border-gray-200 shadow-xl bg-white">
+                        <SelectItem 
+                          value="PRICE" 
+                          className="flex items-center gap-3 py-3.5 px-4 cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 focus:bg-blue-50 transition-all duration-150 rounded-lg m-1"
+                        >
+                          <div className="p-1.5 bg-blue-100 rounded-lg">
+                            <DollarSign className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <span className="font-semibold text-gray-900">Price</span>
+                        </SelectItem>
+                        <SelectItem 
+                          value="DELIVERY_SCHEDULE" 
+                          className="flex items-center gap-3 py-3.5 px-4 cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 focus:bg-blue-50 transition-all duration-150 rounded-lg m-1"
+                        >
+                          <div className="p-1.5 bg-blue-100 rounded-lg">
+                            <Calendar className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <span className="font-semibold text-gray-900">Delivery Schedule</span>
+                        </SelectItem>
+                        <SelectItem 
+                          value="LACK_OF_CONFIDENCE" 
+                          className="flex items-center gap-3 py-3.5 px-4 cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 focus:bg-blue-50 transition-all duration-150 rounded-lg m-1"
+                        >
+                          <div className="p-1.5 bg-blue-100 rounded-lg">
+                            <Shield className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <span className="font-semibold text-gray-900">Lack of Confidence</span>
+                        </SelectItem>
+                        <SelectItem 
+                          value="OTHER" 
+                          className="flex items-center gap-3 py-3.5 px-4 cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 focus:bg-blue-50 transition-all duration-150 rounded-lg m-1"
+                        >
+                          <div className="p-1.5 bg-blue-100 rounded-lg">
+                            <HelpCircle className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <span className="font-semibold text-gray-900">Other</span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
 

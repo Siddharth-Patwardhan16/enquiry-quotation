@@ -567,6 +567,83 @@ async function testEnquiryStatusUpdates() {
     }
     console.log('');
 
+    // Test 7: Update status to BUDGETARY
+    console.log('Test 7: Update status to BUDGETARY');
+    testEnquiryId = null;
+    try {
+      const testEnquiry = await prisma.enquiry.create({
+        data: {
+          subject: `Test BUDGETARY ${Date.now()}`,
+          companyId: testCompany.id,
+          marketingPersonId: testEmployee?.id ?? null,
+          status: 'LIVE',
+        },
+      });
+      testEnquiryId = testEnquiry.id;
+
+      const updateData = {
+        id: testEnquiry.id,
+        status: 'BUDGETARY' as const,
+      };
+
+      const validation = UpdateEnquirySchema.safeParse(updateData);
+      const validationPassed = validation.success;
+
+      if (!validationPassed) {
+        const errorMessages = validation.error.errors
+          .map((e) => `${e.path.join('.')}: ${e.message}`)
+          .join(', ');
+        console.log(`   ❌ Validation failed: ${errorMessages}`);
+        results.push({
+          name: 'Update status to BUDGETARY',
+          success: false,
+          validationPassed: false,
+          mutationPassed: false,
+          validationError: errorMessages,
+        });
+      } else {
+        const updated = await prisma.enquiry.update({
+          where: { id: testEnquiry.id },
+          data: {
+            status: 'BUDGETARY',
+          },
+        });
+
+        const mutationPassed = updated.status === 'BUDGETARY';
+
+        if (mutationPassed) {
+          console.log(`   ✅ SUCCESS: Status updated to BUDGETARY`);
+          results.push({
+            name: 'Update status to BUDGETARY',
+            success: true,
+            validationPassed: true,
+            mutationPassed: true,
+          });
+        } else {
+          throw new Error('BUDGETARY status not saved correctly');
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.log(`   ❌ FAILED: ${message}`);
+      results.push({
+        name: 'Update status to BUDGETARY',
+        success: false,
+        validationPassed: false,
+        mutationPassed: false,
+        error: message,
+      });
+    } finally {
+      if (testEnquiryId) {
+        try {
+          await prisma.enquiry.delete({ where: { id: testEnquiryId } });
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    }
+    console.log('');
+
     // Summary
     console.log('='.repeat(80));
     console.log('\n📊 Enquiry Status Updates Test Results Summary:\n');

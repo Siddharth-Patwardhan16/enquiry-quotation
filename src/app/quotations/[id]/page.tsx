@@ -2,11 +2,13 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/trpc/client';
-import { ArrowLeft, Download, Upload, AlertTriangle, Edit } from 'lucide-react';
+import { ArrowLeft, Download, Upload, AlertTriangle, Edit, DollarSign, Calendar, Shield, HelpCircle, X } from 'lucide-react';
 import { useState } from 'react';
 import type { AppRouter } from '@/server/api/root';
 import type { inferRouterOutputs } from '@trpc/server';
 import jsPDF from 'jspdf';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 // Use the same type as other quotation components
 type Quotation = NonNullable<inferRouterOutputs<AppRouter>['quotation']['getById']>;
@@ -65,7 +67,7 @@ export default function QuotationDetailPage() {
     try {
       await updateStatusMutation.mutateAsync({
         quotationId: quotationId,
-        status: newStatus as 'LIVE' | 'WON' | 'LOST' | 'BUDGETARY' | 'DEAD',
+        status: newStatus as 'LIVE' | 'WON' | 'LOST' | 'BUDGETARY' | 'RECEIVED' | 'DEAD',
         ...(reason && { lostReason: reason as 'PRICE' | 'DELIVERY_SCHEDULE' | 'LACK_OF_CONFIDENCE' | 'OTHER' }),
       });
     } finally {
@@ -452,6 +454,7 @@ export default function QuotationDetailPage() {
                   <option value="WON">Won</option>
                   <option value="LOST">Lost</option>
                   <option value="BUDGETARY">Budgetary</option>
+                  <option value="RECEIVED">Received</option>
                   <option value="DEAD">Dead</option>
                 </select>
               </div>
@@ -499,47 +502,100 @@ export default function QuotationDetailPage() {
 
       {/* Lost Reason Modal */}
       {showLostReasonModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex items-center space-x-2 mb-4">
-              <AlertTriangle className="h-5 w-5 text-orange-500" />
-              <h3 className="text-lg font-semibold">Mark as Lost</h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] overflow-visible animate-in fade-in-0 duration-200">
+          <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-2xl p-7 max-w-md w-full mx-4 relative z-[100] border border-gray-200/50 animate-in zoom-in-95 slide-in-from-bottom-2 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 bg-gradient-to-br from-orange-100 to-orange-50 rounded-xl shadow-sm border border-orange-200/50">
+                  <AlertTriangle className="h-5 w-5 text-orange-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 tracking-tight">Mark as Lost</h3>
+                  <p className="text-sm text-gray-500 mt-1">Select the reason for this loss</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowLostReasonModal(false)}
+                className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:scale-110"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <p className="text-gray-600 mb-4">
-              Please select a reason for marking this quotation as lost. This information helps improve future quotations.
-            </p>
-            <div className="space-y-4">
+            
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Lost Reason *</label>
-                <select 
-                  value={lostReason} 
-                  onChange={(e) => setLostReason(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                >
-                  <option value="">Select a reason</option>
-                  <option value="Price too high">Price too high</option>
-                  <option value="Timeline issues">Timeline issues</option>
-                  <option value="Technical requirements not met">Technical requirements not met</option>
-                  <option value="Customer chose competitor">Customer chose competitor</option>
-                  <option value="Project cancelled">Project cancelled</option>
-                  <option value="Other">Other</option>
-                </select>
+                <Label htmlFor="lostReason" className="text-sm font-bold text-gray-900 mb-3 block">
+                  Lost Reason <span className="text-red-500 ml-1">*</span>
+                </Label>
+                <Select value={lostReason} onValueChange={setLostReason}>
+                  <SelectTrigger className="w-full h-12 rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-900 hover:border-blue-300 hover:shadow-md focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200">
+                    <SelectValue placeholder="Choose a reason..." />
+                  </SelectTrigger>
+                  <SelectContent className="z-[110] max-h-[260px] rounded-xl border-2 border-gray-200 shadow-xl bg-white">
+                    <SelectItem 
+                      value="PRICE" 
+                      className="flex items-center gap-3 py-3.5 px-4 cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 focus:bg-blue-50 transition-all duration-150 rounded-lg m-1"
+                    >
+                      <div className="p-1.5 bg-blue-100 rounded-lg">
+                        <DollarSign className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <span className="font-semibold text-gray-900">Price</span>
+                    </SelectItem>
+                    <SelectItem 
+                      value="DELIVERY_SCHEDULE" 
+                      className="flex items-center gap-3 py-3.5 px-4 cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 focus:bg-blue-50 transition-all duration-150 rounded-lg m-1"
+                    >
+                      <div className="p-1.5 bg-blue-100 rounded-lg">
+                        <Calendar className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <span className="font-semibold text-gray-900">Delivery Schedule</span>
+                    </SelectItem>
+                    <SelectItem 
+                      value="LACK_OF_CONFIDENCE" 
+                      className="flex items-center gap-3 py-3.5 px-4 cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 focus:bg-blue-50 transition-all duration-150 rounded-lg m-1"
+                    >
+                      <div className="p-1.5 bg-blue-100 rounded-lg">
+                        <Shield className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <span className="font-semibold text-gray-900">Lack of Confidence</span>
+                    </SelectItem>
+                    <SelectItem 
+                      value="OTHER" 
+                      className="flex items-center gap-3 py-3.5 px-4 cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 focus:bg-blue-50 transition-all duration-150 rounded-lg m-1"
+                    >
+                      <div className="p-1.5 bg-blue-100 rounded-lg">
+                        <HelpCircle className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <span className="font-semibold text-gray-900">Other</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200/80">
                 <button 
                   onClick={() => setShowLostReasonModal(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  className="px-6 py-3 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 hover:shadow-md transition-all duration-200"
                 >
                   Cancel
                 </button>
                 <button 
                   onClick={handleLostReasonSubmit} 
                   disabled={!lostReason || updating}
-                  className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
+                  className="px-6 py-3 text-sm font-bold text-white bg-gradient-to-r from-red-600 via-red-600 to-red-700 rounded-xl hover:from-red-700 hover:via-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 transform hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  {updating ? 'Updating...' : 'Mark as Lost'}
+                  {updating ? (
+                    <>
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Updating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>Mark as Lost</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -549,8 +605,8 @@ export default function QuotationDetailPage() {
 
       {/* PO Upload Modal */}
       {showPOUpload && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative z-[100]">
             <div className="flex items-center space-x-2 mb-4">
               <Upload className="h-5 w-5 text-green-500" />
               <h3 className="text-lg font-semibold">Upload Purchase Order</h3>

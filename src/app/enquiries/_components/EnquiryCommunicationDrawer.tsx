@@ -359,7 +359,7 @@ export function EnquiryCommunicationDrawer({
 
                   <div>
                     <Label htmlFor="message" className="text-sm font-semibold text-gray-900 mb-2 block">
-                      Message <span className="text-red-600 font-bold">*</span>
+                      Message
                     </Label>
                     <Textarea
                       id="message"
@@ -368,13 +368,12 @@ export function EnquiryCommunicationDrawer({
                       className="mt-2 border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                       placeholder="Enter communication details..."
                       rows={4}
-                      required
                     />
                   </div>
 
                   <div>
                     <Label htmlFor="nextCommunicationDate" className="block text-sm font-medium text-gray-700 mb-1">
-                      Next Communication Date <span className="text-red-600">*</span>
+                      Next Communication Date
                     </Label>
                     <div className="relative">
                       <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none z-10" />
@@ -385,7 +384,6 @@ export function EnquiryCommunicationDrawer({
                         onChange={(e) => setNextCommunicationDate(e.target.value)}
                         min={new Date().toISOString().split('T')[0]}
                         className="pl-10 w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white relative z-0 cursor-pointer"
-                        required
                         onClick={(e) => {
                           // Ensure the input receives focus and opens the calendar
                           e.currentTarget.showPicker?.();

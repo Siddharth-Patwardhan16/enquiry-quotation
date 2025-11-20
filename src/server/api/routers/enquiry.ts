@@ -183,7 +183,7 @@ export const enquiryRouter = createTRPCRouter({
       const poDateValue = poDate ? new Date(poDate) : null;
       
       const updateData: {
-        status: 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'WON';
+        status: 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'WON' | 'BUDGETARY';
         purchaseOrderNumber?: string | null;
         poValue?: number | null;
         poDate?: Date | null;
@@ -203,10 +203,44 @@ export const enquiryRouter = createTRPCRouter({
         updateData.poDate = null;
       }
       
-      return db.enquiry.update({
+      const updatedEnquiry = await db.enquiry.update({
         where: { id },
         data: updateData,
       });
+
+      // Sync status to related quotations
+      const relatedQuotations = await db.quotation.findMany({
+        where: { enquiryId: id },
+      });
+
+      if (relatedQuotations.length > 0) {
+        // Map enquiry status to quotation status
+        let quotationStatus: 'LIVE' | 'WON' | 'LOST' | 'BUDGETARY' | 'RECEIVED' | 'DEAD' | undefined;
+        
+        if (status === 'BUDGETARY') {
+          quotationStatus = 'BUDGETARY';
+        } else if (status === 'RCD') {
+          quotationStatus = 'RECEIVED';
+        } else if (status === 'LOST') {
+          quotationStatus = 'LOST';
+        } else if (status === 'WON') {
+          quotationStatus = 'WON';
+        } else if (status === 'DEAD') {
+          quotationStatus = 'DEAD';
+        } else if (status === 'LIVE') {
+          quotationStatus = 'LIVE';
+        }
+
+        // Update all related quotations
+        if (quotationStatus) {
+          await db.quotation.updateMany({
+            where: { enquiryId: id },
+            data: { status: quotationStatus },
+          });
+        }
+      }
+
+      return updatedEnquiry;
     }),
 
   // Procedure to update enquiry details
@@ -236,7 +270,7 @@ export const enquiryRouter = createTRPCRouter({
         designRequired?: string | null;
         attendedById?: string | null;
         customerType?: string | null;
-        status?: 'LIVE' | 'DEAD' | 'RCD' | 'LOST';
+        status?: 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'WON' | 'BUDGETARY';
       } = { ...rest };
       
       // Convert date strings to Date objects

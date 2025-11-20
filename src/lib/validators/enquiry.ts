@@ -92,7 +92,7 @@ export const CreateEnquirySchema = z.object({
       }
       return val;
     },
-    z.enum(['LIVE', 'DEAD', 'RCD', 'LOST']).optional()
+    z.enum(['LIVE', 'DEAD', 'RCD', 'LOST', 'BUDGETARY']).optional()
   ),
   entityType: z.enum(['customer', 'company']).optional(),
 }).refine((data) => {
@@ -122,7 +122,7 @@ export const CreateEnquirySchema = z.object({
 
 export const UpdateEnquirySchema = z.object({
   id: z.number(),
-  status: z.enum(['LIVE', 'DEAD', 'RCD', 'LOST', 'WON']),
+  status: z.enum(['LIVE', 'DEAD', 'RCD', 'LOST', 'WON', 'BUDGETARY']),
   purchaseOrderNumber: z.string().optional(),
   poValue: z.number().optional(),
   poDate: z.string().optional(),
@@ -220,7 +220,7 @@ export const UpdateEnquiryFullSchema = z.object({
       }
       return val;
     },
-    z.enum(['LIVE', 'DEAD', 'RCD', 'LOST']).optional()
+    z.enum(['LIVE', 'DEAD', 'RCD', 'LOST', 'BUDGETARY']).optional()
   ),
 }).refine((data) => {
   // Only validate UUID format if attendedById is provided and not empty

@@ -8,6 +8,7 @@ export const UpdateQuotationStatusSchema = z.object({
     'WON',
     'LOST',
     'BUDGETARY',
+    'RECEIVED',
     'DEAD',
   ]),
   // Optional fields that are only required for specific statuses

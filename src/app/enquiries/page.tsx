@@ -466,7 +466,7 @@ export default function EnquiriesPage() {
                               <select
                                 value={enquiry.status}
                                 onChange={(e) => {
-                                  const newStatus = e.target.value as 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'WON';
+                                  const newStatus = e.target.value as 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'WON' | 'BUDGETARY';
                                   if (newStatus === 'RCD') {
                                     // Open receipt modal for RCD status
                                     setReceiptModalEnquiryId(enquiry.id);
@@ -488,11 +488,13 @@ export default function EnquiriesPage() {
                                   backgroundColor: enquiry.status === 'LIVE' ? '#dcfce7' : 
                                                  enquiry.status === 'DEAD' ? '#fecaca' :
                                                  enquiry.status === 'RCD' ? '#dbeafe' :
-                                                 enquiry.status === 'WON' ? '#d1fae5' : '#f3f4f6',
+                                                 enquiry.status === 'WON' ? '#d1fae5' :
+                                                 enquiry.status === 'BUDGETARY' ? '#fef3c7' : '#f3f4f6',
                                   color: enquiry.status === 'LIVE' ? '#166534' :
                                          enquiry.status === 'DEAD' ? '#991b1b' :
                                          enquiry.status === 'RCD' ? '#1e40af' :
-                                         enquiry.status === 'WON' ? '#065f46' : '#374151'
+                                         enquiry.status === 'WON' ? '#065f46' :
+                                         enquiry.status === 'BUDGETARY' ? '#92400e' : '#374151'
                                 }}
                               >
                                 <option value="LIVE">Live</option>
@@ -500,6 +502,7 @@ export default function EnquiriesPage() {
                                 <option value="RCD">RCD (Received)</option>
                                 <option value="WON">WON</option>
                                 <option value="LOST">Lost</option>
+                                <option value="BUDGETARY">Budgetary</option>
                               </select>
                               {(enquiry.status === 'WON' || enquiry.status === 'RCD') && (enquiry.purchaseOrderNumber ?? enquiry.poValue ?? enquiry.poDate) && (
                                 <div className="text-xs text-gray-600 mt-1 space-y-0.5">

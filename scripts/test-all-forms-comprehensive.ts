@@ -68,6 +68,7 @@ async function runAllTests() {
     'scripts/test-communication-form.ts',
     'scripts/test-enquiry-status-updates.ts',
     'scripts/test-quotation-status-updates.ts',
+    'scripts/test-status-sync.ts',
     'scripts/test-communication-enquiry-integration.ts',
   ];
 

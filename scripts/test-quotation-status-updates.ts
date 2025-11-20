@@ -428,6 +428,93 @@ async function testQuotationStatusUpdates() {
     }
     console.log('');
 
+    // Test 5: Update quotation status to RECEIVED
+    console.log('Test 5: Update quotation status to RECEIVED');
+    testQuotationId = null;
+    try {
+      const uniqueQuotationNumber = `TEST-Q-RECEIVED-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const testQuotation = await prisma.quotation.create({
+        data: {
+          enquiryId: testEnquiry.id,
+          quotationNumber: uniqueQuotationNumber,
+          currency: 'INR',
+          revisionNumber: 0,
+          subtotal: 1000,
+          tax: 0,
+          totalValue: 1000,
+          status: 'LIVE',
+        },
+      });
+      testQuotationId = testQuotation.id;
+
+      const updateData = {
+        quotationId: testQuotation.id,
+        status: 'RECEIVED' as const,
+      };
+
+      const validation = UpdateQuotationStatusSchema.safeParse(updateData);
+      const validationPassed = validation.success;
+
+      if (!validationPassed) {
+        const errorMessages = validation.error.errors
+          .map((e) => `${e.path.join('.')}: ${e.message}`)
+          .join(', ');
+        console.log(`   ❌ Validation failed: ${errorMessages}`);
+        results.push({
+          name: 'Update quotation status to RECEIVED',
+          success: false,
+          validationPassed: false,
+          mutationPassed: false,
+          validationError: errorMessages,
+        });
+      } else {
+        const updated = await prisma.quotation.update({
+          where: { id: testQuotation.id },
+          data: {
+            status: 'RECEIVED',
+          },
+        });
+
+        const mutationPassed = updated.status === 'RECEIVED';
+
+        if (mutationPassed) {
+          console.log(`   ✅ SUCCESS: Quotation status updated to RECEIVED`);
+          results.push({
+            name: 'Update quotation status to RECEIVED',
+            success: true,
+            validationPassed: true,
+            mutationPassed: true,
+          });
+        } else {
+          throw new Error('RECEIVED status not saved correctly');
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.log(`   ❌ FAILED: ${message}`);
+      results.push({
+        name: 'Update quotation status to RECEIVED',
+        success: false,
+        validationPassed: false,
+        mutationPassed: false,
+        error: message,
+      });
+    } finally {
+      if (testQuotationId) {
+        try {
+          await prisma.quotation.delete({ where: { id: testQuotationId } });
+          // Reset enquiry status if it was changed
+          await prisma.enquiry.update({
+            where: { id: testEnquiry.id },
+            data: { status: testEnquiry.status },
+          });
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    }
+    console.log('');
+
     // Summary
     console.log('='.repeat(80));
     console.log('\n📊 Quotation Status Updates Test Results Summary:\n');

@@ -44,7 +44,7 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
   };
 
   return (
-    <div className={`fixed top-4 right-4 z-50 max-w-sm w-full border rounded-lg shadow-lg p-4 ${getStyles()}`}>
+    <div className={`fixed top-4 right-4 z-40 max-w-sm w-full border rounded-lg shadow-lg p-4 ${getStyles()}`}>
       <div className="flex items-start space-x-3">
         <div className="flex-shrink-0">
           {getIcon()}
@@ -70,7 +70,7 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
 
 export function ToastContainer({ toasts, onClose }: { toasts: ToastProps[]; onClose: (_id: string) => void }) {
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
+    <div className="fixed top-4 right-4 z-40 space-y-2">
       {toasts.map((toast) => (
         <Toast key={toast.id} {...toast} onClose={onClose} />
       ))}

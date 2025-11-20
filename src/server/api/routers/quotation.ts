@@ -242,7 +242,7 @@ export const quotationRouter = createTRPCRouter({
         
         // Don't override RCD status
         if (enquiry.status !== 'RCD') {
-          let enquiryStatus: 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'WON' | undefined;
+          let enquiryStatus: 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'WON' | 'BUDGETARY' | undefined;
           
           // Map quotation status to enquiry status
           if (status === 'WON') {
@@ -251,12 +251,18 @@ export const quotationRouter = createTRPCRouter({
             enquiryStatus = 'LOST';
           } else if (status === 'DEAD') {
             enquiryStatus = 'DEAD';
+          } else if (status === 'BUDGETARY') {
+            enquiryStatus = 'BUDGETARY';
+          } else if (status === 'RECEIVED') {
+            enquiryStatus = 'RCD';
+          } else if (status === 'LIVE') {
+            enquiryStatus = 'LIVE';
           }
           
           // Update enquiry with status and PO fields if status is WON
           if (enquiryStatus) {
             const enquiryUpdateData: {
-              status: 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'WON';
+              status: 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'WON' | 'BUDGETARY';
               purchaseOrderNumber?: string | null;
               poValue?: number | null;
               poDate?: Date | null;
