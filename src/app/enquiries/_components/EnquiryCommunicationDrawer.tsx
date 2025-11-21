@@ -109,11 +109,6 @@ export function EnquiryCommunicationDrawer({
       return;
     }
 
-        if (!nextCommunicationDate?.trim()) {
-          showError('Validation Error', 'Please select a date for the next communication.');
-          return;
-        }
-
     if (!enquiry) {
       showError('Error', 'Enquiry data not loaded.');
       return;
@@ -131,9 +126,9 @@ export function EnquiryCommunicationDrawer({
       companyId: enquiry.companyId ?? undefined,
       description: message,
       type: communicationType,
-          subject,
-          nextCommunicationDate: nextCommunicationDate,
-          proposedNextAction: 'Follow up on enquiry',
+      subject,
+      nextCommunicationDate: nextCommunicationDate?.trim() || undefined,
+      proposedNextAction: 'Follow up on enquiry',
     });
   };
 
@@ -373,7 +368,7 @@ export function EnquiryCommunicationDrawer({
 
                   <div>
                     <Label htmlFor="nextCommunicationDate" className="block text-sm font-medium text-gray-700 mb-1">
-                      Next Communication Date
+                      Next Communication Date (Optional)
                     </Label>
                     <div className="relative">
                       <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none z-10" />
@@ -391,7 +386,7 @@ export function EnquiryCommunicationDrawer({
                       />
                     </div>
                     <p className="mt-1 text-xs text-gray-600">
-                      This date will create a task in the Tasks page for follow-up
+                      Optional: This date will create a task in the Tasks page for follow-up
                     </p>
                   </div>
                 </div>
@@ -409,7 +404,7 @@ export function EnquiryCommunicationDrawer({
             </DrawerClose>
                 <Button
                   onClick={handleSubmit}
-                  disabled={isSubmitting || !message.trim() || !nextCommunicationDate?.trim() || isLoading}
+                  disabled={isSubmitting || !message.trim() || isLoading}
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-md hover:shadow-lg transition-all border-2 border-blue-700"
             >
               {isSubmitting ? (

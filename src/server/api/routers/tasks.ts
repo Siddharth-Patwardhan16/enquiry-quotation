@@ -646,6 +646,15 @@ export const tasksRouter = createTRPCRouter({
               name: true,
               role: true
             }
+          },
+          enquiry: {
+            select: {
+              id: true,
+              subject: true,
+              quotationNumber: true,
+              status: true,
+              enquiryDate: true
+            }
           }
         }
       });

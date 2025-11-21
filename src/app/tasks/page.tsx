@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar, Clock, AlertCircle, CheckCircle, FileText, MessageSquare, Settings, Search, X } from 'lucide-react';
 import { QuotationStatusModal } from './_components/QuotationStatusModal';
 import { CommunicationStatusModal } from './_components/CommunicationStatusModal';
+import { TaskCommunicationDrawer } from './_components/TaskCommunicationDrawer';
 
 // Define the task type based on the API response
 type Task = {
@@ -28,6 +29,10 @@ export default function TasksPage() {
   const [showCommunicationStatusModal, setShowCommunicationStatusModal] = useState(false);
   const [selectedCommunicationId, setSelectedCommunicationId] = useState<string>('');
   const [selectedQuotationId, setSelectedQuotationId] = useState<string>('');
+  
+  // State for communication drawer
+  const [isCommunicationDrawerOpen, setIsCommunicationDrawerOpen] = useState(false);
+  const [selectedCommunicationDrawerId, setSelectedCommunicationDrawerId] = useState<string>('');
 
   // State for filtering
   const [filterType, setFilterType] = useState<'all' | 'QUOTATION' | 'COMMUNICATION'>('all');
@@ -150,11 +155,21 @@ export default function TasksPage() {
     setShowCommunicationStatusModal(true);
   };
 
+  const handleViewCommunications = (communicationId: string) => {
+    setSelectedCommunicationDrawerId(communicationId);
+    setIsCommunicationDrawerOpen(true);
+  };
+
   const handleModalClose = () => {
     setShowQuotationModal(false);
     setShowCommunicationStatusModal(false);
     setSelectedCommunicationId('');
     setSelectedQuotationId('');
+  };
+
+  const handleDrawerClose = () => {
+    setIsCommunicationDrawerOpen(false);
+    setSelectedCommunicationDrawerId('');
   };
 
   const handleModalSuccess = () => {
@@ -442,15 +457,26 @@ export default function TasksPage() {
                         <td className="p-4">
                           <div className="flex items-center space-x-2">
                             {task.type === 'COMMUNICATION' ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleUpdateCommunicationStatus(task.id)}
-                                className="text-emerald-600 border-emerald-300 hover:bg-emerald-50"
-                              >
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Update Status
-                              </Button>
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleViewCommunications(task.id)}
+                                  className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                                >
+                                  <MessageSquare className="h-3 w-3 mr-1" />
+                                  Communications
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleUpdateCommunicationStatus(task.id)}
+                                  className="text-emerald-600 border-emerald-300 hover:bg-emerald-50"
+                                >
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Update Status
+                                </Button>
+                              </>
                             ) : (
                               <Button
                                 size="sm"
@@ -552,15 +578,26 @@ export default function TasksPage() {
                     {/* Actions */}
                     <div className="flex flex-wrap gap-2">
                       {task.type === 'COMMUNICATION' ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleUpdateCommunicationStatus(task.id)}
-                          className="text-emerald-600 border-emerald-300 hover:bg-emerald-50 text-xs"
-                        >
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Update Status
-                        </Button>
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleViewCommunications(task.id)}
+                            className="text-blue-600 border-blue-300 hover:bg-blue-50 text-xs"
+                          >
+                            <MessageSquare className="h-3 w-3 mr-1" />
+                            Communications
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleUpdateCommunicationStatus(task.id)}
+                            className="text-emerald-600 border-emerald-300 hover:bg-emerald-50 text-xs"
+                          >
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Update Status
+                          </Button>
+                        </>
                       ) : (
                         <Button
                           size="sm"
@@ -605,6 +642,16 @@ export default function TasksPage() {
         communicationId={selectedCommunicationId}
         onSuccess={handleModalSuccess}
       />
+
+      {/* Communication Drawer */}
+      {selectedCommunicationDrawerId && (
+        <TaskCommunicationDrawer
+          isOpen={isCommunicationDrawerOpen}
+          onClose={handleDrawerClose}
+          communicationId={selectedCommunicationDrawerId}
+          onSuccess={handleModalSuccess}
+        />
+      )}
     </main>
   );
 }
