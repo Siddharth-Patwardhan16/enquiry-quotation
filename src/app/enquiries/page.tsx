@@ -88,7 +88,7 @@ export default function EnquiriesPage() {
     oaNumber?: string;
     oaDate?: string;
     blockModel?: string;
-    numberOfBlocks?: number;
+    numberOfBlocks?: string;
     designRequired?: 'Yes' | 'No';
     attendedById?: string;
     customerType?: 'NEW' | 'OLD';
@@ -188,7 +188,7 @@ export default function EnquiriesPage() {
         oaNumber: enquiry.oaNumber ?? undefined,
         oaDate: enquiry.oaDate ? new Date(enquiry.oaDate).toISOString().split('T')[0] : undefined,
         blockModel: enquiry.blockModel ?? undefined,
-        numberOfBlocks: enquiry.numberOfBlocks ? Number(enquiry.numberOfBlocks) : undefined,
+        numberOfBlocks: enquiry.numberOfBlocks ? String(enquiry.numberOfBlocks) : undefined,
         designRequired: enquiry.designRequired ? (enquiry.designRequired as 'Yes' | 'No') : undefined,
         attendedById: enquiry.attendedById ?? undefined,
         customerType: enquiry.customerType ? (enquiry.customerType as 'NEW' | 'OLD') : undefined,
@@ -787,15 +787,14 @@ export default function EnquiriesPage() {
                           No. of Blocks
                         </label>
                         <input
-                          type="number"
-                          step="0.01"
+                          type="text"
                           id="edit-numberOfBlocks"
                           value={editData.numberOfBlocks ?? ''}
                           onChange={(e) => {
                             const value = e.target.value;
                             setEditData({ 
                               ...editData, 
-                              numberOfBlocks: value && value.trim() !== '' ? parseFloat(value) : undefined 
+                              numberOfBlocks: value && value.trim() !== '' ? value : undefined 
                             });
                           }}
                           className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
@@ -1126,7 +1125,7 @@ export default function EnquiriesPage() {
                                 No. of Blocks
                         </label>
                               <p className="text-gray-900">
-                                {enquiry.numberOfBlocks ? Number(enquiry.numberOfBlocks).toString() : 'Not specified'}
+                                {enquiry.numberOfBlocks ? String(enquiry.numberOfBlocks) : 'Not specified'}
                               </p>
                       </div>
                       <div>

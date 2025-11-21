@@ -153,7 +153,7 @@ export function QuotationStatusModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader className="pb-4 border-b border-gray-200">
           <DialogTitle className="flex items-center gap-3 text-xl font-bold text-gray-800">
             <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg">
@@ -163,52 +163,52 @@ export function QuotationStatusModal({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-6 overflow-x-hidden">
           {/* Current Quotation Details */}
           <div className="bg-white rounded-lg border shadow-sm">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">Quotation Details</h3>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-100 rounded-lg">
+            <div className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-4 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
                       <FileText className="h-4 w-4 text-purple-600" />
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <span className="text-sm font-medium text-gray-700">Quotation #:</span>
-                      <p className="text-sm text-gray-900 font-medium">{quotation.quotationNumber}</p>
+                      <p className="text-sm text-gray-900 font-medium break-words">{quotation.quotationNumber}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
                       <User className="h-4 w-4 text-blue-600" />
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <span className="text-sm font-medium text-gray-700">Customer:</span>
-                      <p className="text-sm text-gray-900 font-medium">{quotation.enquiry?.customer?.name ?? 'Unknown Customer'}</p>
+                      <p className="text-sm text-gray-900 font-medium break-words">{quotation.enquiry?.customer?.name ?? quotation.enquiry?.company?.name ?? 'Unknown Customer'}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-100 rounded-lg">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
                       <Calendar className="h-4 w-4 text-green-600" />
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <span className="text-sm font-medium text-gray-700">Date:</span>
                       <p className="text-sm text-gray-900 font-medium">{formatDate(quotation.quotationDate)}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-yellow-100 rounded-lg">
+                <div className="space-y-4 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="p-2 bg-yellow-100 rounded-lg flex-shrink-0">
                       <DollarSign className="h-4 w-4 text-yellow-600" />
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <span className="text-sm font-medium text-gray-700">Total Value:</span>
                       <p className="text-sm text-gray-900 font-medium">
                         {quotation.totalValue ? formatCurrency(Number(quotation.totalValue)) : 'N/A'}
@@ -216,11 +216,11 @@ export function QuotationStatusModal({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-orange-100 rounded-lg">
-                      <span className="text-sm font-medium text-gray-700">Current Status:</span>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="p-2 bg-orange-100 rounded-lg flex-shrink-0">
+                      <span className="text-sm font-medium text-gray-700">Status:</span>
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(quotation.status)}`}>
                         {getStatusIcon(quotation.status)}
                         {quotation.status}
@@ -229,11 +229,11 @@ export function QuotationStatusModal({
                   </div>
 
                   {quotation.validityPeriod && (
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-red-100 rounded-lg">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2 bg-red-100 rounded-lg flex-shrink-0">
                         <Calendar className="h-4 w-4 text-red-600" />
                       </div>
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <span className="text-sm font-medium text-gray-700">Valid Until:</span>
                         <p className="text-sm text-gray-900 font-medium">{formatDate(quotation.validityPeriod)}</p>
                       </div>
@@ -256,8 +256,8 @@ export function QuotationStatusModal({
             <div className="px-6 py-4 border-b border-gray-200 bg-blue-50">
               <h3 className="text-lg font-semibold text-gray-900">Update Status</h3>
             </div>
-            <div className="p-6">
-              <div className="space-y-6">
+            <div className="p-4 sm:p-6">
+              <div className="space-y-4 sm:space-y-6">
                 <div>
                   <Label htmlFor="status" className="text-sm font-medium text-gray-700">
                     New Status <span className="text-red-500">*</span>
@@ -267,7 +267,7 @@ export function QuotationStatusModal({
                       <SelectTrigger className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <SelectValue placeholder="Select new status" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="z-[100] max-h-[200px]">
                         <SelectItem value="DRAFT">Draft</SelectItem>
                         <SelectItem value="LIVE">Live</SelectItem>
                         <SelectItem value="WON">Won</SelectItem>
@@ -418,36 +418,36 @@ export function QuotationStatusModal({
 
           {/* Quick Status Actions */}
           <div className="bg-white rounded-lg border shadow-sm">
-            <div className="px-6 py-4 border-b border-gray-200 bg-green-50">
+            <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-green-50">
               <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <Button
                   variant="outline"
                   onClick={() => setStatus('WON')}
-                  className="w-full h-12 text-green-700 border-green-300 hover:bg-green-50 hover:border-green-400"
+                  className="w-full h-auto min-h-[48px] py-2.5 px-2 sm:px-3 text-green-700 border-green-300 hover:bg-green-50 hover:border-green-400 flex items-center justify-center gap-1.5 sm:gap-2 min-w-0"
                 >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Mark as Won
+                  <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm font-medium text-center leading-tight">Mark as Won</span>
                 </Button>
 
                 <Button
                   variant="outline"
                   onClick={() => setStatus('LOST')}
-                  className="w-full h-12 text-red-700 border-red-300 hover:bg-red-50 hover:border-red-400"
+                  className="w-full h-auto min-h-[48px] py-2.5 px-2 sm:px-3 text-red-700 border-red-300 hover:bg-red-50 hover:border-red-400 flex items-center justify-center gap-1.5 sm:gap-2 min-w-0"
                 >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Mark as Lost
+                  <XCircle className="h-4 w-4 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm font-medium text-center leading-tight">Mark as Lost</span>
                 </Button>
 
                 <Button
                   variant="outline"
                   onClick={() => setStatus('RECEIVED')}
-                  className="w-full h-12 text-blue-700 border-blue-300 hover:bg-blue-50 hover:border-blue-400"
+                  className="w-full h-auto min-h-[48px] py-2.5 px-2 sm:px-3 text-blue-700 border-blue-300 hover:bg-blue-50 hover:border-blue-400 flex items-center justify-center gap-1.5 sm:gap-2 min-w-0 sm:col-span-2 lg:col-span-1"
                 >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Mark as Received
+                  <FileText className="h-4 w-4 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm font-medium text-center leading-tight">Mark as Received</span>
                 </Button>
               </div>
             </div>
@@ -455,19 +455,19 @@ export function QuotationStatusModal({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-gray-200">
           <Button 
             variant="outline" 
             onClick={onClose} 
             disabled={isSubmitting}
-            className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full sm:w-auto px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             Cancel
           </Button>
           <Button 
             onClick={handleStatusUpdate} 
             disabled={isSubmitting || !status}
-            className="px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="w-full sm:w-auto px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
           >
             {isSubmitting ? 'Updating...' : 'Update Status'}
           </Button>

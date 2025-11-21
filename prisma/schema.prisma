@@ -177,7 +177,7 @@ model Enquiry {
   oaDate            DateTime?
   dateOfReceipt     DateTime?
   blockModel        String?
-  numberOfBlocks    Decimal?
+  numberOfBlocks    String?
   designRequired    String?
   customerType      String?
   purchaseOrderNumber String?

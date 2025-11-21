@@ -270,7 +270,7 @@ export const enquiryRouter = createTRPCRouter({
         oaDate?: Date | null;
         dateOfReceipt?: Date | null;
         blockModel?: string | null;
-        numberOfBlocks?: number | null;
+        numberOfBlocks?: string | null;
         designRequired?: string | null;
         attendedById?: string | null;
         customerType?: string | null;

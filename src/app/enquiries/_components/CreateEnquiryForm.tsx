@@ -364,8 +364,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
           ? data.attendedById.trim() 
           : undefined,
         // numberOfBlocks: ensure empty values are converted to undefined
-        // setValueAs already handles this, but ensure it's undefined if empty
-        numberOfBlocks: (typeof data.numberOfBlocks === 'number' && !isNaN(data.numberOfBlocks)) 
+        numberOfBlocks: (data.numberOfBlocks && typeof data.numberOfBlocks === 'string' && data.numberOfBlocks.trim() !== '') 
           ? data.numberOfBlocks 
           : undefined,
         // Ensure all enum/string fields can be undefined if empty
@@ -624,19 +623,9 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                     No. of Blocks
                   </label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
                     id="numberOfBlocks"
-                    {...register('numberOfBlocks', {
-                      setValueAs: (value) => {
-                        // Convert empty string, null, undefined, or whitespace to undefined
-                        if (value === '' || value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
-                          return undefined;
-                        }
-                        const num = parseFloat(String(value));
-                        return isNaN(num) ? undefined : num;
-                      }
-                    })}
+                    {...register('numberOfBlocks')}
                     className="mt-1 block w-full pl-3 pr-3 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
                     placeholder="Enter number of blocks (optional)"
                   />

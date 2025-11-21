@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { Pool } from 'pg';
 import fs from 'fs';
 import path from 'path';
 import { config } from 'dotenv';
@@ -20,11 +21,13 @@ async function backupDatabase() {
   databaseUrl = databaseUrl.replace(/^["']|["']$/g, '');
   process.env.DATABASE_URL = databaseUrl;
   
-  console.log('🔄 Creating full database backup using raw SQL...');
+  console.log('🔄 Creating full database backup using direct PostgreSQL connection...');
   console.log(`   Database: ${databaseUrl.substring(0, 30)}...`);
   
-  const prisma = new PrismaClient({
-    log: ['error', 'warn'],
+  // Use direct pg connection to avoid Prisma connection pooling issues
+  const pool = new Pool({
+    connectionString: databaseUrl,
+    max: 1, // Use single connection
   });
   
   try {
@@ -42,59 +45,61 @@ async function backupDatabase() {
     // Helper function to add small delay between queries
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
     
-    // Use raw SQL to fetch data - this avoids Prisma schema issues
+    // Use direct pg queries to avoid Prisma schema issues and connection pooling problems
+    // Convert numberOfBlocks to text in the query to handle the type mismatch
     console.log('  → Fetching enquiries...');
-    const enquiries = await prisma.$queryRawUnsafe<any[]>(`
-      SELECT * FROM "Enquiry" ORDER BY id
+    const enquiriesResult = await pool.query(`
+      SELECT 
+        id, subject, description, requirements, timeline, "enquiryDate", priority, source, notes, 
+        status, "regretReason", "quotationNumber", "quotationDate", region, "oaNumber", "oaDate", 
+        "dateOfReceipt", "blockModel", 
+        CASE WHEN "numberOfBlocks" IS NOT NULL THEN "numberOfBlocks"::text ELSE NULL END as "numberOfBlocks",
+        "designRequired", "customerType", "purchaseOrderNumber", "poValue", "poDate", 
+        "createdAt", "updatedAt", "locationId", "officeId", "plantId", "marketingPersonId", 
+        "attendedById", "customerId", "companyId"
+      FROM "Enquiry" ORDER BY id
     `);
+    const enquiries = enquiriesResult.rows;
     await delay(500);
     
     console.log('  → Fetching companies...');
-    const companies = await prisma.$queryRawUnsafe<any[]>(`
-      SELECT * FROM "Company" ORDER BY id
-    `);
+    const companiesResult = await pool.query('SELECT * FROM "Company" ORDER BY id');
+    const companies = companiesResult.rows;
     await delay(500);
     
     console.log('  → Fetching employees...');
-    const employees = await prisma.$queryRawUnsafe<any[]>(`
-      SELECT * FROM "Employee" ORDER BY id
-    `);
+    const employeesResult = await pool.query('SELECT * FROM "Employee" ORDER BY id');
+    const employees = employeesResult.rows;
     await delay(500);
     
     console.log('  → Fetching quotations...');
-    const quotations = await prisma.$queryRawUnsafe<any[]>(`
-      SELECT * FROM "Quotation" ORDER BY id
-    `);
+    const quotationsResult = await pool.query('SELECT * FROM "Quotation" ORDER BY id');
+    const quotations = quotationsResult.rows;
     await delay(500);
     
     console.log('  → Fetching quotation items...');
-    const quotationItems = await prisma.$queryRawUnsafe<any[]>(`
-      SELECT * FROM "QuotationItem" ORDER BY id
-    `);
+    const quotationItemsResult = await pool.query('SELECT * FROM "QuotationItem" ORDER BY id');
+    const quotationItems = quotationItemsResult.rows;
     await delay(500);
     
     console.log('  → Fetching communications...');
-    const communications = await prisma.$queryRawUnsafe<any[]>(`
-      SELECT * FROM "Communication" ORDER BY id
-    `);
+    const communicationsResult = await pool.query('SELECT * FROM "Communication" ORDER BY id');
+    const communications = communicationsResult.rows;
     await delay(500);
     
     console.log('  → Fetching offices...');
-    const offices = await prisma.$queryRawUnsafe<any[]>(`
-      SELECT * FROM "Office" ORDER BY id
-    `);
+    const officesResult = await pool.query('SELECT * FROM "Office" ORDER BY id');
+    const offices = officesResult.rows;
     await delay(500);
     
     console.log('  → Fetching plants...');
-    const plants = await prisma.$queryRawUnsafe<any[]>(`
-      SELECT * FROM "Plant" ORDER BY id
-    `);
+    const plantsResult = await pool.query('SELECT * FROM "Plant" ORDER BY id');
+    const plants = plantsResult.rows;
     await delay(500);
     
     console.log('  → Fetching contact persons...');
-    const contactPersons = await prisma.$queryRawUnsafe<any[]>(`
-      SELECT * FROM "ContactPerson" ORDER BY id
-    `);
+    const contactPersonsResult = await pool.query('SELECT * FROM "ContactPerson" ORDER BY id');
+    const contactPersons = contactPersonsResult.rows;
     await delay(500);
     
     // Legacy data (if exists)
@@ -104,17 +109,14 @@ async function backupDatabase() {
     let contacts: any[] = [];
     
     try {
-      customers = await prisma.$queryRawUnsafe<any[]>(`
-        SELECT * FROM "Customer" ORDER BY id
-      `);
+      const customersResult = await pool.query('SELECT * FROM "Customer" ORDER BY id');
+      customers = customersResult.rows;
       await delay(500);
-      locations = await prisma.$queryRawUnsafe<any[]>(`
-        SELECT * FROM "Location" ORDER BY id
-      `);
+      const locationsResult = await pool.query('SELECT * FROM "Location" ORDER BY id');
+      locations = locationsResult.rows;
       await delay(500);
-      contacts = await prisma.$queryRawUnsafe<any[]>(`
-        SELECT * FROM "Contact" ORDER BY id
-      `);
+      const contactsResult = await pool.query('SELECT * FROM "Contact" ORDER BY id');
+      contacts = contactsResult.rows;
     } catch (error) {
       // Legacy tables might not exist, ignore errors
       console.log('  → Legacy tables not found, skipping...');
@@ -124,9 +126,8 @@ async function backupDatabase() {
     let documents: any[] = [];
     try {
       console.log('  → Fetching documents...');
-      documents = await prisma.$queryRawUnsafe<any[]>(`
-        SELECT * FROM "Document" ORDER BY id
-      `);
+      const documentsResult = await pool.query('SELECT * FROM "Document" ORDER BY id');
+      documents = documentsResult.rows;
       await delay(500);
     } catch (error) {
       console.log('  → Documents table not found, skipping...');
@@ -189,7 +190,7 @@ async function backupDatabase() {
     console.error('❌ Error creating backup:', error);
     throw error;
   } finally {
-    await prisma.$disconnect();
+    await pool.end();
     // Wait a bit to ensure connection is fully closed
     await new Promise(resolve => setTimeout(resolve, 1000));
   }

@@ -42,18 +42,7 @@ export function EnquiryCommunicationDrawer({
   const [message, setMessage] = useState('');
   const [communicationType, setCommunicationType] = useState<'TELEPHONIC' | 'VIRTUAL_MEETING' | 'EMAIL' | 'PLANT_VISIT' | 'OFFICE_VISIT'>('TELEPHONIC');
   
-  // Set default date to 7 days from now
-  const getDefaultDate = () => {
-    const date = new Date();
-    date.setDate(date.getDate() + 7);
-    date.setHours(0, 0, 0, 0); // Reset time to start of day
-    return date;
-  };
-  
-  const [nextCommunicationDate, setNextCommunicationDate] = useState<string>(() => {
-    const date = getDefaultDate();
-    return date ? date.toISOString().split('T')[0] : '';
-  });
+  const [nextCommunicationDate, setNextCommunicationDate] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { success, error: showError } = useToastContext();
 
@@ -90,8 +79,7 @@ export function EnquiryCommunicationDrawer({
       setIsSubmitting(false);
       setMessage('');
       setCommunicationType('TELEPHONIC');
-      const defaultDate = getDefaultDate();
-      setNextCommunicationDate(defaultDate ? defaultDate.toISOString().split('T')[0] : '');
+      setNextCommunicationDate('');
       refetchCommunications();
       utils.communication.getCommunicationsByEnquiryId.invalidate({ enquiryId });
       // Invalidate tasks query to refresh tasks page

@@ -29,10 +29,7 @@ export const CreateEnquirySchema = z.object({
   oaNumber: z.string().optional(),
   oaDate: z.string().optional(),
   blockModel: z.string().optional(),
-  numberOfBlocks: z.preprocess(
-    (val) => (val === '' || val === null || val === undefined || (typeof val === 'number' && isNaN(val)) ? undefined : val),
-    z.number().optional()
-  ),
+  numberOfBlocks: z.string().optional(),
   designRequired: z.preprocess(
     (val) => {
       // Convert empty strings, null, or undefined to undefined BEFORE validation
@@ -157,10 +154,7 @@ export const UpdateEnquiryFullSchema = z.object({
   oaDate: z.string().optional(),
   dateOfReceipt: z.string().optional(),
   blockModel: z.string().optional(),
-  numberOfBlocks: z.preprocess(
-    (val) => (val === '' || val === null || val === undefined || (typeof val === 'number' && isNaN(val)) ? undefined : val),
-    z.number().optional()
-  ),
+  numberOfBlocks: z.string().optional(),
   designRequired: z.preprocess(
     (val) => {
       // Convert empty strings, null, or undefined to undefined BEFORE validation

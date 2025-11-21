@@ -60,15 +60,16 @@ export function CommunicationStatusModal({
   });
 
   const handleStatusUpdate = () => {
-    if (!selectedStatus) {
-      showError('Validation Error', 'Please select a status.');
+    // Status is optional - can update just description
+    if (!selectedStatus && !description.trim()) {
+      showError('Validation Error', 'Please update either the status or description.');
       return;
     }
 
     setIsSubmitting(true);
     updateStatusMutation.mutate({
       id: communicationId,
-      status: selectedStatus as 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'RESCHEDULED' | 'FOLLOW_UP_REQUIRED' | 'WON' | 'LOST',
+      status: selectedStatus ? (selectedStatus as 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'RESCHEDULED' | 'FOLLOW_UP_REQUIRED' | 'WON' | 'LOST') : undefined,
       description: description || undefined,
     });
   };
@@ -157,23 +158,23 @@ export function CommunicationStatusModal({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-6 overflow-x-hidden">
           {/* Current Communication Details */}
           <div className="bg-white rounded-lg border shadow-sm">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">Communication Details</h3>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
+            <div className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-4 min-w-0">
                   <div>
                     <span className="text-sm font-medium text-gray-700">Subject:</span>
-                    <p className="text-sm text-gray-900 mt-1 font-medium">{communication.subject}</p>
+                    <p className="text-sm text-gray-900 mt-1 font-medium break-words">{communication.subject || 'N/A'}</p>
                   </div>
 
                   <div>
                     <span className="text-sm font-medium text-gray-700">Customer:</span>
-                    <p className="text-sm text-gray-900 mt-1 font-medium">{communication.customer?.name ?? 'Unknown Customer'}</p>
+                    <p className="text-sm text-gray-900 mt-1 font-medium break-words">{communication.customer?.name ?? communication.company?.name ?? 'Unknown Customer'}</p>
                   </div>
 
                   <div>
@@ -182,7 +183,7 @@ export function CommunicationStatusModal({
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-4 min-w-0">
                   <div>
                     <span className="text-sm font-medium text-gray-700">Current Status:</span>
                     <div className="mt-2">
@@ -195,7 +196,7 @@ export function CommunicationStatusModal({
 
                   <div>
                     <span className="text-sm font-medium text-gray-700">Description:</span>
-                    <p className="text-sm text-gray-900 mt-1 font-medium">{communication.description}</p>
+                    <p className="text-sm text-gray-900 mt-1 font-medium break-words whitespace-pre-wrap">{communication.description || 'N/A'}</p>
                   </div>
                 </div>
               </div>
@@ -204,31 +205,43 @@ export function CommunicationStatusModal({
 
           {/* Status Selection */}
           <div className="bg-white rounded-lg border shadow-sm">
-            <div className="px-6 py-4 border-b border-gray-200 bg-emerald-50">
-              <h3 className="text-lg font-semibold text-gray-900">Select New Status</h3>
-              <p className="text-sm text-gray-500 mt-1">Choose the appropriate status for this communication</p>
+            <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-emerald-50">
+              <h3 className="text-lg font-semibold text-gray-900">Select New Status (Optional)</h3>
+              <p className="text-sm text-gray-500 mt-1">Optionally choose a new status for this communication</p>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {statusOptions.map((option) => (
                   <label
                     key={option.value}
-                    className={`relative flex items-start p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
+                    htmlFor={`status-${option.value}`}
+                    className={`relative flex items-start p-3 sm:p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-all min-w-0 ${
                       selectedStatus === option.value 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200'
+                        ? 'border-blue-500 bg-blue-50 shadow-sm' 
+                        : 'border-gray-200 hover:border-gray-300'
                     }`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setSelectedStatus(option.value === selectedStatus ? '' : option.value);
+                    }}
                   >
                     <input
                       type="radio"
+                      id={`status-${option.value}`}
                       name="status"
                       value={option.value}
                       checked={selectedStatus === option.value}
-                      onChange={(e) => setSelectedStatus(e.target.value)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedStatus(option.value);
+                        } else {
+                          setSelectedStatus('');
+                        }
+                      }}
                       className="sr-only"
                     />
-                    <div className="flex items-center space-x-3 w-full">
-                      <div className="flex-shrink-0">
+                    <div className="flex items-start space-x-3 w-full min-w-0">
+                      <div className="flex-shrink-0 mt-0.5">
                         <div className={`w-5 h-5 border-2 rounded-full flex items-center justify-center transition-colors ${
                           selectedStatus === option.value 
                             ? 'bg-blue-600 border-blue-600' 
@@ -239,12 +252,14 @@ export function CommunicationStatusModal({
                           }`}></div>
                         </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(option.value)}
-                          <span className="text-sm font-medium text-gray-900">{option.label}</span>
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex-shrink-0">
+                            {getStatusIcon(option.value)}
+                          </div>
+                          <span className="text-sm font-medium text-gray-900 truncate">{option.label}</span>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">{option.description}</p>
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-2 break-words">{option.description}</p>
                       </div>
                     </div>
                   </label>
@@ -258,7 +273,7 @@ export function CommunicationStatusModal({
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">Description</h3>
             </div>
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <Label htmlFor="description" className="text-sm font-medium text-gray-700">
                 Communication Description
               </Label>
@@ -268,28 +283,28 @@ export function CommunicationStatusModal({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Update the communication description..."
-                  className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
+                  className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] resize-y max-h-[200px]"
                 />
               </div>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-gray-200">
             <Button
               variant="outline"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full sm:w-auto px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               Cancel
             </Button>
             <Button
               onClick={handleStatusUpdate}
-              disabled={isSubmitting || !selectedStatus}
-              className="px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              disabled={isSubmitting || (!selectedStatus && !description.trim())}
+              className="w-full sm:w-auto px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              {isSubmitting ? 'Updating...' : 'Update Status'}
+              {isSubmitting ? 'Updating...' : 'Update'}
             </Button>
           </div>
         </div>

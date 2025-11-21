@@ -620,17 +620,19 @@ export const communicationRouter = createTRPCRouter({
   updateStatus: publicProcedure
     .input(z.object({
       id: z.string(),
-      status: z.enum(['SCHEDULED', 'COMPLETED', 'CANCELLED', 'RESCHEDULED', 'FOLLOW_UP_REQUIRED', 'WON', 'LOST']),
+      status: z.enum(['SCHEDULED', 'COMPLETED', 'CANCELLED', 'RESCHEDULED', 'FOLLOW_UP_REQUIRED', 'WON', 'LOST']).optional(),
       description: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       try {
         const updateData: {
-          status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'RESCHEDULED' | 'FOLLOW_UP_REQUIRED' | 'WON' | 'LOST';
+          status?: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'RESCHEDULED' | 'FOLLOW_UP_REQUIRED' | 'WON' | 'LOST';
           description?: string;
-        } = {
-          status: input.status,
-        };
+        } = {};
+        
+        if (input.status !== undefined) {
+          updateData.status = input.status;
+        }
         
         if (input.description !== undefined) {
           updateData.description = input.description;
