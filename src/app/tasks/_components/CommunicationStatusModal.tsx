@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/trpc/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,7 @@ export function CommunicationStatusModal({
   onSuccess 
 }: CommunicationStatusModalProps) {
   const [selectedStatus, setSelectedStatus] = useState<string>('');
-  const [notes, setNotes] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { success, error: showError } = useToast();
 
@@ -32,6 +32,15 @@ export function CommunicationStatusModal({
     { communicationId },
     { enabled: isOpen && !!communicationId }
   );
+
+  // Initialize description from communication data
+  useEffect(() => {
+    if (communication?.description) {
+      setDescription(communication.description);
+    } else {
+      setDescription('');
+    }
+  }, [communication]);
 
   // Update status mutation
   const updateStatusMutation = api.communication.updateStatus.useMutation({
@@ -42,7 +51,7 @@ export function CommunicationStatusModal({
       onClose();
       // Reset form
       setSelectedStatus('');
-      setNotes('');
+      setDescription('');
     },
     onError: (error) => {
       showError('Update Failed', `Failed to update status: ${error.message}`);
@@ -60,6 +69,7 @@ export function CommunicationStatusModal({
     updateStatusMutation.mutate({
       id: communicationId,
       status: selectedStatus as 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'RESCHEDULED' | 'FOLLOW_UP_REQUIRED' | 'WON' | 'LOST',
+      description: description || undefined,
     });
   };
 
@@ -243,21 +253,21 @@ export function CommunicationStatusModal({
             </div>
           </div>
 
-          {/* Notes */}
+          {/* Description */}
           <div className="bg-white rounded-lg border shadow-sm">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Additional Notes</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Description</h3>
             </div>
             <div className="p-6">
-              <Label htmlFor="notes" className="text-sm font-medium text-gray-700">
-                Additional Notes (Optional)
+              <Label htmlFor="description" className="text-sm font-medium text-gray-700">
+                Communication Description
               </Label>
               <div className="mt-2">
                 <Textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add any additional notes about this status update..."
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Update the communication description..."
                   className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
                 />
               </div>

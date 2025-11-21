@@ -621,12 +621,24 @@ export const communicationRouter = createTRPCRouter({
     .input(z.object({
       id: z.string(),
       status: z.enum(['SCHEDULED', 'COMPLETED', 'CANCELLED', 'RESCHEDULED', 'FOLLOW_UP_REQUIRED', 'WON', 'LOST']),
+      description: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       try {
+        const updateData: {
+          status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'RESCHEDULED' | 'FOLLOW_UP_REQUIRED' | 'WON' | 'LOST';
+          description?: string;
+        } = {
+          status: input.status,
+        };
+        
+        if (input.description !== undefined) {
+          updateData.description = input.description;
+        }
+
         const updatedCommunication = await db.communication.update({
           where: { id: input.id },
-          data: { status: input.status },
+          data: updateData,
           include: {
             customer: {
               select: {

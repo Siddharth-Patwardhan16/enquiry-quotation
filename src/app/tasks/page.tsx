@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, AlertCircle, CheckCircle, FileText, MessageSquare, Settings, Search, X } from 'lucide-react';
-import { MeetingManagementModal } from './_components/MeetingManagementModal';
 import { QuotationStatusModal } from './_components/QuotationStatusModal';
 import { CommunicationStatusModal } from './_components/CommunicationStatusModal';
 
@@ -25,7 +24,6 @@ type Task = {
 
 export default function TasksPage() {
   // State for modals
-  const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [showQuotationModal, setShowQuotationModal] = useState(false);
   const [showCommunicationStatusModal, setShowCommunicationStatusModal] = useState(false);
   const [selectedCommunicationId, setSelectedCommunicationId] = useState<string>('');
@@ -142,11 +140,6 @@ export default function TasksPage() {
   };
 
   // Handler functions for modals
-  const handleManageMeeting = (communicationId: string) => {
-    setSelectedCommunicationId(communicationId);
-    setShowMeetingModal(true);
-  };
-
   const handleUpdateQuotationStatus = (quotationId: string) => {
     setSelectedQuotationId(quotationId);
     setShowQuotationModal(true);
@@ -158,7 +151,6 @@ export default function TasksPage() {
   };
 
   const handleModalClose = () => {
-    setShowMeetingModal(false);
     setShowQuotationModal(false);
     setShowCommunicationStatusModal(false);
     setSelectedCommunicationId('');
@@ -450,26 +442,15 @@ export default function TasksPage() {
                         <td className="p-4">
                           <div className="flex items-center space-x-2">
                             {task.type === 'COMMUNICATION' ? (
-                              <>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleManageMeeting(task.id)}
-                                  className="text-blue-600 border-blue-300 hover:bg-blue-50"
-                                >
-                                  <Settings className="h-3 w-3 mr-1" />
-                                  Manage
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleUpdateCommunicationStatus(task.id)}
-                                  className="text-emerald-600 border-emerald-300 hover:bg-emerald-50"
-                                >
-                                  <CheckCircle className="h-3 w-3 mr-1" />
-                                  Update Status
-                                </Button>
-                              </>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleUpdateCommunicationStatus(task.id)}
+                                className="text-emerald-600 border-emerald-300 hover:bg-emerald-50"
+                              >
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Update Status
+                              </Button>
                             ) : (
                               <Button
                                 size="sm"
@@ -571,26 +552,15 @@ export default function TasksPage() {
                     {/* Actions */}
                     <div className="flex flex-wrap gap-2">
                       {task.type === 'COMMUNICATION' ? (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleManageMeeting(task.id)}
-                            className="text-blue-600 border-blue-300 hover:bg-blue-50 text-xs"
-                          >
-                            <Settings className="h-3 w-3 mr-1" />
-                            Manage
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleUpdateCommunicationStatus(task.id)}
-                            className="text-emerald-600 border-emerald-300 hover:bg-emerald-50 text-xs"
-                          >
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Update Status
-                          </Button>
-                        </>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleUpdateCommunicationStatus(task.id)}
+                          className="text-emerald-600 border-emerald-300 hover:bg-emerald-50 text-xs"
+                        >
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Update Status
+                        </Button>
                       ) : (
                         <Button
                           size="sm"
@@ -619,14 +589,6 @@ export default function TasksPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Meeting Management Modal */}
-      <MeetingManagementModal
-        isOpen={showMeetingModal}
-        onClose={handleModalClose}
-        communicationId={selectedCommunicationId}
-        onSuccess={handleModalSuccess}
-      />
 
       {/* Quotation Status Modal */}
       <QuotationStatusModal
