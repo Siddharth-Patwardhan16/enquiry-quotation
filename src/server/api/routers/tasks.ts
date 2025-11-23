@@ -50,11 +50,26 @@ export const tasksRouter = createTRPCRouter({
     });
 
     // 2. Fetch all communications (including future ones for management)
+    // Include communications with nextCommunicationDate OR recent communications without it
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
     const allCommunications = await db.communication.findMany({
       where: {
-        nextCommunicationDate: {
-          not: null, // Only communications with scheduled dates
-        },
+        OR: [
+          {
+            nextCommunicationDate: {
+              not: null, // Communications with scheduled dates
+            },
+          },
+          {
+            // Recent communications without nextCommunicationDate (created in last 30 days)
+            nextCommunicationDate: null,
+            createdAt: {
+              gte: thirtyDaysAgo,
+            },
+          },
+        ],
       },
       select: {
         id: true,
@@ -62,6 +77,7 @@ export const tasksRouter = createTRPCRouter({
         description: true,
         type: true,
         nextCommunicationDate: true,
+        createdAt: true, // Include createdAt for fallback due date
         proposedNextAction: true,
         enquiryId: true,
         enquiryRelated: true,
@@ -75,7 +91,7 @@ export const tasksRouter = createTRPCRouter({
           select: { name: true, designation: true },
         },
       },
-      orderBy: { nextCommunicationDate: 'asc' },
+      orderBy: { createdAt: 'desc' }, // Order by creation date (will be sorted by due date later in the task mapping)
     });
 
     // Fetch enquiry information for communications that have enquiryId or enquiryRelated
@@ -138,8 +154,8 @@ export const tasksRouter = createTRPCRouter({
       const quotationInfo = c.enquiry?.quotationNumber ? ` (Q#${c.enquiry.quotationNumber})` : '';
       const taskDescription = `${meetingType}${contactInfo}${quotationInfo} - ${c.proposedNextAction ?? c.subject ?? 'Follow up required'}`;
       
-      // Determine priority and status based on due date
-      const dueDate = c.nextCommunicationDate!;
+      // Use nextCommunicationDate if available, otherwise use createdAt as fallback
+      const dueDate = c.nextCommunicationDate ?? c.createdAt;
       const isOverdue = dueDate < today;
       const isToday = dueDate.toDateString() === today.toDateString();
       
