@@ -515,7 +515,7 @@ export default function EnquiriesPage() {
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Quotation Number</th>
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Subject</th>
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Customer</th>
-                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Date</th>
+                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Quotation Date</th>
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Status</th>
                       <th className="text-black h-10 px-4 text-right align-middle font-medium whitespace-nowrap">Actions</th>
                     </tr>

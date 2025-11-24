@@ -177,21 +177,59 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
     { enabled: !!selectedCustomerId && !isCompany } // Only run for customers
   );
   
+  // Helper function to format location string (matching customer details section format)
+  const formatLocationString = (location: {
+    city?: string | null;
+    state?: string | null;
+    address?: string | null;
+    area?: string | null;
+    country?: string | null;
+  }): string => {
+    const locationParts: string[] = [];
+    if (location.area) locationParts.push(location.area);
+    if (location.city) locationParts.push(location.city);
+    if (location.state) locationParts.push(location.state);
+    if (location.country) locationParts.push(location.country);
+    
+    // If we have location parts, join them; otherwise fall back to address
+    return locationParts.length > 0 
+      ? locationParts.join(', ') 
+      : (location.address ?? '');
+  };
+
   // For companies, we'll use offices and plants as locations
   const companyLocations = isCompany && selectedCustomer ? [
     ...(companies?.find(c => c.id === selectedCustomerId)?.offices?.map(office => ({
       id: office.id,
       name: office.name,
-      type: 'OFFICE'
+      type: 'OFFICE',
+      city: office.city,
+      state: office.state,
+      address: office.address,
+      area: office.area,
+      country: office.country,
+      locationString: formatLocationString(office)
     })) ?? []),
     ...(companies?.find(c => c.id === selectedCustomerId)?.plants?.map(plant => ({
       id: plant.id,
       name: plant.name,
-      type: 'PLANT'
+      type: 'PLANT',
+      city: plant.city,
+      state: plant.state,
+      address: plant.address,
+      area: plant.area,
+      country: plant.country,
+      locationString: formatLocationString(plant)
     })) ?? [])
   ] : [];
   
-  const locations = isCompany ? companyLocations : customerLocations;
+  // Format customer locations with location string
+  const formattedCustomerLocations = customerLocations?.map(location => ({
+    ...location,
+    locationString: formatLocationString(location)
+  })) ?? [];
+  
+  const locations = isCompany ? companyLocations : formattedCustomerLocations;
   const isLoadingLocations = isCompany ? false : isLoadingCustomerLocations;
 
   // Watch for location changes to auto-populate region
@@ -512,9 +550,9 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                      !selectedCustomerId ? 'Select a customer first' : 
                      'Select a location'}
                   </option>
-                  {locations?.map((location: { id: string; name: string; type: string }) => (
+                  {locations?.map((location: { id: string; name: string; type: string; locationString?: string }) => (
                     <option key={location.id} value={location.id} className="text-black bg-white">
-                      {location.name} ({location.type})
+                      {location.locationString ? `${location.locationString} - ${location.name} (${location.type})` : `${location.name} (${location.type})`}
                     </option>
                   ))}
                 </select>
