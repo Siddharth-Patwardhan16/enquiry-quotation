@@ -60,8 +60,12 @@ export default function QuotationStatusPage() {
     : quotations ?? [];
 
   // Calculate total value from filtered quotations
+  // Use PO value for WON quotations (matching dashboard chart logic)
   const displayTotalValue = filteredQuotations.reduce((sum, q) => {
-    const value = q.totalValue ? Number(q.totalValue) : 0;
+    // Use PO value if status is WON and poValue is available, otherwise use totalValue
+    const value = q.status === 'WON' && q.poValue 
+      ? Number(q.poValue) 
+      : q.totalValue ? Number(q.totalValue) : 0;
     return sum + value;
   }, 0);
 
