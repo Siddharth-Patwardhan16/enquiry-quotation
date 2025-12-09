@@ -18,8 +18,8 @@ model Employee {
   communications    Communication[]
   createdCompanies  Company[]       @relation("CompanyCreatedBy")
   createdCustomers  Customer[]      @relation("CustomerCreatedBy")
-  enquiries         Enquiry[]
   attendedEnquiries Enquiry[]       @relation("EnquiryAttendedBy")
+  enquiries         Enquiry[]
   createdQuotations Quotation[]     @relation("QuotationCreatedBy")
 }
 
@@ -159,49 +159,49 @@ model Contact {
 }
 
 model Enquiry {
-  id                Int           @id @default(autoincrement())
-  subject           String?
-  description       String?
-  requirements      String?
-  timeline          String?
-  enquiryDate       DateTime?
-  priority          String?
-  source            String?
-  notes             String?
-  status            EnquiryStatus @default(LIVE)
-  regretReason      String?
-  quotationNumber   String?       @unique
-  quotationDate     DateTime?
-  region            String?
-  oaNumber          String?
-  oaDate            DateTime?
-  dateOfReceipt     DateTime?
-  blockModel        String?
-  numberOfBlocks    String?
-  designRequired    String?
-  customerType      String?
+  id                  Int             @id @default(autoincrement())
+  subject             String?
+  description         String?
+  requirements        String?
+  timeline            String?
+  enquiryDate         DateTime?
+  priority            String?
+  source              String?
+  notes               String?
+  status              EnquiryStatus   @default(LIVE)
+  regretReason        String?
+  quotationNumber     String?         @unique
+  quotationDate       DateTime?
+  region              String?
+  oaNumber            String?
+  oaDate              DateTime?
+  dateOfReceipt       DateTime?
+  blockModel          String?
+  numberOfBlocks      String?
+  designRequired      String?
+  customerType        String?
   purchaseOrderNumber String?
-  poValue           Decimal?
-  poDate            DateTime?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  locationId        String?
-  officeId          String?
-  plantId           String?
-  marketingPersonId String?
-  attendedById      String?
-  customerId        String?
-  companyId         String?
-  documents         Document[]
-  company           Company?      @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer          Customer?     @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  location          Location?     @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  marketingPerson   Employee?     @relation(fields: [marketingPersonId], references: [id])
-  attendedBy        Employee?     @relation("EnquiryAttendedBy", fields: [attendedById], references: [id])
-  office            Office?       @relation(fields: [officeId], references: [id], onDelete: Cascade)
-  plant             Plant?        @relation(fields: [plantId], references: [id], onDelete: Cascade)
-  quotations        Quotation[]
-  communications    Communication[]
+  poValue             Decimal?
+  poDate              DateTime?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  locationId          String?
+  officeId            String?
+  plantId             String?
+  marketingPersonId   String?
+  attendedById        String?
+  customerId          String?
+  companyId           String?
+  communications      Communication[]
+  documents           Document[]
+  attendedBy          Employee?       @relation("EnquiryAttendedBy", fields: [attendedById], references: [id])
+  company             Company?        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer            Customer?       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  location            Location?       @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  marketingPerson     Employee?       @relation(fields: [marketingPersonId], references: [id])
+  office              Office?         @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  plant               Plant?          @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  quotations          Quotation[]
 }
 
 model Quotation {

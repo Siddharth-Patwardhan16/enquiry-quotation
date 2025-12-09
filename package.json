@@ -9,7 +9,10 @@
     "lint": "next lint",
     "dummy-data": "node scripts/run-dummy-data.js",
     "migrate-customers": "npx tsx scripts/migrate-customers-to-companies.ts",
-    "cleanup-old-customers": "npx tsx scripts/cleanup-old-customers.ts"
+    "cleanup-old-customers": "npx tsx scripts/cleanup-old-customers.ts",
+    "backup-db": "npx tsx scripts/backup-database.ts",
+    "restore-db": "npx tsx scripts/restore-database.ts",
+    "test-connection": "npx tsx scripts/test-connection.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
