@@ -714,7 +714,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                     <option value="" className="text-black bg-white">
                       {isLoadingEmployees ? 'Loading employees...' : 'Select employee (optional)'}
                     </option>
-                    {employees?.map((employee) => (
+                    {employees?.filter(employee => employee.name !== 'Siddharth').map((employee) => (
                       <option key={employee.id} value={employee.id} className="text-black bg-white">
                         {employee.name} ({employee.role})
                       </option>
