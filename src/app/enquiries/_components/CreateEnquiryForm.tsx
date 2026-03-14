@@ -65,6 +65,7 @@ import { useRouter } from 'next/navigation';
 import { useToastContext } from '@/components/providers/ToastProvider';
 import React, { useState, useEffect } from 'react';
 import { useFormConfirmation } from '@/hooks/useFormConfirmation';
+import { z } from 'zod';
 import { 
   Save, 
   X, 
@@ -75,6 +76,59 @@ import CustomerSelector, { type Customer } from '@/components/ui/CustomerSelecto
 
 interface CreateEnquiryFormProps {
   onSuccess?: () => void;
+}
+
+type CreateEnquiryFormInput = z.input<typeof CreateEnquirySchema>;
+type CreateEnquiryFormValues = z.output<typeof CreateEnquirySchema>;
+
+function getCreateEnquiryErrorMessage(errorMessage: string): string {
+  try {
+    const parsedErrors = JSON.parse(errorMessage) as Array<{
+      message?: string;
+      path?: string | string[];
+    }>;
+
+    if (!Array.isArray(parsedErrors) || parsedErrors.length === 0) {
+      return errorMessage;
+    }
+
+    const firstError = parsedErrors[0];
+    if (firstError?.message) {
+      return firstError.message;
+    }
+
+    if (firstError?.path) {
+      const fieldPath = Array.isArray(firstError.path)
+        ? firstError.path.join('.')
+        : firstError.path;
+
+      if (fieldPath === 'attendedById') {
+        return 'Please select a valid employee for Attended By or leave it empty.';
+      }
+
+      if (fieldPath === 'customerId') {
+        return 'Please select a valid customer before creating the enquiry.';
+      }
+
+      if (fieldPath === 'locationId') {
+        return 'Please select a valid location before creating the enquiry.';
+      }
+    }
+  } catch {
+    if (errorMessage.includes('attendedById') || errorMessage.includes('Attended By')) {
+      return 'Please select a valid employee for Attended By or leave it empty.';
+    }
+
+    if (errorMessage.includes('customerId') || errorMessage.includes('customer')) {
+      return 'Please select a valid customer before creating the enquiry.';
+    }
+
+    if (errorMessage.includes('locationId') || errorMessage.includes('location')) {
+      return 'Please select a valid location before creating the enquiry.';
+    }
+  }
+
+  return errorMessage;
 }
 
 export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
@@ -137,7 +191,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
     control,
     setValue,
     formState: { errors },
-  } = useForm({
+  } = useForm<CreateEnquiryFormInput, unknown, CreateEnquiryFormValues>({
     resolver: zodResolver(CreateEnquirySchema),
     defaultValues: {
       enquiryDate: undefined,
@@ -154,7 +208,10 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
   });
 
   // Watch for changes in the customer dropdown
-  const selectedCustomerId = useWatch({ control, name: 'customerId' });
+  const selectedCustomerId = useWatch({
+    control,
+    name: 'customerId',
+  }) as CreateEnquiryFormValues['customerId'];
   
   // Sync selectedCustomer with form state
   useEffect(() => {
@@ -233,7 +290,10 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
   const isLoadingLocations = isCompany ? false : isLoadingCustomerLocations;
 
   // Watch for location changes to auto-populate region
-  const selectedLocationId = useWatch({ control, name: 'locationId' });
+  const selectedLocationId = useWatch({
+    control,
+    name: 'locationId',
+  }) as CreateEnquiryFormValues['locationId'];
   
   useEffect(() => {
     if (!selectedLocationId || !selectedCustomerId) {
@@ -294,7 +354,8 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
 
   const createEnquiry = api.enquiry.create.useMutation({
     onSuccess: () => {
-      utils.enquiry.getAll.invalidate(); // Refresh the enquiry list
+      setIsSubmitting(false);
+      void utils.enquiry.getAll.invalidate();
       reset();
       success('Enquiry Created', 'The enquiry has been successfully created and is ready for processing.');
       
@@ -306,73 +367,14 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
       }
     },
     onError: (error) => {
-      // Enquiry creation error
-      console.error('Enquiry creation error - Full error object:', error);
-      console.error('Error data:', error.data);
-      console.error('Error message:', error.message);
-      console.error('Error shape:', error.shape);
-      
       setIsSubmitting(false);
-      
-      try {
-        // Handle validation errors specifically
-        if (error.data?.code === 'BAD_REQUEST' || error.message) {
-          try {
-            // Try to parse the error message if it's JSON (tRPC validation errors)
-            const validationErrors = JSON.parse(error.message) as Array<{ path?: string[] | string; message: string; code?: string }>;
-            console.log('Parsed validation errors:', validationErrors);
-            
-            if (Array.isArray(validationErrors) && validationErrors.length > 0) {
-              // Get the first error message for clarity
-              const firstError = validationErrors[0];
-              let errorMessage = firstError.message || 'Validation error occurred';
-              
-              // If there's a path, include it in the message
-              if (firstError.path) {
-                const fieldName = Array.isArray(firstError.path) ? firstError.path.join('.') : firstError.path;
-                if (fieldName) {
-                  errorMessage = `${fieldName}: ${firstError.message}`;
-                }
-              }
-              
-              console.error('Validation error message:', errorMessage);
-              showError('Validation Error', errorMessage);
-              return;
-            } else {
-              console.error('Validation errors array is empty or invalid');
-              showError('Validation Error', error.message || 'Please check all fields and try again.');
-              return;
-            }
-          } catch (parseError) {
-            console.error('Error parsing validation errors:', parseError);
-            // If not JSON, use the error message directly
-            let errorMessage = error.message || 'Failed to create enquiry. Please check all fields and try again.';
-            
-            // Provide user-friendly messages for common errors
-            if (errorMessage.includes('UUID')) {
-              if (errorMessage.includes('attendedById') || errorMessage.includes('Attended By')) {
-                errorMessage = 'Invalid employee selection. Please select a valid employee or leave the field empty.';
-              } else if (errorMessage.includes('customerId') || errorMessage.includes('Customer')) {
-                errorMessage = 'Invalid customer selection. Please select a valid customer.';
-              } else if (errorMessage.includes('locationId') || errorMessage.includes('Location')) {
-                errorMessage = 'Invalid location selection. Please select a valid location.';
-              }
-            }
-            
-            console.error('Showing error message:', errorMessage);
-            showError('Creation Failed', errorMessage);
-            return;
-          }
-        } else {
-          // Handle other types of errors
-          const errorMessage = error.message ?? error.shape?.message ?? 'Please check all fields and try again.';
-          console.error('Other error:', errorMessage);
-          showError('Creation Failed', `Failed to create enquiry: ${errorMessage}`);
-        }
-      } catch (handlerError) {
-        console.error('Error in error handler:', handlerError);
-        showError('Unexpected Error', 'An unexpected error occurred. Please check the console for details and try again.');
-      }
+
+      const errorMessage = getCreateEnquiryErrorMessage(
+        error.message || 'Failed to create enquiry. Please check the form and try again.',
+      );
+
+      console.error('Enquiry creation error:', error);
+      showError('Creation Failed', errorMessage);
     },
   });
 
@@ -387,77 +389,41 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
     }
   };
 
-  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
-  const onSubmit = (data: any) => {
-    try {
-      console.log('Form submission started with data:', data);
-      
-      // Clean up data: convert empty strings to undefined for all optional fields
-      const cleanedData: any = {
-        ...data,
-        customerId: data.customerId && typeof data.customerId === 'string' && data.customerId.trim() !== '' ? data.customerId.trim() : undefined,
-        locationId: data.locationId && typeof data.locationId === 'string' && data.locationId.trim() !== '' ? data.locationId.trim() : undefined,
-        // attendedById: ensure empty values are converted to undefined
-        attendedById: (data.attendedById && typeof data.attendedById === 'string' && data.attendedById.trim() !== '') 
-          ? data.attendedById.trim() 
-          : undefined,
-        // numberOfBlocks: ensure empty values are converted to undefined
-        numberOfBlocks: (data.numberOfBlocks && typeof data.numberOfBlocks === 'string' && data.numberOfBlocks.trim() !== '') 
-          ? data.numberOfBlocks 
-          : undefined,
-        // Ensure all enum/string fields can be undefined if empty
-        status: (data.status && typeof data.status === 'string' && data.status.trim() !== '') ? data.status : undefined,
-        customerType: (data.customerType && typeof data.customerType === 'string' && data.customerType.trim() !== '') ? data.customerType : undefined,
-        source: (data.source && typeof data.source === 'string' && data.source.trim() !== '') ? data.source : undefined,
-        designRequired: (data.designRequired && typeof data.designRequired === 'string' && data.designRequired.trim() !== '') ? data.designRequired : undefined,
-        priority: (data.priority && typeof data.priority === 'string' && data.priority.trim() !== '') ? data.priority : undefined,
-      };
-      
-      console.log('Cleaned data:', cleanedData);
-      
-      // Use selectedCustomer to determine entity type, or default to 'company' if no customer selected
-      const entityType = selectedCustomer?.type === 'Company' ? 'company' : (selectedCustomer ? 'customer' : 'company');
-      
-      console.log('Entity type:', entityType);
-      console.log('Selected customer:', selectedCustomer);
-      
-      const mutationData = {
-        ...cleanedData,
-        entityType: entityType as 'customer' | 'company'
-      };
-      
-      console.log('Mutation data:', mutationData);
-      
-      setIsSubmitting(true);
-      
-      try {
-        createEnquiry.mutate(mutationData);
-      } catch (mutationError) {
-        console.error('Mutation error caught:', mutationError);
-        setIsSubmitting(false);
-        showError('Submission Error', `Failed to submit enquiry: ${mutationError instanceof Error ? mutationError.message : 'Unknown error occurred'}`);
-      }
-    } catch (error) {
-      console.error('Form submission error:', error);
-      setIsSubmitting(false);
-      
-      let errorMessage = 'An unexpected error occurred while submitting the form.';
-      
-      if (error instanceof Error) {
-        errorMessage = error.message || errorMessage;
-        console.error('Error details:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack
-        });
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      } else {
-        console.error('Unknown error type:', error);
-      }
-      
-      showError('Form Submission Error', errorMessage);
-    }
+  const onSubmit = (data: CreateEnquiryFormValues) => {
+    const entityType: NonNullable<CreateEnquiryFormValues['entityType']> =
+      selectedCustomer?.type === 'Company'
+        ? 'company'
+        : selectedCustomer
+          ? 'customer'
+          : 'company';
+
+    const mutationData: CreateEnquiryFormInput = {
+      customerId: data.customerId,
+      locationId: data.locationId,
+      subject: data.subject,
+      description: data.description,
+      requirements: data.requirements,
+      timeline: data.timeline,
+      enquiryDate: data.enquiryDate,
+      priority: data.priority,
+      source: data.source,
+      notes: data.notes,
+      quotationNumber: data.quotationNumber,
+      quotationDate: data.quotationDate,
+      region: data.region,
+      oaNumber: data.oaNumber,
+      oaDate: data.oaDate,
+      blockModel: data.blockModel,
+      numberOfBlocks: data.numberOfBlocks,
+      designRequired: data.designRequired,
+      attendedById: data.attendedById,
+      customerType: data.customerType,
+      status: data.status,
+      entityType,
+    };
+
+    setIsSubmitting(true);
+    createEnquiry.mutate(mutationData);
   };
 
   const handleCancel = () => {
@@ -557,7 +523,11 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                   ))}
                 </select>
                 {errors.locationId && (
-                  <p className="mt-2 text-sm text-red-600">{errors.locationId.message}</p>
+                  <p className="mt-2 text-sm text-red-600">
+                    {typeof errors.locationId.message === 'string'
+                      ? errors.locationId.message
+                      : 'Please select a valid location.'}
+                  </p>
                 )}
                 {selectedCustomerId && locations && locations.length === 0 && (
                   <p className="mt-2 text-sm text-yellow-600">
@@ -640,7 +610,11 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                     placeholder="Enter enquiry subject"
                   />
                   {errors.subject && (
-                    <p className="mt-2 text-sm text-red-600">{errors.subject.message}</p>
+                    <p className="mt-2 text-sm text-red-600">
+                      {typeof errors.subject.message === 'string'
+                        ? errors.subject.message
+                        : 'Please enter a valid subject.'}
+                    </p>
                   )}
                 </div>
 
@@ -698,16 +672,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                   </label>
                   <select
                     id="attendedById"
-                    {...register('attendedById', {
-                      setValueAs: (value): string | undefined => {
-                        // Convert empty string, null, or undefined to undefined
-                        if (value === '' || value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
-                          return undefined;
-                        }
-                        // Return the value as-is if it's a valid string
-                        return typeof value === 'string' ? value.trim() : undefined;
-                      }
-                    })}
+                    {...register('attendedById')}
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
                     disabled={isLoadingEmployees}
                   >
@@ -735,7 +700,11 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
                     placeholder="e.g., Q202412345678"
                   />
                   {errors.quotationNumber && (
-                    <p className="mt-2 text-sm text-red-600">{errors.quotationNumber.message}</p>
+                    <p className="mt-2 text-sm text-red-600">
+                      {typeof errors.quotationNumber.message === 'string'
+                        ? errors.quotationNumber.message
+                        : 'Please enter a valid quotation number.'}
+                    </p>
                   )}
                 </div>
 

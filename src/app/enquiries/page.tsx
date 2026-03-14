@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { normalizeOptionalUuidValue, UpdateEnquiryFullSchema } from '@/lib/validators/enquiry';
 import { api } from '@/trpc/client';
 import { useToastContext } from '@/components/providers/ToastProvider';
 import { CreateEnquiryForm } from './_components/CreateEnquiryForm';
 import { ReceiptDateModal } from './_components/ReceiptDateModal';
 import { EnquiryStatusModal } from './_components/EnquiryStatusModal';
 import { EnquiryCommunicationDrawer } from './_components/EnquiryCommunicationDrawer';
+import { z } from 'zod';
 
 import { 
   Search, 
@@ -20,19 +22,64 @@ import {
   MessageSquare
 } from 'lucide-react';
 
+function getEnquiryMutationErrorMessage(errorMessage: string): string {
+  try {
+    const parsedErrors = JSON.parse(errorMessage) as Array<{
+      message?: string;
+      path?: string | string[];
+    }>;
+
+    if (!Array.isArray(parsedErrors) || parsedErrors.length === 0) {
+      return errorMessage;
+    }
+
+    const firstError = parsedErrors[0];
+    if (firstError?.message) {
+      return firstError.message;
+    }
+
+    if (firstError?.path) {
+      const fieldPath = Array.isArray(firstError.path)
+        ? firstError.path.join('.')
+        : firstError.path;
+
+      if (fieldPath === 'attendedById') {
+        return 'Please select a valid employee for Attended By or leave it empty.';
+      }
+    }
+  } catch {
+    if (errorMessage.includes('attendedById') || errorMessage.includes('Attended By')) {
+      return 'Please select a valid employee for Attended By or leave it empty.';
+    }
+  }
+
+  return errorMessage;
+}
+
+type UpdateEnquiryMutationInput = z.input<typeof UpdateEnquiryFullSchema>;
 
 export default function EnquiriesPage() {
   const { success, error: showError } = useToastContext();
+  const utils = api.useUtils();
   const enquiriesQuery = api.enquiry.getAll.useQuery();
   const { data: stats } = api.enquiry.getStats.useQuery();
   const { data: enquiries, isLoading, error } = enquiriesQuery;
   const { data: employees } = api.employee.getAll.useQuery();
   const updateEnquiryMutation = api.enquiry.update.useMutation({
     onSuccess: () => {
+      void utils.enquiry.getAll.invalidate();
       success('Enquiry Updated', 'The enquiry has been successfully updated.');
-      enquiriesQuery.refetch();
       setEditingEnquiry(null);
       setEditData({});
+      setOriginalAttendedById(undefined);
+    },
+    onError: (error) => {
+      showError(
+        'Update Failed',
+        getEnquiryMutationErrorMessage(
+          error.message || 'Failed to update enquiry. Please check the form and try again.',
+        ),
+      );
     },
   });
 
@@ -74,6 +121,33 @@ export default function EnquiriesPage() {
       showError('Update Failed', errorMessage);
     },
   });
+  const deleteEnquiryMutation = api.enquiry.delete.useMutation({
+    onSuccess: (_, variables) => {
+      void utils.enquiry.getAll.invalidate();
+      setDeletingEnquiryId(null);
+
+      if (editingEnquiry === variables.id) {
+        setEditingEnquiry(null);
+        setEditData({});
+        setOriginalAttendedById(undefined);
+      }
+
+      if (viewingEnquiry === variables.id) {
+        setViewingEnquiry(null);
+      }
+
+      if (selectedEnquiryId === variables.id) {
+        setSelectedEnquiryId(null);
+        setIsCommunicationDrawerOpen(false);
+      }
+
+      success('Enquiry Deleted', 'The enquiry has been permanently removed.');
+    },
+    onError: (error) => {
+      setDeletingEnquiryId(null);
+      showError('Delete Failed', error.message || 'Failed to delete enquiry.');
+    },
+  });
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -98,6 +172,7 @@ export default function EnquiriesPage() {
 
   const [editingEnquiry, setEditingEnquiry] = useState<number | null>(null);
   const [editData, setEditData] = useState<EditEnquiryData>({});
+  const [deletingEnquiryId, setDeletingEnquiryId] = useState<number | null>(null);
   const [originalAttendedById, setOriginalAttendedById] = useState<string | null | undefined>(undefined);
   const [viewingEnquiry, setViewingEnquiry] = useState<number | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -200,62 +275,47 @@ export default function EnquiriesPage() {
 
   const handleDeleteEnquiry = (enquiryId: number) => {
     if (confirm('Are you sure you want to delete this enquiry? This action cannot be undone.')) {
-      try {
-        // For now, just show a success message since the API expects different types
-        alert(`Delete functionality would be implemented here for enquiry ${enquiryId} with proper API integration`);
-        // In a real implementation, you would call the delete API here
-      } catch {
-        // Error handling is managed by tRPC and toast notifications
-      }
+      setDeletingEnquiryId(enquiryId);
+      deleteEnquiryMutation.mutate({ id: enquiryId });
     }
   };
 
   const handleSaveEdit = () => {
-    if (editingEnquiry) {
-      try {
-        // Clean up editData: convert empty strings to undefined for UUID fields
-        const cleanedData: Partial<EditEnquiryData> & { id: number } = { 
-          id: editingEnquiry
-        };
-        
-        // Copy all fields from editData, but clean up attendedById
-        Object.keys(editData).forEach(key => {
-          const value = editData[key as keyof EditEnquiryData];
-          
-          // Special handling for attendedById
-          if (key === 'attendedById') {
-            const cleanedValue = value && 
-                typeof value === 'string' && 
-                value.trim() !== '' && 
-                value.trim().toLowerCase() !== 'null' && 
-                value.trim().toLowerCase() !== 'undefined'
-              ? value.trim()
-              : undefined;
-            
-            // If it was originally set but is now empty, send null to clear it
-            // Otherwise, if it has a value, send it; if it was never set, omit it
-            if (cleanedValue) {
-              (cleanedData as Record<string, unknown>)[key] = cleanedValue;
-            } else if (originalAttendedById !== undefined && originalAttendedById !== null) {
-              // Was originally set, now empty - send null to clear
-              (cleanedData as Record<string, unknown>)[key] = null;
-            }
-            // Otherwise omit (was never set, still not set)
-            return;
-          }
-          
-          // For other fields, include them as-is (they can be undefined)
-          (cleanedData as Record<string, unknown>)[key] = value;
-        });
-        
-        // Type assertion needed because cleanedData is built dynamically
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        updateEnquiryMutation.mutate(cleanedData as any);
-      } catch {
-        // Error handling is managed by tRPC and toast notifications
-        showError('Update Error', 'An unexpected error occurred. Please try again.');
-      }
+    if (!editingEnquiry) {
+      return;
     }
+
+    const nextAttendedById = normalizeOptionalUuidValue(editData.attendedById);
+    const updatePayload: UpdateEnquiryMutationInput = {
+      id: editingEnquiry,
+      subject: editData.subject,
+      description: undefined,
+      requirements: undefined,
+      timeline: undefined,
+      enquiryDate: editData.enquiryDate,
+      priority: undefined,
+      source: editData.source,
+      notes: undefined,
+      quotationNumber: editData.quotationNumber,
+      quotationDate: editData.quotationDate,
+      region: editData.region,
+      oaNumber: editData.oaNumber,
+      oaDate: editData.oaDate,
+      dateOfReceipt: editData.dateOfReceipt,
+      blockModel: editData.blockModel,
+      numberOfBlocks: editData.numberOfBlocks,
+      designRequired: editData.designRequired,
+      attendedById:
+        nextAttendedById !== undefined
+          ? nextAttendedById
+          : originalAttendedById !== undefined && originalAttendedById !== null
+            ? null
+            : undefined,
+      customerType: editData.customerType,
+      status: editData.status,
+    };
+
+    updateEnquiryMutation.mutate(updatePayload);
   };
 
   const handleCancelEdit = () => {
@@ -634,8 +694,9 @@ export default function EnquiriesPage() {
                               </button>
                               <button
                                 onClick={() => handleDeleteEnquiry(enquiry.id)}
-                                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all hover:bg-red-100 h-8 w-8 rounded-md text-red-600 hover:text-red-700"
-                                title="Delete Enquiry"
+                                disabled={deleteEnquiryMutation.isPending && deletingEnquiryId === enquiry.id}
+                                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all hover:bg-red-100 h-8 w-8 rounded-md text-red-600 hover:text-red-700 disabled:pointer-events-none disabled:opacity-50"
+                                title={deleteEnquiryMutation.isPending && deletingEnquiryId === enquiry.id ? 'Deleting enquiry' : 'Delete Enquiry'}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -826,12 +887,8 @@ export default function EnquiriesPage() {
                           id="edit-attendedById"
                           value={editData.attendedById ?? ''}
                           onChange={(e) => {
-                            const value = e.target.value;
-                            // Convert empty string, "null", "undefined" to undefined
-                            const cleanedValue = value && value.trim() !== '' && value !== 'null' && value !== 'undefined' 
-                              ? value.trim() 
-                              : undefined;
-                            setEditData({ ...editData, attendedById: cleanedValue });
+                            const cleanedValue = normalizeOptionalUuidValue(e.target.value);
+                            setEditData({ ...editData, attendedById: cleanedValue ?? undefined });
                           }}
                           className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
                         >

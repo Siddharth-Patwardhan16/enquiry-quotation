@@ -1,120 +1,106 @@
 import { z } from 'zod';
 
+function normalizeOptionalStringInput(value: unknown): unknown {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  const trimmedValue = value.trim();
+  return trimmedValue === '' ? undefined : trimmedValue;
+}
+
+function normalizeOptionalUuidInput(
+  value: unknown,
+  options: { allowNull?: boolean } = {},
+): unknown {
+  const { allowNull = false } = options;
+
+  if (allowNull && value === null) {
+    return null;
+  }
+
+  const normalizedValue = normalizeOptionalStringInput(value);
+  if (typeof normalizedValue !== 'string') {
+    return normalizedValue;
+  }
+
+  const lowerCasedValue = normalizedValue.toLowerCase();
+  if (lowerCasedValue === 'null' || lowerCasedValue === 'undefined') {
+    return undefined;
+  }
+
+  return normalizedValue;
+}
+
+export function normalizeOptionalUuidValue(
+  value: unknown,
+  options: { allowNull?: boolean } = {},
+): string | null | undefined {
+  const normalizedValue = normalizeOptionalUuidInput(value, options);
+
+  if (normalizedValue === null) {
+    return null;
+  }
+
+  return typeof normalizedValue === 'string' ? normalizedValue : undefined;
+}
+
+const optionalStringField = () =>
+  z.preprocess(normalizeOptionalStringInput, z.string().optional());
+
+const optionalEnumField = <const TValues extends readonly [string, ...string[]]>(
+  values: TValues,
+) => z.preprocess(normalizeOptionalStringInput, z.enum(values).optional());
+
+const optionalUuidField = (message: string) =>
+  z.preprocess(
+    (value) => normalizeOptionalUuidInput(value),
+    z.string().uuid(message).optional(),
+  );
+
+const optionalNullableUuidField = (message: string) =>
+  z.preprocess(
+    (value) => normalizeOptionalUuidInput(value, { allowNull: true }),
+    z.string().uuid(message).nullable().optional(),
+  );
+
 export const CreateEnquirySchema = z.object({
-  customerId: z.string().optional(),
-  locationId: z.string().optional(),
-  subject: z.string().optional(),
-  description: z.string().optional(),
-  requirements: z.string().optional(),
-  timeline: z.string().optional(),
-  enquiryDate: z.string().optional(),
-  priority: z.enum(['Low', 'Medium', 'High', 'Urgent']).optional(),
-  source: z.preprocess(
-    (val) => {
-      // Convert empty strings, null, or undefined to undefined BEFORE validation
-      if (val === '' || val === null || val === undefined) {
-        return undefined;
-      }
-      if (typeof val === 'string' && val.trim() === '') {
-        return undefined;
-      }
-      return val;
-    },
-    z.enum(['Website', 'Email', 'Phone', 'Referral', 'Trade Show', 'Social Media', 'Visit']).optional()
+  customerId: optionalUuidField('Please select a valid customer.'),
+  locationId: optionalUuidField('Please select a valid location.'),
+  subject: optionalStringField(),
+  description: optionalStringField(),
+  requirements: optionalStringField(),
+  timeline: optionalStringField(),
+  enquiryDate: optionalStringField(),
+  priority: optionalEnumField(['Low', 'Medium', 'High', 'Urgent']),
+  source: optionalEnumField([
+    'Website',
+    'Email',
+    'Phone',
+    'Referral',
+    'Trade Show',
+    'Social Media',
+    'Visit',
+  ]),
+  notes: optionalStringField(),
+  quotationNumber: optionalStringField(),
+  quotationDate: optionalStringField(),
+  region: optionalStringField(),
+  oaNumber: optionalStringField(),
+  oaDate: optionalStringField(),
+  blockModel: optionalStringField(),
+  numberOfBlocks: optionalStringField(),
+  designRequired: optionalEnumField(['Yes', 'No']),
+  attendedById: optionalNullableUuidField(
+    'Please select a valid employee for Attended By.',
   ),
-  notes: z.string().optional(),
-  quotationNumber: z.string().optional(),
-  quotationDate: z.string().optional(),
-  region: z.string().optional(),
-  oaNumber: z.string().optional(),
-  oaDate: z.string().optional(),
-  blockModel: z.string().optional(),
-  numberOfBlocks: z.string().optional(),
-  designRequired: z.preprocess(
-    (val) => {
-      // Convert empty strings, null, or undefined to undefined BEFORE validation
-      if (val === '' || val === null || val === undefined) {
-        return undefined;
-      }
-      if (typeof val === 'string' && val.trim() === '') {
-        return undefined;
-      }
-      return val;
-    },
-    z.enum(['Yes', 'No']).optional()
-  ),
-  attendedById: z.preprocess(
-    (val) => {
-      // Allow null to pass through (for clearing the field)
-      if (val === null) {
-        return null;
-      }
-      // Convert empty strings, undefined, or string "null"/"undefined" to undefined BEFORE validation
-      if (val === '' || val === undefined) {
-        return undefined;
-      }
-      if (typeof val === 'string') {
-        const trimmed = val.trim();
-        // Handle empty string, whitespace-only, or string representations of null/undefined
-        if (trimmed === '' || trimmed === 'null' || trimmed === 'undefined' || trimmed.toLowerCase() === 'null' || trimmed.toLowerCase() === 'undefined') {
-          return undefined;
-        }
-        return trimmed;
-      }
-      return val;
-    },
-    z.string().uuid().optional().nullable()
-  ),
-  customerType: z.preprocess(
-    (val) => {
-      // Convert empty strings, null, or undefined to undefined BEFORE validation
-      if (val === '' || val === null || val === undefined) {
-        return undefined;
-      }
-      if (typeof val === 'string' && val.trim() === '') {
-        return undefined;
-      }
-      return val;
-    },
-    z.enum(['NEW', 'OLD']).optional()
-  ),
-  status: z.preprocess(
-    (val) => {
-      // Convert empty strings, null, or undefined to undefined BEFORE validation
-      if (val === '' || val === null || val === undefined) {
-        return undefined;
-      }
-      if (typeof val === 'string' && val.trim() === '') {
-        return undefined;
-      }
-      return val;
-    },
-    z.enum(['LIVE', 'DEAD', 'RCD', 'LOST', 'BUDGETARY']).optional()
-  ),
-  entityType: z.enum(['customer', 'company']).optional(),
-}).refine((data) => {
-  // Only validate UUID format if the string is not empty
-  if (data.customerId && typeof data.customerId === 'string' && data.customerId.trim() !== '') {
-    const isValid = z.string().uuid().safeParse(data.customerId.trim()).success;
-    if (!isValid) {
-      return false;
-    }
-  }
-  if (data.locationId && typeof data.locationId === 'string' && data.locationId.trim() !== '') {
-    const isValid = z.string().uuid().safeParse(data.locationId.trim()).success;
-    if (!isValid) {
-      return false;
-    }
-  }
-  if (data.attendedById && typeof data.attendedById === 'string' && data.attendedById.trim() !== '') {
-    const isValid = z.string().uuid().safeParse(data.attendedById.trim()).success;
-    if (!isValid) {
-      return false;
-    }
-  }
-  return true;
-}, {
-  message: 'Invalid UUID format. Please select valid customer, location, or employee.',
+  customerType: optionalEnumField(['NEW', 'OLD']),
+  status: optionalEnumField(['LIVE', 'DEAD', 'RCD', 'LOST', 'BUDGETARY']),
+  entityType: optionalEnumField(['customer', 'company']),
 });
 
 export const UpdateEnquirySchema = z.object({
@@ -127,117 +113,34 @@ export const UpdateEnquirySchema = z.object({
 
 export const UpdateEnquiryFullSchema = z.object({
   id: z.number(),
-  subject: z.string().optional(),
-  description: z.string().optional(),
-  requirements: z.string().optional(),
-  timeline: z.string().optional(),
-  enquiryDate: z.string().optional(),
-  priority: z.enum(['Low', 'Medium', 'High', 'Urgent']).optional(),
-  source: z.preprocess(
-    (val) => {
-      // Convert empty strings, null, or undefined to undefined BEFORE validation
-      if (val === '' || val === null || val === undefined) {
-        return undefined;
-      }
-      if (typeof val === 'string' && val.trim() === '') {
-        return undefined;
-      }
-      return val;
-    },
-    z.enum(['Website', 'Email', 'Phone', 'Referral', 'Trade Show', 'Social Media', 'Visit']).optional()
+  subject: optionalStringField(),
+  description: optionalStringField(),
+  requirements: optionalStringField(),
+  timeline: optionalStringField(),
+  enquiryDate: optionalStringField(),
+  priority: optionalEnumField(['Low', 'Medium', 'High', 'Urgent']),
+  source: optionalEnumField([
+    'Website',
+    'Email',
+    'Phone',
+    'Referral',
+    'Trade Show',
+    'Social Media',
+    'Visit',
+  ]),
+  notes: optionalStringField(),
+  quotationNumber: optionalStringField(),
+  quotationDate: optionalStringField(),
+  region: optionalStringField(),
+  oaNumber: optionalStringField(),
+  oaDate: optionalStringField(),
+  dateOfReceipt: optionalStringField(),
+  blockModel: optionalStringField(),
+  numberOfBlocks: optionalStringField(),
+  designRequired: optionalEnumField(['Yes', 'No']),
+  attendedById: optionalNullableUuidField(
+    'Please select a valid employee for Attended By.',
   ),
-  notes: z.string().optional(),
-  quotationNumber: z.string().optional(),
-  quotationDate: z.string().optional(),
-  region: z.string().optional(),
-  oaNumber: z.string().optional(),
-  oaDate: z.string().optional(),
-  dateOfReceipt: z.string().optional(),
-  blockModel: z.string().optional(),
-  numberOfBlocks: z.string().optional(),
-  designRequired: z.preprocess(
-    (val) => {
-      // Convert empty strings, null, or undefined to undefined BEFORE validation
-      if (val === '' || val === null || val === undefined) {
-        return undefined;
-      }
-      if (typeof val === 'string' && val.trim() === '') {
-        return undefined;
-      }
-      return val;
-    },
-    z.enum(['Yes', 'No']).optional()
-  ),
-  attendedById: z.preprocess(
-    (val) => {
-      // Allow null to pass through (for clearing the field)
-      if (val === null) {
-        return null;
-      }
-      // Convert empty strings, undefined, or string "null"/"undefined" to undefined BEFORE validation
-      if (val === '' || val === undefined) {
-        return undefined;
-      }
-      if (typeof val === 'string') {
-        const trimmed = val.trim();
-        // Handle empty string, whitespace-only, or string representations of null/undefined
-        if (trimmed === '' || trimmed === 'null' || trimmed === 'undefined' || trimmed.toLowerCase() === 'null' || trimmed.toLowerCase() === 'undefined') {
-          return undefined;
-        }
-        return trimmed;
-      }
-      return val;
-    },
-    z.string().uuid().optional().nullable()
-  ),
-  customerType: z.preprocess(
-    (val) => {
-      // Convert empty strings, null, or undefined to undefined BEFORE validation
-      if (val === '' || val === null || val === undefined) {
-        return undefined;
-      }
-      if (typeof val === 'string' && val.trim() === '') {
-        return undefined;
-      }
-      return val;
-    },
-    z.enum(['NEW', 'OLD']).optional()
-  ),
-  status: z.preprocess(
-    (val) => {
-      // Convert empty strings, null, or undefined to undefined BEFORE validation
-      if (val === '' || val === null || val === undefined) {
-        return undefined;
-      }
-      if (typeof val === 'string' && val.trim() === '') {
-        return undefined;
-      }
-      return val;
-    },
-    z.enum(['LIVE', 'DEAD', 'RCD', 'LOST', 'BUDGETARY']).optional()
-  ),
-}).refine((data) => {
-  // Only validate UUID format if attendedById is provided and not empty
-  const attendedById = data.attendedById;
-  
-  // Allow undefined, null, or empty string (optional field)
-  if (attendedById === undefined || attendedById === null || attendedById === '') {
-    return true;
-  }
-  
-  // If it's a string, check if it's just whitespace
-  if (typeof attendedById === 'string' && attendedById.trim() === '') {
-    return true;
-  }
-  
-  // If we have a non-empty value, it must be a valid UUID
-  if (typeof attendedById === 'string') {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(attendedById.trim());
-  }
-  
-  return true;
-}, {
-  message: 'Invalid UUID format for attendedById',
-  path: ['attendedById']
+  customerType: optionalEnumField(['NEW', 'OLD']),
+  status: optionalEnumField(['LIVE', 'DEAD', 'RCD', 'LOST', 'BUDGETARY']),
 });

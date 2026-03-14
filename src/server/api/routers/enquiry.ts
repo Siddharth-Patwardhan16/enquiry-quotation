@@ -291,18 +291,9 @@ export const enquiryRouter = createTRPCRouter({
         updateData.oaDate = oaDate ? new Date(oaDate) : null;
       }
       
-      // Handle attendedById - convert empty string to undefined, but allow null to clear
+      // attendedById has already been normalized by the schema.
       if (attendedById !== undefined) {
-        if (attendedById === null) {
-          // Explicitly set to null to clear the field
-          updateData.attendedById = null;
-        } else if (typeof attendedById === 'string' && attendedById.trim() !== '') {
-          // Valid UUID string
-          updateData.attendedById = attendedById.trim();
-        } else {
-          // Empty string or invalid - set to undefined (don't update)
-          updateData.attendedById = undefined;
-        }
+        updateData.attendedById = attendedById;
       }
       
       // Handle status - ensure it's a valid enum value
@@ -357,4 +348,3 @@ export const enquiryRouter = createTRPCRouter({
       });
     }),
 });
-
