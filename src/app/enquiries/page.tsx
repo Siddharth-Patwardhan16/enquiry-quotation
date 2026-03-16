@@ -575,7 +575,7 @@ export default function EnquiriesPage() {
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Quotation Number</th>
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Subject</th>
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Customer</th>
-                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Quotation Date</th>
+                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Enquiry Date</th>
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Status</th>
                       <th className="text-black h-10 px-4 text-right align-middle font-medium whitespace-nowrap">Actions</th>
                     </tr>
@@ -606,7 +606,7 @@ export default function EnquiriesPage() {
                             {enquiry.company?.name ?? 'N/A'}
                           </td>
                           <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-500">
-                            {new Date(enquiry.createdAt).toLocaleDateString()}
+                            {enquiry.enquiryDate ? new Date(enquiry.enquiryDate).toLocaleDateString() : '-'}
                           </td>
                           <td className="p-4 align-middle whitespace-nowrap">
                             <div className="space-y-1">
