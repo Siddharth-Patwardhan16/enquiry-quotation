@@ -251,7 +251,29 @@ export const enquiryRouter = createTRPCRouter({
   update: publicProcedure
     .input(UpdateEnquiryFullSchema)
     .mutation(async ({ input }) => {
-      const { id, enquiryDate, dateOfReceipt, quotationDate, oaDate, attendedById, status, ...rest } = input;
+      const { id, enquiryDate, dateOfReceipt, quotationDate, oaDate, attendedById, status, customerId, locationId, entityType, ...rest } = input;
+      
+      // Determine if the location is an office or plant for companies
+      let officeId = null;
+      let plantId = null;
+      
+      if (entityType === 'company' && locationId) {
+        // Check if the location is an office or plant
+        const office = await db.office.findUnique({
+          where: { id: locationId }
+        });
+        
+        if (office) {
+          officeId = locationId;
+        } else {
+          const plant = await db.plant.findUnique({
+            where: { id: locationId }
+          });
+          if (plant) {
+            plantId = locationId;
+          }
+        }
+      }
       
       // Build update data with proper types
       const updateData: {
@@ -275,7 +297,37 @@ export const enquiryRouter = createTRPCRouter({
         attendedById?: string | null;
         customerType?: string | null;
         status?: 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'WON' | 'BUDGETARY';
+        customerId?: string | null;
+        companyId?: string | null;
+        locationId?: string | null;
+        officeId?: string | null;
+        plantId?: string | null;
       } = { ...rest };
+      
+      // Handle customer/company update
+      if (customerId !== undefined || entityType !== undefined) {
+        if (entityType === 'company' && customerId) {
+          // Update to company
+          updateData.companyId = customerId;
+          updateData.customerId = null;
+          updateData.locationId = null;
+          updateData.officeId = officeId;
+          updateData.plantId = plantId;
+        } else if (entityType === 'customer' && customerId) {
+          // Update to customer
+          updateData.customerId = customerId;
+          updateData.companyId = null;
+          updateData.locationId = locationId ?? null;
+          updateData.officeId = null;
+          updateData.plantId = null;
+        } else if (customerId === undefined && entityType === undefined) {
+          // Don't change customer/company if not provided
+          // Leave existing values unchanged
+        } else if (customerId === undefined && entityType) {
+          // If entityType is provided but customerId is undefined, don't update customer fields
+          // This allows updating other fields without changing customer
+        }
+      }
       
       // Convert date strings to Date objects
       if (enquiryDate !== undefined) {

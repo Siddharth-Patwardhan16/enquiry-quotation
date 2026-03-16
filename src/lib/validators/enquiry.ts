@@ -113,6 +113,9 @@ export const UpdateEnquirySchema = z.object({
 
 export const UpdateEnquiryFullSchema = z.object({
   id: z.number(),
+  customerId: optionalUuidField('Please select a valid customer.'),
+  locationId: optionalUuidField('Please select a valid location.'),
+  entityType: optionalEnumField(['customer', 'company']),
   subject: optionalStringField(),
   description: optionalStringField(),
   requirements: optionalStringField(),

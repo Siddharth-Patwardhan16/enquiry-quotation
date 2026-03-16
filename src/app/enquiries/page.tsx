@@ -8,6 +8,7 @@ import { CreateEnquiryForm } from './_components/CreateEnquiryForm';
 import { ReceiptDateModal } from './_components/ReceiptDateModal';
 import { EnquiryStatusModal } from './_components/EnquiryStatusModal';
 import { EnquiryCommunicationDrawer } from './_components/EnquiryCommunicationDrawer';
+import CustomerSelector, { type Customer } from '@/components/ui/CustomerSelector';
 import { z } from 'zod';
 
 import { 
@@ -65,6 +66,8 @@ export default function EnquiriesPage() {
   const { data: stats } = api.enquiry.getStats.useQuery();
   const { data: enquiries, isLoading, error } = enquiriesQuery;
   const { data: employees } = api.employee.getAll.useQuery();
+  const { data: companies, isLoading: isLoadingCompanies } = api.company.getAll.useQuery();
+  const { data: customers, isLoading: isLoadingCustomers } = api.company.getAll.useQuery();
   const updateEnquiryMutation = api.enquiry.update.useMutation({
     onSuccess: () => {
       void utils.enquiry.getAll.invalidate();
@@ -72,6 +75,7 @@ export default function EnquiriesPage() {
       setEditingEnquiry(null);
       setEditData({});
       setOriginalAttendedById(undefined);
+      setSelectedCustomer(null);
     },
     onError: (error) => {
       showError(
@@ -153,6 +157,9 @@ export default function EnquiriesPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   // Define the edit data type
   type EditEnquiryData = {
+    customerId?: string;
+    locationId?: string;
+    entityType?: 'customer' | 'company';
     subject?: string;
     enquiryDate?: string;
     source?: 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit';
@@ -175,6 +182,7 @@ export default function EnquiriesPage() {
   const [deletingEnquiryId, setDeletingEnquiryId] = useState<number | null>(null);
   const [originalAttendedById, setOriginalAttendedById] = useState<string | null | undefined>(undefined);
   const [viewingEnquiry, setViewingEnquiry] = useState<number | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptModalEnquiryId, setReceiptModalEnquiryId] = useState<number | null>(null);
   const [showWonModal, setShowWonModal] = useState(false);
@@ -238,6 +246,110 @@ export default function EnquiriesPage() {
     );
   };
 
+  // Combine customers and companies into a unified list with deduplication
+  const allEntities: Customer[] = (() => {
+    const entities: Customer[] = [];
+    const seenNames = new Set<string>();
+    
+    // First, add all companies (new structure takes priority)
+    (companies ?? []).forEach((company) => {
+      const normalizedName = company.name.trim().toLowerCase();
+      if (!seenNames.has(normalizedName)) {
+        seenNames.add(normalizedName);
+        entities.push({
+          id: company.id,
+          name: company.name,
+          type: 'Company',
+          industry: company.industry ?? undefined,
+          website: company.website ?? undefined,
+          location: company.offices?.[0] ? `${company.offices[0].city}, ${company.offices[0].state}` : undefined
+        });
+      }
+    });
+    
+    // Then, add customers that don't have duplicate names
+    (customers ?? []).forEach((customer) => {
+      const normalizedName = customer.name.trim().toLowerCase();
+      if (!seenNames.has(normalizedName)) {
+        seenNames.add(normalizedName);
+        entities.push({
+          id: customer.id,
+          name: customer.name,
+          type: 'Customer',
+          location: customer.offices?.[0] ? `${customer.offices[0].city}, ${customer.offices[0].state}` : undefined
+        });
+      }
+    });
+    
+    return entities.sort((a, b) => a.name.localeCompare(b.name));
+  })();
+  
+  const isLoadingEntities = isLoadingCustomers || isLoadingCompanies;
+
+  // Determine if selected customer is a company
+  const isCompany = selectedCustomer?.type === 'Company';
+  const selectedCustomerId = selectedCustomer?.id ?? editData.customerId;
+
+  // Fetch locations for the selected customer (legacy)
+  const { data: customerLocations, isLoading: isLoadingCustomerLocations } = api.location.getByCustomerId.useQuery(
+    { customerId: selectedCustomerId as string },
+    { enabled: !!selectedCustomerId && !isCompany && typeof selectedCustomerId === 'string' } // Only run for customers
+  );
+  
+  // Helper function to format location string
+  const formatLocationString = (location: {
+    city?: string | null;
+    state?: string | null;
+    address?: string | null;
+    area?: string | null;
+    country?: string | null;
+  }): string => {
+    const locationParts: string[] = [];
+    if (location.area) locationParts.push(location.area);
+    if (location.city) locationParts.push(location.city);
+    if (location.state) locationParts.push(location.state);
+    if (location.country) locationParts.push(location.country);
+    
+    return locationParts.length > 0 
+      ? locationParts.join(', ') 
+      : (location.address ?? '');
+  };
+
+  // For companies, use offices and plants as locations
+  const companyLocations = isCompany && selectedCustomer && selectedCustomerId ? [
+    ...(companies?.find(c => c.id === selectedCustomerId)?.offices?.map(office => ({
+      id: office.id,
+      name: office.name,
+      type: 'OFFICE',
+      city: office.city,
+      state: office.state,
+      address: office.address,
+      area: office.area,
+      country: office.country,
+      locationString: formatLocationString(office)
+    })) ?? []),
+    ...(companies?.find(c => c.id === selectedCustomerId)?.plants?.map(plant => ({
+      id: plant.id,
+      name: plant.name,
+      type: 'PLANT',
+      city: plant.city,
+      state: plant.state,
+      address: plant.address,
+      area: plant.area,
+      country: plant.country,
+      locationString: formatLocationString(plant)
+    })) ?? [])
+  ] : [];
+  
+  // Format customer locations with location string
+  const formattedCustomerLocations = customerLocations?.map(location => ({
+    ...location,
+    locationString: formatLocationString(location)
+  })) ?? [];
+  
+  const locations = isCompany ? companyLocations : formattedCustomerLocations;
+  const isLoadingLocations = isCompany ? false : isLoadingCustomerLocations;
+
   const handleViewEnquiry = (enquiryId: number) => {
     setViewingEnquiry(enquiryId);
   };
@@ -253,7 +365,20 @@ export default function EnquiriesPage() {
       setEditingEnquiry(enquiryId);
       // Store original attendedById to detect if we're clearing it
       setOriginalAttendedById(enquiry.attendedById ?? null);
+      
+      // Set selected customer
+      const customerId = enquiry.companyId ?? enquiry.customerId;
+      if (customerId) {
+        const entity = allEntities.find(e => e.id === customerId);
+        setSelectedCustomer(entity ?? null);
+      } else {
+        setSelectedCustomer(null);
+      }
+      
       setEditData({
+        customerId: enquiry.companyId ?? enquiry.customerId ?? undefined,
+        locationId: enquiry.officeId ?? enquiry.plantId ?? enquiry.locationId ?? undefined,
+        entityType: enquiry.companyId ? 'company' : (enquiry.customerId ? 'customer' : undefined),
         subject: enquiry.subject ?? undefined,
         enquiryDate: enquiry.enquiryDate ? new Date(enquiry.enquiryDate).toISOString().split('T')[0] : undefined,
         source: enquiry.source ? (enquiry.source as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit') : undefined,
@@ -288,6 +413,9 @@ export default function EnquiriesPage() {
     const nextAttendedById = normalizeOptionalUuidValue(editData.attendedById);
     const updatePayload: UpdateEnquiryMutationInput = {
       id: editingEnquiry,
+      customerId: editData.customerId,
+      locationId: editData.locationId,
+      entityType: editData.entityType,
       subject: editData.subject,
       description: undefined,
       requirements: undefined,
@@ -322,6 +450,7 @@ export default function EnquiriesPage() {
     setEditingEnquiry(null);
     setEditData({});
     setOriginalAttendedById(undefined);
+    setSelectedCustomer(null);
   };
 
   const handleCloseView = () => {
@@ -752,6 +881,65 @@ export default function EnquiriesPage() {
                   >
                     <X className="h-5 w-5" />
                   </button>
+                </div>
+
+                {/* Customer Information Section */}
+                <div className="bg-white rounded-xl border shadow-sm">
+                  <div className="px-6 pt-6">
+                    <h4 className="text-lg font-semibold text-gray-900 flex items-center">
+                      <Building className="w-5 h-5 mr-2 text-blue-600" />
+                      Customer Information
+                    </h4>
+                    <p className="text-gray-900 text-sm">Select or change the customer for this enquiry</p>
+                  </div>
+                  <div className="px-6 pb-6 space-y-4">
+                    <CustomerSelector
+                      customers={allEntities}
+                      selectedCustomer={selectedCustomer}
+                      onCustomerSelect={(customer) => {
+                        setSelectedCustomer(customer);
+                        setEditData({ 
+                          ...editData, 
+                          customerId: customer?.id,
+                          entityType: customer?.type === 'Company' ? 'company' : 'customer',
+                          locationId: undefined, // Reset location when customer changes
+                        });
+                      }}
+                      loading={isLoadingEntities}
+                      placeholder="Search and select a customer..."
+                      emptyMessage="No customers found"
+                      loadingMessage="Loading customers..."
+                    />
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="edit-locationId" className="block text-sm font-medium text-gray-900">
+                        Location (Office/Plant)
+                      </label>
+                      <select
+                        id="edit-locationId"
+                        value={editData.locationId ?? ''}
+                        onChange={(e) => setEditData({ ...editData, locationId: e.target.value || undefined })}
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black bg-white"
+                        disabled={!selectedCustomerId || isLoadingLocations}
+                      >
+                        <option value="" className="text-black bg-white">
+                          {isLoadingLocations ? 'Loading locations...' : 
+                           !selectedCustomerId ? 'Select a customer first' : 
+                           'Select a location'}
+                        </option>
+                        {locations?.map((location: { id: string; name: string; type: string; locationString?: string }) => (
+                          <option key={location.id} value={location.id} className="text-black bg-white">
+                            {location.locationString ? `${location.locationString} - ${location.name} (${location.type})` : `${location.name} (${location.type})`}
+                          </option>
+                        ))}
+                      </select>
+                      {selectedCustomerId && locations && locations.length === 0 && (
+                        <p className="mt-2 text-sm text-yellow-600">
+                          No locations found for this customer. Please add locations to the customer first.
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Enquiry Details Section */}
