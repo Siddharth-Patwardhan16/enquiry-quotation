@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { buildFinancialYearOptions, getFinancialYear } from '@/lib/financial-year';
 import { normalizeOptionalUuidValue, UpdateEnquiryFullSchema } from '@/lib/validators/enquiry';
 import { api } from '@/trpc/client';
 import { useToastContext } from '@/components/providers/ToastProvider';
@@ -62,8 +63,10 @@ type UpdateEnquiryMutationInput = z.input<typeof UpdateEnquiryFullSchema>;
 export default function EnquiriesPage() {
   const { success, error: showError } = useToastContext();
   const utils = api.useUtils();
-  const enquiriesQuery = api.enquiry.getAll.useQuery();
-  const { data: stats } = api.enquiry.getStats.useQuery();
+  const [financialYear, setFinancialYear] = useState(() => getFinancialYear(new Date()));
+  const financialYearOptions = buildFinancialYearOptions(6, 1);
+  const enquiriesQuery = api.enquiry.getAll.useQuery({ financialYear });
+  const { data: stats } = api.enquiry.getStats.useQuery({ financialYear });
   const { data: enquiries, isLoading, error } = enquiriesQuery;
   const { data: employees } = api.employee.getAll.useQuery();
   const { data: companies, isLoading: isLoadingCompanies } = api.company.getAll.useQuery();
@@ -71,6 +74,7 @@ export default function EnquiriesPage() {
   const updateEnquiryMutation = api.enquiry.update.useMutation({
     onSuccess: () => {
       void utils.enquiry.getAll.invalidate();
+      void utils.enquiry.getStats.invalidate();
       success('Enquiry Updated', 'The enquiry has been successfully updated.');
       setEditingEnquiry(null);
       setEditData({});
@@ -90,6 +94,7 @@ export default function EnquiriesPage() {
   const updateStatusMutation = api.enquiry.updateStatus.useMutation({
     onSuccess: () => {
       success('Status Updated', 'The enquiry status has been successfully updated.');
+      void utils.enquiry.getStats.invalidate();
       enquiriesQuery.refetch();
     },
     onError: (error) => {
@@ -128,6 +133,7 @@ export default function EnquiriesPage() {
   const deleteEnquiryMutation = api.enquiry.delete.useMutation({
     onSuccess: (_, variables) => {
       void utils.enquiry.getAll.invalidate();
+      void utils.enquiry.getStats.invalidate();
       setDeletingEnquiryId(null);
 
       if (editingEnquiry === variables.id) {
@@ -493,6 +499,26 @@ export default function EnquiriesPage() {
           </div>
         </div>
 
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <span className="font-medium whitespace-nowrap">Financial year</span>
+            <select
+              value={financialYear}
+              onChange={(e) => setFinancialYear(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+            >
+              {financialYearOptions.map((fy) => (
+                <option key={fy} value={fy}>
+                  {fy}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="text-sm text-gray-500">
+            Enquiries and status counts below are scoped to this financial year (Apr–Mar).
+          </p>
+        </div>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4 md:gap-6 mb-8">
           <div className="bg-white overflow-hidden shadow rounded-lg">
@@ -700,7 +726,7 @@ export default function EnquiriesPage() {
                 <table className="w-full caption-bottom text-sm">
                   <thead className="[&_tr]:border-b bg-gray-50">
                     <tr>
-                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Enq-ID</th>
+                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">FY #</th>
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Quotation Number</th>
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Subject</th>
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Customer</th>
@@ -722,8 +748,8 @@ export default function EnquiriesPage() {
                     ) : filteredEnquiries.length > 0 ? (
                       filteredEnquiries.map((enquiry) => (
                         <tr key={enquiry.id} className="hover:bg-gray-50 data-[state=selected]:bg-muted border-b transition-colors">
-                                                     <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900">
-                             #{enquiry.id.toString().slice(-8)}
+                                                     <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900" title={`Internal id: ${enquiry.id}`}>
+                             {enquiry.financialYear}-{enquiry.sequenceNumber}
                            </td>
                            <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900">
                              {enquiry.quotationNumber ?? '-'}
@@ -837,11 +863,11 @@ export default function EnquiriesPage() {
                       <tr>
                         <td colSpan={8} className="text-center py-8">
                           <div className="text-gray-500">
-                            {searchTerm || statusFilter !== 'all' 
-                              ? 'No enquiries found matching your criteria.' 
+                            {searchTerm || statusFilter !== null
+                              ? 'No enquiries found matching your criteria.'
                               : 'No enquiries found.'}
                           </div>
-                          {!searchTerm && statusFilter === 'all' && (
+                          {!searchTerm && statusFilter === null && (
                             <button 
                               onClick={handleCreateEnquiry}
                               className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 mt-4 px-4 py-2"

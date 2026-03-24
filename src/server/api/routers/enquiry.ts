@@ -1,5 +1,6 @@
 import { createTRPCRouter, publicProcedure } from '../trpc';
 import { CreateEnquirySchema, UpdateEnquirySchema, UpdateEnquiryFullSchema } from '@/lib/validators/enquiry';
+import { FinancialYearFilterSchema, getFinancialYear } from '@/lib/financial-year';
 import { db } from '@/server/db';
 import { z } from 'zod';
 
@@ -34,43 +35,60 @@ export const enquiryRouter = createTRPCRouter({
           }
         }
       }
-      
-      return db.enquiry.create({
-        data: {
-          subject: input.subject,
-          customerId: null, // No longer support old customer structure
-          companyId: input.customerId, // Always use companyId now
-          locationId: null, // No longer support old location structure
-          officeId: officeId, // For company offices
-          plantId: plantId, // For company plants
-          description: input.description,
-          requirements: input.requirements,
-          timeline: input.timeline,
-          enquiryDate: input.enquiryDate ? new Date(input.enquiryDate) : null,
-          marketingPersonId: ctx.currentUser?.id ?? marketingPerson?.id ?? null,
-          attendedById: input.attendedById,
-          priority: input.priority,
-          source: input.source,
-          notes: input.notes,
-          quotationNumber: input.quotationNumber,
-          quotationDate: input.quotationDate ? new Date(input.quotationDate) : null,
-          region: input.region,
-          oaNumber: input.oaNumber,
-          oaDate: input.oaDate ? new Date(input.oaDate) : null,
-          blockModel: input.blockModel,
-          numberOfBlocks: input.numberOfBlocks,
-          designRequired: input.designRequired,
-          customerType: input.customerType,
-          // Status: if undefined, don't set it (let database default handle it)
-          // If provided, use it; otherwise Prisma will use the schema default
-          ...(input.status ? { status: input.status } : {}),
-        },
+
+      const fy = getFinancialYear(new Date());
+
+      return db.$transaction(async (tx) => {
+        const last = await tx.enquiry.findFirst({
+          where: { financialYear: fy },
+          orderBy: { sequenceNumber: 'desc' },
+          select: { sequenceNumber: true },
+        });
+        const sequenceNumber = (last?.sequenceNumber ?? 0) + 1;
+
+        return tx.enquiry.create({
+          data: {
+            subject: input.subject,
+            customerId: null, // No longer support old customer structure
+            companyId: input.customerId, // Always use companyId now
+            locationId: null, // No longer support old location structure
+            officeId: officeId, // For company offices
+            plantId: plantId, // For company plants
+            description: input.description,
+            requirements: input.requirements,
+            timeline: input.timeline,
+            enquiryDate: input.enquiryDate ? new Date(input.enquiryDate) : null,
+            marketingPersonId: ctx.currentUser?.id ?? marketingPerson?.id ?? null,
+            attendedById: input.attendedById,
+            priority: input.priority,
+            source: input.source,
+            notes: input.notes,
+            quotationNumber: input.quotationNumber,
+            quotationDate: input.quotationDate ? new Date(input.quotationDate) : null,
+            region: input.region,
+            oaNumber: input.oaNumber,
+            oaDate: input.oaDate ? new Date(input.oaDate) : null,
+            blockModel: input.blockModel,
+            numberOfBlocks: input.numberOfBlocks,
+            designRequired: input.designRequired,
+            customerType: input.customerType,
+            financialYear: fy,
+            sequenceNumber,
+            // Status: if undefined, don't set it (let database default handle it)
+            // If provided, use it; otherwise Prisma will use the schema default
+            ...(input.status ? { status: input.status } : {}),
+          },
+        });
       });
     }),
 
   // Procedure to get all enquiries with company and location names
-  getAll: publicProcedure.query(async () => {
+  getAll: publicProcedure
+    .input(FinancialYearFilterSchema)
+    .query(async ({ input }) => {
+    const where = input.financialYear ? { financialYear: input.financialYear } : {};
     return db.enquiry.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
       include: {
         company: {
@@ -107,15 +125,18 @@ export const enquiryRouter = createTRPCRouter({
   }),
 
   // Get enquiry statistics - moved from frontend calculations
-  getStats: publicProcedure.query(async () => {
+  getStats: publicProcedure
+    .input(FinancialYearFilterSchema)
+    .query(async ({ input }) => {
+    const base = input.financialYear ? { financialYear: input.financialYear } : {};
     const [total, liveCount, deadCount, rcdCount, lostCount, wonCount, budgetaryCount] = await Promise.all([
-      db.enquiry.count(),
-      db.enquiry.count({ where: { status: 'LIVE' } }),
-      db.enquiry.count({ where: { status: 'DEAD' } }),
-      db.enquiry.count({ where: { status: 'RCD' } }),
-      db.enquiry.count({ where: { status: 'LOST' } }),
-      db.enquiry.count({ where: { status: 'WON' } }),
-      db.enquiry.count({ where: { status: 'BUDGETARY' } })
+      db.enquiry.count({ where: base }),
+      db.enquiry.count({ where: { ...base, status: 'LIVE' } }),
+      db.enquiry.count({ where: { ...base, status: 'DEAD' } }),
+      db.enquiry.count({ where: { ...base, status: 'RCD' } }),
+      db.enquiry.count({ where: { ...base, status: 'LOST' } }),
+      db.enquiry.count({ where: { ...base, status: 'WON' } }),
+      db.enquiry.count({ where: { ...base, status: 'BUDGETARY' } })
     ]);
 
     return {

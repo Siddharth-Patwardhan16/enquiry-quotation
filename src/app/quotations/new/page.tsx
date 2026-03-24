@@ -25,7 +25,7 @@ export default function NewQuotationPage() {
   const { success, error: showError } = useToastContext();
   
   // Fetch enquiries to populate the dropdown
-  const { data: enquiries, isLoading: isLoadingEnquiries } = api.enquiry.getAll.useQuery();
+  const { data: enquiries, isLoading: isLoadingEnquiries } = api.enquiry.getAll.useQuery({});
 
   const {
     register,

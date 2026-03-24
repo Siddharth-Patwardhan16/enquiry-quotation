@@ -356,6 +356,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
     onSuccess: () => {
       setIsSubmitting(false);
       void utils.enquiry.getAll.invalidate();
+      void utils.enquiry.getStats.invalidate();
       reset();
       success('Enquiry Created', 'The enquiry has been successfully created and is ready for processing.');
       

@@ -1,18 +1,31 @@
 // src/server/api/routers/dashboard.ts
+import {
+  FinancialYearFilterSchema,
+  FINANCIAL_YEAR_MONTH_LABELS,
+  dateToFinancialYearMonthIndex,
+  getFinancialYearDateRange,
+} from '@/lib/financial-year';
 import { createTRPCRouter, publicProcedure } from '../trpc';
 import { db } from '../../db';
 
 export const dashboardRouter = createTRPCRouter({
   // Procedure to get the main count statistics for the cards
-  getStats: publicProcedure.query(async () => {
-    const customerCount = await db.customer.count();
-    const enquiryCount = await db.enquiry.count();
-    const quotationCount = await db.quotation.count();
+  getStats: publicProcedure
+    .input(FinancialYearFilterSchema)
+    .query(async ({ input }) => {
+    const enquiryFy = input.financialYear ? { financialYear: input.financialYear } : {};
+    const quotationEnquiryFy = input.financialYear
+      ? { enquiry: { financialYear: input.financialYear } }
+      : {};
 
-    // Example of a more complex aggregation: count quotations with 'WON' status
+    const customerCount = await db.customer.count();
+    const enquiryCount = await db.enquiry.count({ where: enquiryFy });
+    const quotationCount = await db.quotation.count({ where: quotationEnquiryFy });
+
     const wonDealsCount = await db.quotation.count({
       where: {
         status: 'WON',
+        ...quotationEnquiryFy,
       },
     });
 
@@ -25,7 +38,9 @@ export const dashboardRouter = createTRPCRouter({
   }),
 
   // Procedure to get data for the "Lost Reasons" chart
-  getLostReasons: publicProcedure.query(async () => {
+  getLostReasons: publicProcedure
+    .input(FinancialYearFilterSchema)
+    .query(async ({ input }) => {
     const lostReasons = await db.quotation.groupBy({
       by: ['lostReason'], // Group by the 'lostReason' column
       _count: {
@@ -36,6 +51,9 @@ export const dashboardRouter = createTRPCRouter({
         lostReason: {
           not: null, // Exclude entries where the reason is not set
         },
+        ...(input.financialYear
+          ? { enquiry: { financialYear: input.financialYear } }
+          : {}),
       },
     });
 
@@ -50,8 +68,11 @@ export const dashboardRouter = createTRPCRouter({
   }),
 
   // Procedure to get recent enquiries for the dashboard
-  getRecentEnquiries: publicProcedure.query(async () => {
+  getRecentEnquiries: publicProcedure
+    .input(FinancialYearFilterSchema)
+    .query(async ({ input }) => {
     const recentEnquiries = await db.enquiry.findMany({
+      where: input.financialYear ? { financialYear: input.financialYear } : undefined,
       take: 5,
       orderBy: {
         createdAt: 'desc',
@@ -74,8 +95,13 @@ export const dashboardRouter = createTRPCRouter({
   }),
 
   // Procedure to get recent quotations for the dashboard
-  getRecentQuotations: publicProcedure.query(async () => {
+  getRecentQuotations: publicProcedure
+    .input(FinancialYearFilterSchema)
+    .query(async ({ input }) => {
     const recentQuotations = await db.quotation.findMany({
+      where: input.financialYear
+        ? { enquiry: { financialYear: input.financialYear } }
+        : undefined,
       take: 5,
       orderBy: {
         createdAt: 'desc',
@@ -97,7 +123,26 @@ export const dashboardRouter = createTRPCRouter({
   }),
 
   // Procedure to get monthly enquiry trends
-  getMonthlyEnquiryTrends: publicProcedure.query(async () => {
+  getMonthlyEnquiryTrends: publicProcedure
+    .input(FinancialYearFilterSchema)
+    .query(async ({ input }) => {
+    if (input.financialYear) {
+      const { gte, lte } = getFinancialYearDateRange(input.financialYear);
+      const rows = await db.enquiry.findMany({
+        where: { createdAt: { gte, lte } },
+        select: { createdAt: true },
+      });
+      const counts = Array.from({ length: 12 }, () => 0);
+      for (const row of rows) {
+        const idx = dateToFinancialYearMonthIndex(row.createdAt);
+        counts[idx] += 1;
+      }
+      return FINANCIAL_YEAR_MONTH_LABELS.map((month, index) => ({
+        month,
+        count: counts[index] ?? 0,
+      }));
+    }
+
     const monthlyTrends = await db.enquiry.groupBy({
       by: ['createdAt'],
       _count: {
@@ -130,7 +175,13 @@ export const dashboardRouter = createTRPCRouter({
   }),
 
   // Procedure to get quotation value vs live quotations data
-  getQuotationValueVsLive: publicProcedure.query(async () => {
+  getQuotationValueVsLive: publicProcedure
+    .input(FinancialYearFilterSchema)
+    .query(async ({ input }) => {
+    const enquiryFy = input.financialYear
+      ? { enquiry: { financialYear: input.financialYear } }
+      : {};
+
     // Get all quotations with their total values and status
     const quotations = await db.quotation.findMany({
       select: {
@@ -144,6 +195,7 @@ export const dashboardRouter = createTRPCRouter({
         totalValue: {
           not: null,
         },
+        ...enquiryFy,
       },
     });
 
@@ -161,6 +213,7 @@ export const dashboardRouter = createTRPCRouter({
         poValue: {
           not: null,
         },
+        ...(input.financialYear ? { financialYear: input.financialYear } : {}),
       },
     });
 

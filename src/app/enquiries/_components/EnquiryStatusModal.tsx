@@ -31,7 +31,7 @@ export function EnquiryStatusModal({
   const { success, error: showError } = useToastContext();
 
   // Fetch enquiry details
-  const { data: enquiries } = api.enquiry.getAll.useQuery();
+  const { data: enquiries } = api.enquiry.getAll.useQuery({});
   const enquiry = enquiries?.find((e) => e.id === enquiryId);
 
   const updateEnquiryMutation = api.enquiry.updateStatus.useMutation({

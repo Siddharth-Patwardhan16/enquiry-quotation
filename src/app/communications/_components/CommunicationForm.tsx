@@ -72,7 +72,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
 
   // Fetch data
   const { data: customers, isLoading: loadingCustomers } = api.company.getAll.useQuery();
-  const { data: enquiries } = api.enquiry.getAll.useQuery();
+  const { data: enquiries } = api.enquiry.getAll.useQuery({});
 
   const {
     register,

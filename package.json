@@ -12,7 +12,8 @@
     "cleanup-old-customers": "npx tsx scripts/cleanup-old-customers.ts",
     "backup-db": "npx tsx scripts/backup-database.ts",
     "restore-db": "npx tsx scripts/restore-database.ts",
-    "test-connection": "npx tsx scripts/test-connection.ts"
+    "test-connection": "npx tsx scripts/test-connection.ts",
+    "backfill-fy": "npx tsx scripts/backfill-financial-year.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -79,6 +80,7 @@
     "zod": "^4.0.17"
   },
   "devDependencies": {
+    "dotenv": "^16.4.5",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

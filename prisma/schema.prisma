@@ -183,6 +183,8 @@ model Enquiry {
   purchaseOrderNumber String?
   poValue             Decimal?
   poDate              DateTime?
+  financialYear       String
+  sequenceNumber      Int
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
   locationId          String?
@@ -202,6 +204,9 @@ model Enquiry {
   office              Office?         @relation(fields: [officeId], references: [id], onDelete: Cascade)
   plant               Plant?          @relation(fields: [plantId], references: [id], onDelete: Cascade)
   quotations          Quotation[]
+
+  @@unique([financialYear, sequenceNumber])
+  @@index([financialYear])
 }
 
 model Quotation {
