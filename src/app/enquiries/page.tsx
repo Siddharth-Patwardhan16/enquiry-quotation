@@ -769,16 +769,25 @@ export default function EnquiriesPage() {
             {/* Table */}
             <div className="border border-gray-200 rounded-lg overflow-hidden">
               <div className="relative w-full overflow-x-auto">
-                <table className="w-full caption-bottom text-sm">
+                <table className="w-full min-w-[960px] caption-bottom text-sm table-fixed">
+                  <colgroup>
+                    <col className="w-[11%]" />
+                    <col className="w-[13%]" />
+                    <col className="w-[26%]" />
+                    <col className="w-[17%]" />
+                    <col className="w-[118px]" />
+                    <col className="w-[132px]" />
+                    <col className="w-[152px]" />
+                  </colgroup>
                   <thead className="[&_tr]:border-b bg-gray-50">
                     <tr>
-                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">FY #</th>
-                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Quotation Number</th>
-                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Subject</th>
-                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Customer</th>
-                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Enquiry Date</th>
-                      <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Status</th>
-                      <th className="text-black h-10 px-4 text-right align-middle font-medium whitespace-nowrap sticky right-0 bg-gray-50 z-10">Actions</th>
+                      <th className="text-black h-10 px-3 text-left align-middle font-medium whitespace-nowrap">FY #</th>
+                      <th className="text-black h-10 px-3 text-left align-middle font-medium whitespace-nowrap">Quotation Number</th>
+                      <th className="text-black h-10 px-3 text-left align-middle font-medium">Subject</th>
+                      <th className="text-black h-10 px-3 text-left align-middle font-medium">Customer</th>
+                      <th className="text-black h-10 px-3 text-left align-middle font-medium whitespace-nowrap min-w-[118px]">Enquiry Date</th>
+                      <th className="text-black h-10 px-3 text-left align-middle font-medium whitespace-nowrap">Status</th>
+                      <th className="text-black h-10 px-3 text-right align-middle font-medium whitespace-nowrap sticky right-0 bg-gray-50 z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.08)]">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="[&_tr:last-child]:border-0">
@@ -793,23 +802,35 @@ export default function EnquiriesPage() {
                       </tr>
                     ) : filteredEnquiries.length > 0 ? (
                       filteredEnquiries.map((enquiry: EnquiryRow) => (
-                        <tr key={enquiry.id} className="hover:bg-gray-50 data-[state=selected]:bg-muted border-b transition-colors">
-                                                     <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900" title={`Internal id: ${enquiry.id}`}>
-                             {enquiry.financialYear}-{enquiry.sequenceNumber}
-                           </td>
-                           <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900">
-                             {enquiry.quotationNumber ?? '-'}
-                           </td>
-                                                     <td className="p-4 align-middle">
-                             <div className="text-sm text-gray-900">{enquiry.subject ?? 'No subject'}</div>
-                           </td>
-                          <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900">
-                            {enquiry.company?.name ?? 'N/A'}
+                        <tr key={enquiry.id} className="group hover:bg-gray-50 data-[state=selected]:bg-muted border-b transition-colors">
+                          <td className="p-3 align-middle whitespace-nowrap text-sm text-gray-900" title={`Internal id: ${enquiry.id}`}>
+                            {enquiry.financialYear}-{enquiry.sequenceNumber}
                           </td>
-                          <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-500">
-                            {enquiry.enquiryDate ? new Date(enquiry.enquiryDate).toLocaleDateString() : '-'}
+                          <td className="p-3 align-middle text-sm text-gray-900">
+                            <div className="truncate whitespace-nowrap" title={enquiry.quotationNumber ?? undefined}>
+                              {enquiry.quotationNumber ?? '-'}
+                            </div>
                           </td>
-                          <td className="p-4 align-middle whitespace-nowrap">
+                          <td className="p-3 align-middle min-w-0">
+                            <div className="text-sm text-gray-900 truncate" title={(enquiry.subject ?? 'No subject') || undefined}>
+                              {enquiry.subject ?? 'No subject'}
+                            </div>
+                          </td>
+                          <td className="p-3 align-middle min-w-0">
+                            <div className="text-sm text-gray-900 truncate" title={(enquiry.company?.name ?? 'N/A') || undefined}>
+                              {enquiry.company?.name ?? 'N/A'}
+                            </div>
+                          </td>
+                          <td className="p-3 align-middle text-sm text-gray-500 whitespace-nowrap min-w-[118px] tabular-nums text-left font-medium">
+                            {enquiry.enquiryDate
+                              ? new Date(enquiry.enquiryDate).toLocaleDateString(undefined, {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                })
+                              : '-'}
+                          </td>
+                          <td className="p-3 align-middle whitespace-nowrap">
                             <div className="space-y-1">
                               <select
                                 value={enquiry.status}
@@ -867,7 +888,7 @@ export default function EnquiriesPage() {
                               )}
                             </div>
                           </td>
-                          <td className="p-4 align-middle whitespace-nowrap text-right sticky right-0 bg-white z-10">
+                          <td className="p-3 align-middle whitespace-nowrap text-right sticky right-0 z-10 bg-white group-hover:bg-gray-50 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)] border-l border-gray-100">
                             <div className="flex items-center justify-end space-x-2">
                               <button
                                 onClick={() => {
@@ -907,7 +928,7 @@ export default function EnquiriesPage() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={8} className="text-center py-8">
+                        <td colSpan={7} className="text-center py-8">
                           <div className="text-gray-500">
                             {searchTerm || statusFilter !== null
                               ? 'No enquiries found matching your criteria.'
