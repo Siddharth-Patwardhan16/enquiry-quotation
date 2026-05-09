@@ -4,7 +4,7 @@ import React from 'react';
 import { useFormContext, useFieldArray } from 'react-hook-form';
 import { Trash2, Users, Plus, X, Phone, Mail, User } from 'lucide-react';
 import { CompanyFormData } from '../_types/company.types';
-import { COUNTRIES, INDIAN_STATES } from '../_utils/constants';
+import { COUNTRIES, COUNTRY_STATES } from '../_utils/constants';
 
 interface OfficeCardProps {
   index: number;
@@ -19,8 +19,9 @@ export function OfficeCard({ index, onRemove }: OfficeCardProps) {
     name: `offices.${index}.contacts`
   });
 
-  // Watch the country to show appropriate city/state options
+  // Watch country to provide dependent state list
   const watchedCountry = watch(`offices.${index}.country`);
+  const statesForCountry = watchedCountry ? COUNTRY_STATES[watchedCountry] ?? [] : [];
 
   const addNewContact = () => {
     addContact({
@@ -107,13 +108,13 @@ export function OfficeCard({ index, onRemove }: OfficeCardProps) {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             State
           </label>
-          {watchedCountry === 'India' ? (
+          {statesForCountry.length > 0 ? (
             <select
               {...register(`offices.${index}.state`)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
             >
               <option value="">Select State</option>
-              {INDIAN_STATES.map((state) => (
+              {statesForCountry.map((state) => (
                 <option key={state} value={state}>{state}</option>
               ))}
             </select>

@@ -12,7 +12,6 @@ import {
   Eye, 
   Edit, 
   Trash2,
-  Filter,
   Building,
   MapPin
 } from 'lucide-react';
@@ -216,6 +215,18 @@ export default function CustomersPage() {
     setShowDeleteDialog(true);
   };
 
+  const formatPrimaryAddress = (location?: {
+    address?: string | null;
+    area?: string | null;
+    city?: string | null;
+    state?: string | null;
+  } | null) => {
+    if (!location) return 'No address';
+    if (location.address) return location.address;
+    const combined = [location.area, location.city, location.state].filter(Boolean).join(', ');
+    return combined || 'No address';
+  };
+
 
   // Confirm delete
   const confirmDelete = (entityId: string) => {
@@ -313,10 +324,6 @@ export default function CustomersPage() {
                 <option value="plant">Plant Name</option>
               </select>
               
-              <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-4 py-2">
-                <Filter className="h-4 w-4" />
-                Filters
-              </button>
             </div>
             
             {/* Sort Dropdown */}
@@ -415,16 +422,22 @@ export default function CustomersPage() {
                           <div className="text-sm text-gray-900">
                             {company.offices && company.offices.length > 0 ? (
                               <>
-                                {company.offices[0].city}, {company.offices[0].state}
+                                {formatPrimaryAddress(company.offices[0])}
+                              </>
+                            ) : company.plants && company.plants.length > 0 ? (
+                              <>
+                                {formatPrimaryAddress(company.plants[0])}
                               </>
                             ) : (
                               <span className="text-gray-500">No address</span>
                             )}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {company.offices && company.offices.length > 0 ? 
-                              company.offices[0].country : 'No country'
-                            }
+                            {(company.offices && company.offices.length > 0
+                              ? company.offices[0].country
+                              : company.plants && company.plants.length > 0
+                                ? company.plants[0].country
+                                : null) ?? 'No country'}
                           </div>
                         </td>
                         <td className="p-4 align-middle whitespace-nowrap">

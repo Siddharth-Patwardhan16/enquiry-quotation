@@ -10,7 +10,7 @@ export const QuotationItemSchema = z.object({
 
 // Main schema for creating a quotation
 export const CreateQuotationSchema = z.object({
-  enquiryId: z.coerce.number().optional(),
+  enquiryId: z.coerce.number().int().positive('Please select an enquiry'),
   revisionNumber: z.coerce.number().default(0),
   quotationDate: z.string().optional(),
   deliverySchedule: z.string().optional(),

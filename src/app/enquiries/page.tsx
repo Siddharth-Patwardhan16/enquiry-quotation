@@ -893,21 +893,22 @@ export default function EnquiriesPage() {
               </div>
             )}
 
-            {/* Inline Edit Form */}
+            {/* Edit Modal */}
             {editingEnquiry && (
-              <div className="mt-6 bg-white rounded-lg border shadow-sm p-6 space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                    <FileText className="w-5 h-5 mr-2 text-blue-600" />
-                    Edit Enquiry
-                  </h3>
-                  <button
-                    onClick={handleCancelEdit}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
+              <div className="fixed inset-0 z-50 bg-black/50 p-4 flex items-center justify-center">
+                <div className="w-full max-w-6xl max-h-[92vh] overflow-y-auto bg-white rounded-lg border shadow-xl p-6 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                      <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                      Edit Enquiry
+                    </h3>
+                    <button
+                      onClick={handleCancelEdit}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
 
                 {/* Customer Information Section */}
                 <div className="bg-white rounded-xl border shadow-sm">
@@ -1240,39 +1241,41 @@ export default function EnquiriesPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                  <button
-                    onClick={handleCancelEdit}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSaveEdit}
-                    disabled={updateEnquiryMutation.isPending}
-                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 px-4 py-2"
-                  >
-                    {updateEnquiryMutation.isPending ? 'Saving...' : 'Save Changes'}
-                  </button>
+                  <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                    <button
+                      onClick={handleCancelEdit}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveEdit}
+                      disabled={updateEnquiryMutation.isPending}
+                      className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 px-4 py-2"
+                    >
+                      {updateEnquiryMutation.isPending ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
 
             {/* View Enquiry Modal */}
             {viewingEnquiry && (
-              <div className="mt-6 bg-white rounded-lg border shadow-sm p-6 space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                    <FileText className="w-5 h-5 mr-2 text-blue-600" />
-                    View Enquiry Details
-                  </h3>
-                  <button
-                    onClick={handleCloseView}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
+              <div className="fixed inset-0 z-50 bg-black/50 p-4 flex items-center justify-center">
+                <div className="w-full max-w-6xl max-h-[92vh] overflow-y-auto bg-white rounded-lg border shadow-xl p-6 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                      <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                      View Enquiry Details
+                    </h3>
+                    <button
+                      onClick={handleCloseView}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
                 {(() => {
                   const enquiry = enquiries?.find((e) => e.id === viewingEnquiry);
                   if (!enquiry) return <div>Enquiry not found</div>;
@@ -1467,20 +1470,21 @@ export default function EnquiriesPage() {
                     </div>
                   );
                 })()}
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                  <button
-                    onClick={() => handleEditEnquiry(viewingEnquiry)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 flex items-center gap-2"
-                  >
-                    <Edit className="h-4 w-4" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={handleCloseView}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    Close
-                  </button>
+                  <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                    <button
+                      onClick={() => handleEditEnquiry(viewingEnquiry)}
+                      className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 flex items-center gap-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={handleCloseView}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      Close
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

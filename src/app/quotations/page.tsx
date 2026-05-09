@@ -202,7 +202,7 @@ export default function QuotationsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                                     {quotations?.map((q: Quotation) => (
+                  {quotations && quotations.length > 0 ? quotations.map((q: Quotation) => (
                     <tr key={q.id} className="border-b last:border-none hover:bg-gray-50">
                       <td className="p-4 font-medium text-gray-900">{q.quotationNumber}</td>
                       <td className="p-4 text-gray-900">{q.enquiry?.company?.name ?? q.enquiry?.customer?.name ?? 'Unknown Customer'}</td>
@@ -243,7 +243,13 @@ export default function QuotationsPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )) : (
+                    <tr>
+                      <td colSpan={7} className="p-8 text-center text-gray-500">
+                        No quotations found. Create a quotation from an enquiry to see it here.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

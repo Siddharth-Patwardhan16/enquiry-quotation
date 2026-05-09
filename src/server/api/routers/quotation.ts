@@ -15,42 +15,38 @@ export const quotationRouter = createTRPCRouter({
       // Generate quotation number - use enquiry's quotation number if available, otherwise generate default
       let quotationNumber: string;
       
-      if (enquiryId) {
-        // Get the enquiry to retrieve its quotation number
-        const enquiry = await db.enquiry.findUnique({
-          where: { id: enquiryId },
-          select: { quotationNumber: true, subject: true }
+      // Get the enquiry to retrieve its quotation number
+      const enquiry = await db.enquiry.findUnique({
+        where: { id: enquiryId },
+        select: { quotationNumber: true }
+      });
+
+      if (!enquiry) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Selected enquiry does not exist.',
         });
+      }
 
-        if (enquiry?.quotationNumber) {
-          quotationNumber = enquiry.quotationNumber;
-          
-          // Check for duplicate quotation number before creating
-          const existingQuotation = await db.quotation.findUnique({
-            where: { quotationNumber },
-          });
+      if (!enquiry.quotationNumber) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Selected enquiry does not have a quotation number assigned.',
+        });
+      }
 
-          if (existingQuotation) {
-            throw new TRPCError({
-              code: 'CONFLICT',
-              message: `Quotation number "${quotationNumber}" already exists. Please use a different quotation number.`,
-            });
-          }
-        } else {
-          // Generate default quotation number if enquiry doesn't have one
-          const now = new Date();
-          const year = now.getFullYear();
-          const month = String(now.getMonth() + 1).padStart(2, '0');
-          const timestamp = now.getTime().toString().slice(-6);
-          quotationNumber = `Q${year}${month}${timestamp}`;
-        }
-      } else {
-        // Generate default quotation number if no enquiry is selected
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const timestamp = now.getTime().toString().slice(-6);
-        quotationNumber = `Q${year}${month}${timestamp}`;
+      quotationNumber = enquiry.quotationNumber;
+
+      // Check for duplicate quotation number before creating
+      const existingQuotation = await db.quotation.findUnique({
+        where: { quotationNumber },
+      });
+
+      if (existingQuotation) {
+        throw new TRPCError({
+          code: 'CONFLICT',
+          message: `Quotation number "${quotationNumber}" already exists. Please use a different quotation number.`,
+        });
       }
 
       // Calculate totals - handle empty items array
@@ -69,7 +65,7 @@ export const quotationRouter = createTRPCRouter({
           // 1. Create the main Quotation record
           const newQuotation = await prisma.quotation.create({
             data: {
-              enquiryId: enquiryId ?? null,
+              enquiryId,
               quotationNumber,
               subtotal,
               tax: 0,
@@ -298,6 +294,9 @@ export const quotationRouter = createTRPCRouter({
             enquiry: {
               include: {
                 customer: {
+                  select: { name: true },
+                },
+                company: {
                   select: { name: true },
                 },
               },

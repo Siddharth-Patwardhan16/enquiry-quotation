@@ -122,7 +122,7 @@ export default function EditQuotationPage() {
               Edit Quotation {quotation.quotationNumber}
             </h1>
             <p className="text-gray-600 mt-1">
-              For {quotation.enquiry?.customer?.name ?? 'Unknown Customer'}
+              For {quotation.enquiry?.company?.name ?? quotation.enquiry?.customer?.name ?? 'Unknown Customer'}
             </p>
           </div>
         </div>
@@ -208,7 +208,7 @@ export default function EditQuotationPage() {
                 Enquiry
               </label>
               <div className="w-full rounded-md border border-gray-300 p-2 bg-gray-50 text-gray-700">
-                {quotation.enquiry?.customer?.name ?? 'Unknown Customer'}
+                {quotation.enquiry?.company?.name ?? quotation.enquiry?.customer?.name ?? 'Unknown Customer'}
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 Enquiry cannot be changed

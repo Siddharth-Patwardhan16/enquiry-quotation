@@ -11,6 +11,7 @@ import { useFormConfirmation } from '@/hooks/useFormConfirmation';
 import { useToastContext } from '@/components/providers/ToastProvider';
 import type { AppRouter } from '@/server/api/root';
 import type { inferRouterOutputs } from '@trpc/server';
+import { useMemo, useState } from 'react';
 
 // Use the same type as other enquiry components
 type Enquiry = inferRouterOutputs<AppRouter>['enquiry']['getAll'][0];
@@ -26,6 +27,7 @@ export default function NewQuotationPage() {
   
   // Fetch enquiries to populate the dropdown
   const { data: enquiries, isLoading: isLoadingEnquiries } = api.enquiry.getAll.useQuery({});
+  const [enquirySearch, setEnquirySearch] = useState('');
 
   const {
     register,
@@ -45,6 +47,16 @@ export default function NewQuotationPage() {
   // Watch the selected enquiry to get its quotation number
   const selectedEnquiryId = watch('enquiryId');
   const selectedEnquiry = enquiries?.find(e => e.id === selectedEnquiryId);
+  const filteredEnquiries = useMemo(() => {
+    const term = enquirySearch.trim().toLowerCase();
+    if (!term) return enquiries ?? [];
+    return (enquiries ?? []).filter((e) => {
+      const company = (e.company?.name ?? '').toLowerCase();
+      const subject = (e.subject ?? '').toLowerCase();
+      const quotation = (e.quotationNumber ?? '').toLowerCase();
+      return company.includes(term) || subject.includes(term) || quotation.includes(term);
+    });
+  }, [enquiries, enquirySearch]);
   
   // Watch the items to calculate totals in real-time
   const watchedItems = watch('items') ?? [];
@@ -170,14 +182,21 @@ export default function NewQuotationPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Enquiry
               </label>
-              <select 
-                {...register('enquiryId')} 
+              <input
+                type="text"
+                value={enquirySearch}
+                onChange={(e) => setEnquirySearch(e.target.value)}
+                placeholder="Search enquiry by customer, subject, or quotation number"
+                className="mb-2 w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <select
+                {...register('enquiryId')}
                 className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">{isLoadingEnquiries ? "Loading..." : "Select Enquiry (Optional)"}</option>
-                {enquiries?.map((e: Enquiry) => (
+                <option value="">{isLoadingEnquiries ? 'Loading...' : 'Select Enquiry'}</option>
+                {filteredEnquiries.map((e: Enquiry) => (
                   <option key={e.id} value={e.id}>
-                    {e.quotationNumber ? `Q#${e.quotationNumber} - ` : ''}{e.company?.name} - {e.subject}
+                    {e.quotationNumber ? `Q#${e.quotationNumber} - ` : ''}{e.company?.name ?? 'Unknown customer'} - {e.subject ?? 'No subject'}
                   </option>
                 ))}
               </select>
