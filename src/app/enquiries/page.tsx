@@ -778,7 +778,7 @@ export default function EnquiriesPage() {
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Customer</th>
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Enquiry Date</th>
                       <th className="text-black h-10 px-4 text-left align-middle font-medium whitespace-nowrap">Status</th>
-                      <th className="text-black h-10 px-4 text-right align-middle font-medium whitespace-nowrap">Actions</th>
+                      <th className="text-black h-10 px-4 text-right align-middle font-medium whitespace-nowrap sticky right-0 bg-gray-50 z-10">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="[&_tr:last-child]:border-0">
@@ -867,7 +867,7 @@ export default function EnquiriesPage() {
                               )}
                             </div>
                           </td>
-                          <td className="p-4 align-middle whitespace-nowrap text-right">
+                          <td className="p-4 align-middle whitespace-nowrap text-right sticky right-0 bg-white z-10">
                             <div className="flex items-center justify-end space-x-2">
                               <button
                                 onClick={() => {
