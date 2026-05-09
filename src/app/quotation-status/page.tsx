@@ -3,16 +3,15 @@
 import { useState } from 'react';
 import { api } from '@/trpc/client';
 import { QuotationStatusUpdater } from './_components/QuotationStatusUpdater';
-import type { AppRouter } from '@/server/api/root';
-import type { inferRouterOutputs } from '@trpc/server';
+import type { ComponentProps } from 'react';
 
-// Use the same type as the QuotationStatusUpdater component
-type Quotation = inferRouterOutputs<AppRouter>['quotation']['getAll'][0];
+type Quotation = ComponentProps<typeof QuotationStatusUpdater>['quotation'];
 
 export default function QuotationStatusPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const { data: quotations, isLoading, error } = api.quotation.getAll.useQuery();
-  const { data: stats, isLoading: isLoadingStats, error: statsError } = api.quotation.getStats.useQuery();
+  const { data: quotations, isLoading, error } = api.quotation.getAll.useQuery({});
+  const { data: stats, isLoading: isLoadingStats, error: statsError } = api.quotation.getStats.useQuery({});
+  const typedQuotations = ((quotations ?? []) as unknown) as Quotation[];
 
   if (error) {
     return (
@@ -56,8 +55,8 @@ export default function QuotationStatusPage() {
 
   // Filter quotations based on status filter
   const filteredQuotations = statusFilter 
-    ? quotations?.filter(q => q.status === statusFilter) ?? []
-    : quotations ?? [];
+    ? typedQuotations.filter(q => q.status === statusFilter)
+    : typedQuotations;
 
   // Calculate total value from filtered quotations
   // Use PO value for WON quotations (matching dashboard chart logic)
@@ -306,19 +305,28 @@ export default function QuotationStatusPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredQuotations?.map((quotation: Quotation) => (
+                    {filteredQuotations.map((quotation: Quotation) => (
+                      (() => {
+                        const q = quotation as Quotation & {
+                          enquiry?: {
+                            company?: { name?: string | null } | null;
+                            customer?: { name?: string | null } | null;
+                            subject?: string | null;
+                          } | null;
+                        };
+                        return (
                       <tr key={quotation.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{quotation.quotationNumber}</div>
                         </td>
                         <td className="px-4 md:px-6 py-4">
-                          <div className="text-sm text-gray-900 max-w-[150px] truncate" title={quotation.enquiry?.company?.name ?? quotation.enquiry?.customer?.name ?? 'N/A'}>
-                            {quotation.enquiry?.company?.name ?? quotation.enquiry?.customer?.name ?? 'N/A'}
+                          <div className="text-sm text-gray-900 max-w-[150px] truncate" title={q.enquiry?.company?.name ?? q.enquiry?.customer?.name ?? 'N/A'}>
+                            {q.enquiry?.company?.name ?? q.enquiry?.customer?.name ?? 'N/A'}
                           </div>
                         </td>
                         <td className="px-4 md:px-6 py-4">
-                          <div className="text-sm text-gray-900 max-w-[200px] truncate" title={quotation.enquiry?.subject ?? 'N/A'}>
-                            {quotation.enquiry?.subject ?? 'N/A'}
+                          <div className="text-sm text-gray-900 max-w-[200px] truncate" title={q.enquiry?.subject ?? 'N/A'}>
+                            {q.enquiry?.subject ?? 'N/A'}
                           </div>
                         </td>
                         <td className="px-4 md:px-6 py-4 whitespace-nowrap">
@@ -340,6 +348,8 @@ export default function QuotationStatusPage() {
                           </button>
                         </td>
                       </tr>
+                        );
+                      })()
                     ))}
                   </tbody>
                 </table>
@@ -348,7 +358,7 @@ export default function QuotationStatusPage() {
           </div>
         )}
         
-        {!isLoading && quotations?.length === 0 && (
+        {!isLoading && typedQuotations.length === 0 && (
           <div className="p-8 text-center">
             <div className="text-gray-400 text-6xl mb-4">📄</div>
             <p className="text-gray-600 text-lg">No quotations found</p>

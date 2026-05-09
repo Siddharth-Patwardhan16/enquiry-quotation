@@ -3,16 +3,29 @@
 import Link from 'next/link';
 import { api } from '@/trpc/client';
 import { Calculator, TrendingUp, Clock, CheckCircle, Eye, Plus, Edit, Trash2 } from 'lucide-react';
-import type { AppRouter } from '@/server/api/root';
-import type { inferRouterOutputs } from '@trpc/server';
 import { useState } from 'react';
+import { buildFinancialYearOptions, getFinancialYear } from '@/lib/financial-year';
 
-// Use the same type as other quotation components
-type Quotation = inferRouterOutputs<AppRouter>['quotation']['getAll'][0];
+type Quotation = {
+  id: string;
+  quotationNumber: string;
+  quotationDate: Date | null;
+  createdAt: Date;
+  totalValue: number;
+  purchaseOrderNumber: string | null;
+  status: 'LIVE' | 'WON' | 'LOST' | 'BUDGETARY' | 'DEAD' | 'RECEIVED';
+  enquiry: {
+    company: { name: string } | null;
+    customer: { name: string } | null;
+  } | null;
+};
 
 export default function QuotationsPage() {
-  const { data: quotations, isLoading, error, refetch } = api.quotation.getAll.useQuery();
-  const { data: stats } = api.quotation.getStats.useQuery();
+  const [financialYear, setFinancialYear] = useState(() => getFinancialYear(new Date()));
+  const financialYearOptions = buildFinancialYearOptions(6, 1);
+  const { data: quotations, isLoading, error, refetch } = api.quotation.getAll.useQuery({ financialYear });
+  const { data: stats } = api.quotation.getStats.useQuery({ financialYear });
+  const typedQuotations = ((quotations ?? []) as unknown) as Quotation[];
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const deleteQuotationMutation = api.quotation.delete.useMutation({
@@ -99,6 +112,26 @@ export default function QuotationsPage() {
       </div>
 
       {/* Stats Cards */}
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <span className="font-medium whitespace-nowrap">Financial year</span>
+          <select
+            value={financialYear}
+            onChange={(e) => setFinancialYear(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+          >
+            {financialYearOptions.map((fy) => (
+              <option key={fy} value={fy}>
+                {fy}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="text-sm text-gray-500">
+          Quotations shown are filtered using the selected financial year.
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="p-5">
@@ -202,7 +235,7 @@ export default function QuotationsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {quotations && quotations.length > 0 ? quotations.map((q: Quotation) => (
+                  {typedQuotations.length > 0 ? typedQuotations.map((q: Quotation) => (
                     <tr key={q.id} className="border-b last:border-none hover:bg-gray-50">
                       <td className="p-4 font-medium text-gray-900">{q.quotationNumber}</td>
                       <td className="p-4 text-gray-900">{q.enquiry?.company?.name ?? q.enquiry?.customer?.name ?? 'Unknown Customer'}</td>

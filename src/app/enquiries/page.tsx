@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { buildFinancialYearOptions, getFinancialYear } from '@/lib/financial-year';
 import { normalizeOptionalUuidValue, UpdateEnquiryFullSchema } from '@/lib/validators/enquiry';
 import { api } from '@/trpc/client';
@@ -59,6 +59,41 @@ function getEnquiryMutationErrorMessage(errorMessage: string): string {
 }
 
 type UpdateEnquiryMutationInput = z.input<typeof UpdateEnquiryFullSchema>;
+type EnquiryRow = {
+  id: number;
+  financialYear: string;
+  sequenceNumber: number;
+  quotationNumber: string | null;
+  subject: string | null;
+  status: 'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'WON' | 'BUDGETARY';
+  enquiryDate: Date | null;
+  quotationDate: Date | null;
+  oaDate: Date | null;
+  dateOfReceipt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  companyId: string | null;
+  customerId: string | null;
+  officeId: string | null;
+  plantId: string | null;
+  locationId: string | null;
+  region: string | null;
+  oaNumber: string | null;
+  blockModel: string | null;
+  numberOfBlocks: string | null;
+  designRequired: string | null;
+  attendedById: string | null;
+  customerType: string | null;
+  source: string | null;
+  purchaseOrderNumber: string | null;
+  poValue: number | null;
+  poDate: Date | null;
+  company: { name: string } | null;
+  office: { name: string } | null;
+  plant: { name: string } | null;
+  marketingPerson: { name: string } | null;
+  attendedBy: { name: string } | null;
+};
 
 export default function EnquiriesPage() {
   const { success, error: showError } = useToastContext();
@@ -196,10 +231,21 @@ export default function EnquiriesPage() {
   const [selectedEnquiryId, setSelectedEnquiryId] = useState<number | null>(null);
   const [isCommunicationDrawerOpen, setIsCommunicationDrawerOpen] = useState(false);
 
+  useEffect(() => {
+    setSearchTerm('');
+    setStatusFilter(null);
+    setViewingEnquiry(null);
+    setEditingEnquiry(null);
+    setSelectedEnquiryId(null);
+    setIsCommunicationDrawerOpen(false);
+  }, [financialYear]);
+
   if (error) return <div>Error: {error.message}</div>;
 
+  const allEnquiries = ((enquiries ?? []) as unknown) as EnquiryRow[];
+
   // Filter enquiries based on search and status
-  const filteredEnquiries = enquiries?.filter((enquiry) => {
+  const filteredEnquiries = allEnquiries.filter((enquiry: EnquiryRow) => {
     const companyName = enquiry.company?.name ?? '';
     const entityName = companyName;
     
@@ -214,7 +260,7 @@ export default function EnquiriesPage() {
     const matchesStatus = statusFilter === null || enquiry.status === statusFilter;
     
     return matchesSearch && matchesStatus;
-  }) ?? [];
+  });
 
   // Use backend stats if available, otherwise show loading
   const displayStats = stats ? {
@@ -361,7 +407,7 @@ export default function EnquiriesPage() {
   };
 
   const handleEditEnquiry = (enquiryId: number) => {
-    const enquiry = enquiries?.find((e) => e.id === enquiryId);
+    const enquiry = allEnquiries.find((e) => e.id === enquiryId);
     if (enquiry) {
       // Close view modal if open
       if (viewingEnquiry === enquiryId) {
@@ -746,7 +792,7 @@ export default function EnquiriesPage() {
                         </td>
                       </tr>
                     ) : filteredEnquiries.length > 0 ? (
-                      filteredEnquiries.map((enquiry) => (
+                      filteredEnquiries.map((enquiry: EnquiryRow) => (
                         <tr key={enquiry.id} className="hover:bg-gray-50 data-[state=selected]:bg-muted border-b transition-colors">
                                                      <td className="p-4 align-middle whitespace-nowrap text-sm text-gray-900" title={`Internal id: ${enquiry.id}`}>
                              {enquiry.financialYear}-{enquiry.sequenceNumber}
@@ -888,7 +934,7 @@ export default function EnquiriesPage() {
             {filteredEnquiries.length > 0 && (
               <div className="flex items-center justify-between mt-6">
                 <div className="text-sm text-gray-500">
-                  Showing {filteredEnquiries.length} of {enquiries?.length ?? 0} enquiries
+                  Showing {filteredEnquiries.length} of {allEnquiries.length} enquiries
                 </div>
               </div>
             )}
@@ -1277,7 +1323,7 @@ export default function EnquiriesPage() {
                     </button>
                   </div>
                 {(() => {
-                  const enquiry = enquiries?.find((e) => e.id === viewingEnquiry);
+                  const enquiry = allEnquiries.find((e) => e.id === viewingEnquiry);
                   if (!enquiry) return <div>Enquiry not found</div>;
                   
                   return (

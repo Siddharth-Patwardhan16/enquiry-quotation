@@ -1,43 +1,56 @@
 import { prisma } from "../db";
+import { createClient } from '@supabase/supabase-js';
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/lib/supabase-config';
 
-// For now, we'll use a simple approach to get the current user
-// In a real application, you'd get this from the session/JWT token
-const getCurrentUser = async () => {
+const supabaseServerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const getCurrentUser = async (req?: Request) => {
   try {
-    // For demo purposes, we'll get Siddharth as the current user
-    // In production, this would come from the authentication session
-    let employee = await prisma.employee.findFirst({
-      where: {
-        name: 'Siddharth'
-      }
+    const authHeader = req?.headers.get('authorization') ?? req?.headers.get('Authorization');
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+
+    if (!bearerToken) {
+      return null;
+    }
+
+    const { data, error } = await supabaseServerClient.auth.getUser(bearerToken);
+    if (error || !data.user?.email) {
+      return null;
+    }
+
+    const email = data.user.email;
+    const fallbackName = email.split('@')[0] ?? 'Unknown User';
+    const metadata = data.user.user_metadata as { full_name?: string } | null;
+    const name = metadata?.full_name ?? fallbackName;
+
+    let employee = await prisma.employee.findUnique({
+      where: { email }
     });
-    
-    // If Siddharth doesn't exist, create him
+
     employee ??= await prisma.employee.create({
-        data: {
-          id: 'siddharth-user-1',
-          name: 'Siddharth',
-          email: 'siddharth@example.com',
-          role: 'MARKETING'
-        }
+      data: {
+        id: `emp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        name,
+        email,
+        role: 'MARKETING',
+      },
+    });
+
+    if (employee.name !== name) {
+      employee = await prisma.employee.update({
+        where: { email },
+        data: { name },
       });
-      // Default user created successfully
-    
+    }
+
     return employee;
   } catch {
-    // Error handling for user context creation
-    // Return a fallback user object if database operations fail
-    return {
-      id: 'fallback-user-1',
-      name: 'Siddharth',
-      email: 'siddharth@example.com',
-      role: 'MARKETING'
-    };
+    return null;
   }
 };
 
-const createInnerTRPCContext = async () => {
-  const currentUser = await getCurrentUser();
+const createInnerTRPCContext = async (req?: Request) => {
+  const currentUser = await getCurrentUser(req);
   
   return {
     prisma,
@@ -45,8 +58,8 @@ const createInnerTRPCContext = async () => {
   };
 };
 
-export const createTRPCContext = () => {
-  return createInnerTRPCContext();
+export const createTRPCContext = (req?: Request) => {
+  return createInnerTRPCContext(req);
 };
 
 export type TRPCContext = Awaited<ReturnType<typeof createTRPCContext>>;

@@ -2,6 +2,7 @@
 import { createTRPCRouter, publicProcedure } from '../trpc';
 import { CreateQuotationSchema } from '@/lib/validators/quotation';
 import { UpdateQuotationStatusSchema } from '@/lib/validators/quotationStatus';
+import { FinancialYearFilterSchema } from '@/lib/financial-year';
 import { db } from '@/server/db';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -118,8 +119,18 @@ export const quotationRouter = createTRPCRouter({
       }
     }),
 
-  getAll: publicProcedure.query(() => {
+  getAll: publicProcedure
+    .input(FinancialYearFilterSchema)
+    .query(({ input }) => {
+    const where = input.financialYear
+      ? {
+          enquiry: {
+            financialYear: input.financialYear,
+          },
+        }
+      : {};
     return db.quotation.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
       include: {
         // Include related data to display in the list
@@ -146,25 +157,34 @@ export const quotationRouter = createTRPCRouter({
   }),
 
   // Get quotation statistics - moved from frontend calculations
-  getStats: publicProcedure.query(async () => {
+  getStats: publicProcedure
+    .input(FinancialYearFilterSchema)
+    .query(async ({ input }) => {
+    const where = input.financialYear
+      ? {
+          enquiry: {
+            financialYear: input.financialYear,
+          },
+        }
+      : {};
     const [total, live, won, lost, budgetary, dead] = await Promise.all([
-      db.quotation.count(),
-      db.quotation.count({ where: { status: { in: ['LIVE'] } } }),
-      db.quotation.count({ where: { status: 'WON' } }),
-      db.quotation.count({ where: { status: 'LOST' } }),
-      db.quotation.count({ where: { status: 'BUDGETARY' } }),
-      db.quotation.count({ where: { status: 'DEAD' } })
+      db.quotation.count({ where }),
+      db.quotation.count({ where: { ...where, status: { in: ['LIVE'] } } }),
+      db.quotation.count({ where: { ...where, status: 'WON' } }),
+      db.quotation.count({ where: { ...where, status: 'LOST' } }),
+      db.quotation.count({ where: { ...where, status: 'BUDGETARY' } }),
+      db.quotation.count({ where: { ...where, status: 'DEAD' } })
     ]);
 
     // Calculate total value for live/submitted quotations
     const liveTotalValue = await db.quotation.aggregate({
-      where: { status: { in: ['LIVE'] } },
+      where: { ...where, status: { in: ['LIVE'] } },
       _sum: { totalValue: true }
     });
 
     // Calculate total value for all active quotations (live, submitted, won, budgetary)
     const activeTotalValue = await db.quotation.aggregate({
-      where: { status: { in: ['LIVE', 'WON', 'BUDGETARY'] } },
+      where: { ...where, status: { in: ['LIVE', 'WON', 'BUDGETARY'] } },
       _sum: { totalValue: true }
     });
 

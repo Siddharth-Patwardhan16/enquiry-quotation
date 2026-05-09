@@ -95,6 +95,12 @@ export function EnquiryStatusModal({
     );
   }
 
+  const enquiryDetails = enquiry as typeof enquiry & {
+    company?: { name?: string | null } | null;
+    office?: { name?: string | null } | null;
+    plant?: { name?: string | null } | null;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -113,8 +119,8 @@ export function EnquiryStatusModal({
               <div className="flex-1">
                 <h4 className="font-semibold text-gray-900 mb-2">Enquiry Details</h4>
                 <div className="space-y-1 text-sm text-gray-700">
-                  <p><span className="font-medium">Customer:</span> {enquiry.company?.name ?? 'Not specified'}</p>
-                  <p><span className="font-medium">Location:</span> {enquiry.office?.name ?? enquiry.plant?.name ?? 'Not specified'}</p>
+                  <p><span className="font-medium">Customer:</span> {enquiryDetails.company?.name ?? 'Not specified'}</p>
+                  <p><span className="font-medium">Location:</span> {enquiryDetails.office?.name ?? enquiryDetails.plant?.name ?? 'Not specified'}</p>
                   {enquiry.subject && (
                     <p><span className="font-medium">Subject:</span> {enquiry.subject}</p>
                   )}

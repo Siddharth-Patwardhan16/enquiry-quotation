@@ -9,12 +9,15 @@ import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Save, ArrowLeft } from 'lucide-react';
 import { useFormConfirmation } from '@/hooks/useFormConfirmation';
 import { useToastContext } from '@/components/providers/ToastProvider';
-import type { AppRouter } from '@/server/api/root';
-import type { inferRouterOutputs } from '@trpc/server';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { EnquirySelector, type EnquiryOption } from '@/components/ui/EnquirySelector';
 
-// Use the same type as other enquiry components
-type Enquiry = inferRouterOutputs<AppRouter>['enquiry']['getAll'][0];
+type EnquiryRow = {
+  id: number;
+  subject: string | null;
+  quotationNumber: string | null;
+  company: { name: string } | null;
+};
 
 // Quotation number will be auto-assigned from the selected enquiry
 
@@ -27,7 +30,6 @@ export default function NewQuotationPage() {
   
   // Fetch enquiries to populate the dropdown
   const { data: enquiries, isLoading: isLoadingEnquiries } = api.enquiry.getAll.useQuery({});
-  const [enquirySearch, setEnquirySearch] = useState('');
 
   const {
     register,
@@ -35,6 +37,7 @@ export default function NewQuotationPage() {
     control, // Control object from useForm is needed for useFieldArray
     formState: { errors },
     watch,
+    setValue,
   } = useForm({
     resolver: zodResolver(CreateQuotationSchema),
     defaultValues: {
@@ -45,18 +48,22 @@ export default function NewQuotationPage() {
   });
 
   // Watch the selected enquiry to get its quotation number
-  const selectedEnquiryId = watch('enquiryId');
-  const selectedEnquiry = enquiries?.find(e => e.id === selectedEnquiryId);
-  const filteredEnquiries = useMemo(() => {
-    const term = enquirySearch.trim().toLowerCase();
-    if (!term) return enquiries ?? [];
-    return (enquiries ?? []).filter((e) => {
-      const company = (e.company?.name ?? '').toLowerCase();
-      const subject = (e.subject ?? '').toLowerCase();
-      const quotation = (e.quotationNumber ?? '').toLowerCase();
-      return company.includes(term) || subject.includes(term) || quotation.includes(term);
-    });
-  }, [enquiries, enquirySearch]);
+  const selectedEnquiryId = watch('enquiryId') as number | undefined;
+  const typedEnquiries = useMemo(
+    () => (((Array.isArray(enquiries) ? enquiries : []) as unknown) as EnquiryRow[]),
+    [enquiries],
+  );
+  const selectedEnquiry = typedEnquiries.find((e) => e.id === selectedEnquiryId);
+  const enquiryOptions = useMemo<EnquiryOption[]>(
+    () =>
+      typedEnquiries.map((e: EnquiryRow) => ({
+        id: e.id,
+        subject: e.subject ?? null,
+        quotationNumber: e.quotationNumber ?? null,
+        companyName: e.company?.name ?? 'Unknown customer',
+      })),
+    [typedEnquiries],
+  );
   
   // Watch the items to calculate totals in real-time
   const watchedItems = watch('items') ?? [];
@@ -179,27 +186,13 @@ export default function NewQuotationPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Enquiry
-              </label>
-              <input
-                type="text"
-                value={enquirySearch}
-                onChange={(e) => setEnquirySearch(e.target.value)}
-                placeholder="Search enquiry by customer, subject, or quotation number"
-                className="mb-2 w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              <EnquirySelector
+                options={enquiryOptions}
+                selectedId={selectedEnquiryId}
+                loading={isLoadingEnquiries}
+                onSelect={(id) => setValue('enquiryId', id, { shouldValidate: true, shouldDirty: true })}
               />
-              <select
-                {...register('enquiryId')}
-                className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">{isLoadingEnquiries ? 'Loading...' : 'Select Enquiry'}</option>
-                {filteredEnquiries.map((e: Enquiry) => (
-                  <option key={e.id} value={e.id}>
-                    {e.quotationNumber ? `Q#${e.quotationNumber} - ` : ''}{e.company?.name ?? 'Unknown customer'} - {e.subject ?? 'No subject'}
-                  </option>
-                ))}
-              </select>
+              <input type="hidden" {...register('enquiryId')} />
               {errors.enquiryId && <p className="text-red-500 text-sm mt-1">{errors.enquiryId.message}</p>}
             </div>
             
