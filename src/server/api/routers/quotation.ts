@@ -12,9 +12,6 @@ export const quotationRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { enquiryId, items = [], quotationDate, ...rest } = input;
 
-      // Generate quotation number - use enquiry's quotation number if available, otherwise generate default
-      let quotationNumber: string;
-      
       // Get the enquiry to retrieve its quotation number
       const enquiry = await db.enquiry.findUnique({
         where: { id: enquiryId },
@@ -35,7 +32,7 @@ export const quotationRouter = createTRPCRouter({
         });
       }
 
-      quotationNumber = enquiry.quotationNumber;
+      const quotationNumber = enquiry.quotationNumber;
 
       // Check for duplicate quotation number before creating
       const existingQuotation = await db.quotation.findUnique({
