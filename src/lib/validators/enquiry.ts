@@ -62,10 +62,11 @@ const optionalUuidField = (message: string) =>
     z.string().uuid(message).optional(),
   );
 
-const optionalNullableUuidField = (message: string) =>
+/** Employee ids use `emp-...` (not UUID); accept any non-empty string. */
+const optionalNullableEmployeeIdField = (message: string) =>
   z.preprocess(
     (value) => normalizeOptionalUuidInput(value, { allowNull: true }),
-    z.string().uuid(message).nullable().optional(),
+    z.string().min(1, message).nullable().optional(),
   );
 
 export const CreateEnquirySchema = z.object({
@@ -95,7 +96,7 @@ export const CreateEnquirySchema = z.object({
   blockModel: optionalStringField(),
   numberOfBlocks: optionalStringField(),
   designRequired: optionalEnumField(['Yes', 'No']),
-  attendedById: optionalNullableUuidField(
+  attendedById: optionalNullableEmployeeIdField(
     'Please select a valid employee for Attended By.',
   ),
   customerType: optionalEnumField(['NEW', 'OLD']),
@@ -141,7 +142,7 @@ export const UpdateEnquiryFullSchema = z.object({
   blockModel: optionalStringField(),
   numberOfBlocks: optionalStringField(),
   designRequired: optionalEnumField(['Yes', 'No']),
-  attendedById: optionalNullableUuidField(
+  attendedById: optionalNullableEmployeeIdField(
     'Please select a valid employee for Attended By.',
   ),
   customerType: optionalEnumField(['NEW', 'OLD']),
