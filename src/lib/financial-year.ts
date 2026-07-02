@@ -55,7 +55,14 @@ export const FinancialYearFilterSchema = z.object({
   financialYear: z.string().optional(),
 });
 
+export const EnquiryTrendsFilterSchema = z.object({
+  view: z.enum(['monthly', 'yearly']).default('monthly'),
+  financialYear: z.string().optional(),
+  yearsBack: z.number().min(1).max(10).optional().default(6),
+});
+
 export type FinancialYearFilterInput = z.infer<typeof FinancialYearFilterSchema>;
+export type EnquiryTrendsFilterInput = z.infer<typeof EnquiryTrendsFilterSchema>;
 
 /** Month labels in FY order (April → March) */
 export const FINANCIAL_YEAR_MONTH_LABELS = [

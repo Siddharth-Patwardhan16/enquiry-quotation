@@ -29,13 +29,9 @@ export default function DashboardPage() {
     api.dashboard.getRecentEnquiries.useQuery(fyQuery);
   const { data: recentQuotations, isLoading: isLoadingQuotations } =
     api.dashboard.getRecentQuotations.useQuery(fyQuery);
-  const { data: monthlyTrends, isLoading: isLoadingTrends } =
-    api.dashboard.getMonthlyEnquiryTrends.useQuery(fyQuery);
-  const { data: quotationValueData, isLoading: isLoadingQuotationValue } =
-    api.dashboard.getQuotationValueVsLive.useQuery(fyQuery);
 
   // Show loading skeleton while data is loading
-  if (isLoadingStats || isLoadingReasons || isLoadingEnquiries || isLoadingQuotations || isLoadingTrends || isLoadingQuotationValue) {
+  if (isLoadingStats || isLoadingReasons || isLoadingEnquiries || isLoadingQuotations) {
     return <DashboardSkeleton />;
   }
 
@@ -96,10 +92,7 @@ export default function DashboardPage() {
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <MonthlyTrendsChart 
-          monthlyTrends={monthlyTrends} 
-          isLoadingTrends={isLoadingTrends} 
-        />
+        <MonthlyTrendsChart />
         <LostReasonsChart 
           lostReasons={lostReasons} 
           isLoadingReasons={isLoadingReasons} 
@@ -108,10 +101,7 @@ export default function DashboardPage() {
 
       {/* Quotation Portfolio Analysis */}
       <div className="grid grid-cols-1 gap-6">
-        <QuotationValueVsLiveChart 
-          quotationData={quotationValueData} 
-          isLoading={isLoadingQuotationValue} 
-        />
+        <QuotationValueVsLiveChart />
       </div>
 
       {/* Recent Activity Section */}

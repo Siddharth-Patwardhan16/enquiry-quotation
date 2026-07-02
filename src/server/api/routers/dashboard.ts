@@ -1,9 +1,12 @@
 // src/server/api/routers/dashboard.ts
 import {
   FinancialYearFilterSchema,
+  EnquiryTrendsFilterSchema,
   FINANCIAL_YEAR_MONTH_LABELS,
+  buildFinancialYearOptions,
   dateToFinancialYearMonthIndex,
-  getFinancialYearDateRange,
+  getFinancialYear,
+  parseFinancialYearLabel,
 } from '@/lib/financial-year';
 import { createTRPCRouter, publicProcedure } from '../trpc';
 import { db } from '../../db';
@@ -122,156 +125,163 @@ export const dashboardRouter = createTRPCRouter({
     return recentQuotations;
   }),
 
-  // Procedure to get monthly enquiry trends
+  // Procedure to get monthly or yearly enquiry trends (live counts)
   getMonthlyEnquiryTrends: publicProcedure
-    .input(FinancialYearFilterSchema)
+    .input(EnquiryTrendsFilterSchema)
     .query(async ({ input }) => {
-    if (input.financialYear) {
-      const { gte, lte } = getFinancialYearDateRange(input.financialYear);
+      if (input.view === 'yearly') {
+        const currentFy = getFinancialYear(new Date());
+        const { startYear: currentStart } = parseFinancialYearLabel(currentFy);
+        const yearLabels = Array.from({ length: input.yearsBack ?? 6 }, (_, index) => {
+          const startYear = currentStart - ((input.yearsBack ?? 6) - 1 - index);
+          return `${startYear}-${String(startYear + 1).slice(-2)}`;
+        });
+
+        const grouped = await db.enquiry.groupBy({
+          by: ['financialYear'],
+          _count: { id: true },
+          where: {
+            financialYear: { in: yearLabels },
+          },
+        });
+
+        const countByYear = new Map(
+          grouped.map((row) => [row.financialYear, row._count.id]),
+        );
+
+        const trends = yearLabels.map((fy) => ({
+          month: fy,
+          count: countByYear.get(fy) ?? 0,
+        }));
+
+        return {
+          trends,
+          totalCount: trends.reduce((sum, row) => sum + row.count, 0),
+        };
+      }
+
+      const financialYear = input.financialYear ?? getFinancialYear(new Date());
       const rows = await db.enquiry.findMany({
-        where: { createdAt: { gte, lte } },
-        select: { createdAt: true },
+        where: { financialYear },
+        select: { createdAt: true, enquiryDate: true },
       });
+
       const counts = Array.from({ length: 12 }, () => 0);
       for (const row of rows) {
-        const idx = dateToFinancialYearMonthIndex(row.createdAt);
+        const date = row.enquiryDate ?? row.createdAt;
+        const idx = dateToFinancialYearMonthIndex(date);
         counts[idx] += 1;
       }
-      return FINANCIAL_YEAR_MONTH_LABELS.map((month, index) => ({
+
+      const trends = FINANCIAL_YEAR_MONTH_LABELS.map((month, index) => ({
         month,
         count: counts[index] ?? 0,
       }));
-    }
 
-    const monthlyTrends = await db.enquiry.groupBy({
-      by: ['createdAt'],
-      _count: {
-        id: true,
-      },
-      where: {
-        createdAt: {
-          gte: new Date(new Date().getFullYear(), 0, 1), // From start of current year
-        },
-      },
-    });
+      return {
+        trends,
+        totalCount: rows.length,
+        financialYear,
+        yearOptions: buildFinancialYearOptions(6, 1),
+      };
+    }),
 
-    // Group by month and count enquiries
-    const monthlyData = monthlyTrends.reduce((acc: Record<number, number>, trend: { createdAt: Date; _count: { id: number } }) => {
-      const month = trend.createdAt.getMonth();
-      acc[month] = (acc[month] || 0) + trend._count.id;
-      return acc;
-    }, {} as Record<number, number>);
-
-    // Convert to array format for charts
-    const monthNames = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-
-    return monthNames.map((month, index) => ({
-      month,
-      count: monthlyData[index] || 0,
-    }));
-  }),
-
-  // Procedure to get quotation value vs live quotations data
+  // Procedure to get quotation portfolio trends (count + value by month or year)
   getQuotationValueVsLive: publicProcedure
-    .input(FinancialYearFilterSchema)
+    .input(EnquiryTrendsFilterSchema)
     .query(async ({ input }) => {
-    const enquiryFy = input.financialYear
-      ? { enquiry: { financialYear: input.financialYear } }
-      : {};
+      const getQuotationValue = (quotation: {
+        status: string;
+        totalValue: { toString(): string } | null;
+        poValue: { toString(): string } | null;
+      }) => {
+        if (quotation.status === 'WON' && quotation.poValue) {
+          return Number(quotation.poValue);
+        }
+        return Number(quotation.totalValue ?? 0);
+      };
 
-    // Get all quotations with their total values and status
-    const quotations = await db.quotation.findMany({
-      select: {
-        totalValue: true,
-        status: true,
-        quotationDate: true,
-        poValue: true,
-        enquiryId: true,
-      },
-      where: {
-        totalValue: {
-          not: null,
+      const quotations = await db.quotation.findMany({
+        select: {
+          totalValue: true,
+          status: true,
+          quotationDate: true,
+          poValue: true,
+          enquiry: {
+            select: {
+              financialYear: true,
+            },
+          },
         },
-        ...enquiryFy,
-      },
-    });
-
-    // Get enquiries with PO values (RCD and WON status)
-    const enquiriesWithPO = await db.enquiry.findMany({
-      select: {
-        id: true,
-        status: true,
-        poValue: true,
-      },
-      where: {
-        status: {
-          in: ['RCD', 'WON'],
+        where: {
+          totalValue: {
+            not: null,
+          },
         },
-        poValue: {
-          not: null,
-        },
-        ...(input.financialYear ? { financialYear: input.financialYear } : {}),
-      },
-    });
+      });
 
-    // Get set of enquiry IDs that have WON quotations (to avoid double counting)
-    const enquiryIdsWithWonQuotations = new Set(
-      quotations
-        .filter(q => q.status === 'WON')
-        .map(q => q.enquiryId)
-        .filter((id): id is number => id !== null)
-    );
+      if (input.view === 'yearly') {
+        const currentFy = getFinancialYear(new Date());
+        const { startYear: currentStart } = parseFinancialYearLabel(currentFy);
+        const yearLabels = Array.from({ length: input.yearsBack ?? 6 }, (_, index) => {
+          const startYear = currentStart - ((input.yearsBack ?? 6) - 1 - index);
+          return `${startYear}-${String(startYear + 1).slice(-2)}`;
+        });
 
-    // Group by status and calculate totals
-    const statusGroups = quotations.reduce((acc, quotation) => {
-      const status = quotation.status;
-      if (!acc[status]) {
-        acc[status] = {
-          count: 0,
-          totalValue: 0,
+        const counts = new Map<string, number>();
+        const values = new Map<string, number>();
+
+        for (const label of yearLabels) {
+          counts.set(label, 0);
+          values.set(label, 0);
+        }
+
+        for (const quotation of quotations) {
+          const fy = quotation.enquiry?.financialYear;
+          if (!fy || !counts.has(fy)) continue;
+
+          counts.set(fy, (counts.get(fy) ?? 0) + 1);
+          values.set(fy, (values.get(fy) ?? 0) + getQuotationValue(quotation));
+        }
+
+        const trends = yearLabels.map((period) => ({
+          period,
+          count: counts.get(period) ?? 0,
+          totalValue: values.get(period) ?? 0,
+        }));
+
+        return {
+          trends,
+          totalCount: trends.reduce((sum, row) => sum + row.count, 0),
+          totalValue: trends.reduce((sum, row) => sum + row.totalValue, 0),
         };
       }
-      acc[status].count += 1;
-      // Use PO value if available (for WON), otherwise use totalValue
-      const valueToUse = quotation.status === 'WON' && quotation.poValue 
-        ? Number(quotation.poValue) 
-        : Number(quotation.totalValue ?? 0);
-      acc[status].totalValue += valueToUse;
-      return acc;
-    }, {} as Record<string, { count: number; totalValue: number }>);
 
-    // Add enquiry PO values to RCD and WON status groups
-    // For WON, only count enquiries that don't have a WON quotation (to avoid double counting)
-    enquiriesWithPO.forEach((enquiry) => {
-      const status = enquiry.status;
-      
-      // Skip WON enquiries that already have a WON quotation (use quotation PO value instead)
-      if (status === 'WON' && enquiryIdsWithWonQuotations.has(enquiry.id)) {
-        return;
-      }
-      
-      if (!statusGroups[status]) {
-        statusGroups[status] = {
-          count: 0,
-          totalValue: 0,
-        };
-      }
-      // Count enquiries with PO values
-      statusGroups[status].count += 1;
-      // Add PO value to total
-      statusGroups[status].totalValue += Number(enquiry.poValue ?? 0);
-    });
+      const financialYear = input.financialYear ?? getFinancialYear(new Date());
+      const counts = Array.from({ length: 12 }, () => 0);
+      const values = Array.from({ length: 12 }, () => 0);
 
-    // Convert to array format for charts
-    return Object.entries(statusGroups).map(([status, data]) => ({
-      status,
-      count: data.count,
-      totalValue: data.totalValue,
-    }));
-  }),
+      for (const quotation of quotations) {
+        if (quotation.enquiry?.financialYear !== financialYear) continue;
+
+        const monthIndex = dateToFinancialYearMonthIndex(quotation.quotationDate);
+        counts[monthIndex] += 1;
+        values[monthIndex] += getQuotationValue(quotation);
+      }
+
+      const trends = FINANCIAL_YEAR_MONTH_LABELS.map((period, index) => ({
+        period,
+        count: counts[index] ?? 0,
+        totalValue: values[index] ?? 0,
+      }));
+
+      return {
+        trends,
+        totalCount: counts.reduce((sum, value) => sum + value, 0),
+        totalValue: values.reduce((sum, value) => sum + value, 0),
+        financialYear,
+      };
+    }),
 
   // Procedure to get upcoming tasks from various sources
   getUpcomingTasks: publicProcedure.query(async () => {

@@ -14,11 +14,10 @@ export const prisma =
     // This is a good practice: it logs database queries to your terminal
     // only when you are in development mode.
     log: process.env.NODE_ENV === "development" ? ["query"] : [],
-    // This is an advanced and correct setup for connection pooling (like on Vercel),
-    // ensuring it uses the direct connection URL when available.
+    // Use pooled DATABASE_URL at runtime. DIRECT_URL is for Prisma migrations only (schema.prisma).
     datasources: {
       db: {
-        url: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
+        url: process.env.DATABASE_URL,
       },
     },
   });

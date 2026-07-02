@@ -4,6 +4,10 @@ import { TRPCError } from '@trpc/server';
 import { db } from '../../db';
 
 // Validation schemas
+const CommunicationEntrySchema = z.object({
+  info: z.string().min(1, 'Enter communication details'),
+});
+
 const CreateCommunicationSchema = z.object({
   date: z.string().optional(),
   companyId: z.string().optional(),
@@ -11,15 +15,21 @@ const CreateCommunicationSchema = z.object({
   enquiryRelated: z.string().optional(),
   enquiryId: z.number().optional(),
   description: z.string().optional(),
-  type: z.enum(['TELEPHONIC', 'VIRTUAL_MEETING', 'EMAIL', 'PLANT_VISIT', 'OFFICE_VISIT']),
+  entries: z.array(CommunicationEntrySchema).min(1).optional(),
+  type: z.enum(['TELEPHONIC', 'VIRTUAL_MEETING', 'EMAIL', 'PLANT_VISIT', 'OFFICE_VISIT']).default('TELEPHONIC'),
   nextCommunicationDate: z.string().optional(),
   proposedNextAction: z.string().optional(),
-  contactId: z.string().optional(), // Made optional for backward compatibility
+  contactId: z.string().optional(),
 });
 
 const UpdateCommunicationSchema = CreateCommunicationSchema.extend({
   id: z.string(),
 });
+
+const formatCommunicationEntries = (entries: { info: string }[]) =>
+  entries
+    .map((entry, index) => `Communication ${index + 1}:\n${entry.info.trim()}`)
+    .join('\n\n');
 
 export const communicationRouter = createTRPCRouter({
   // Get all communications with related data and filtering support
@@ -332,10 +342,15 @@ export const communicationRouter = createTRPCRouter({
           }
         }
 
+        const description =
+          input.entries && input.entries.length > 0
+            ? formatCommunicationEntries(input.entries)
+            : (input.description ?? '');
+
         const communication = await db.communication.create({
           data: {
             subject: input.subject ?? '',
-            description: input.description ?? '',
+            description,
             type: input.type ?? 'TELEPHONIC',
             enquiryRelated: input.enquiryRelated,
             enquiryId: input.enquiryId ?? null,
@@ -405,13 +420,18 @@ export const communicationRouter = createTRPCRouter({
     .input(UpdateCommunicationSchema)
     .mutation(async ({ input }) => {
       try {
-        const { id, ...updateData } = input;
+        const { id, entries, ...updateData } = input;
+
+        const description =
+          entries && entries.length > 0
+            ? formatCommunicationEntries(entries)
+            : updateData.description;
 
         const communication = await db.communication.update({
           where: { id },
           data: {
             subject: updateData.subject,
-            description: updateData.description,
+            description,
             type: updateData.type,
             enquiryRelated: updateData.enquiryRelated,
             nextCommunicationDate: updateData.nextCommunicationDate ? new Date(updateData.nextCommunicationDate) : null,
