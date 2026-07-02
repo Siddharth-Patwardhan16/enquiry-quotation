@@ -5,7 +5,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { api } from '@/trpc/client';
-import { Calendar, Building, Plus, Trash2 } from 'lucide-react';
+import { Calendar, Plus, Trash2 } from 'lucide-react';
+import CustomerSelector, { type Customer } from '@/components/ui/CustomerSelector';
 import type { Communication } from '@/types/communication';
 import { useFormConfirmation } from '@/hooks/useFormConfirmation';
 import { useToastContext } from '@/components/providers/ToastProvider';
@@ -28,6 +29,8 @@ type FormData = z.infer<typeof CommunicationSchema>;
 interface CompanyOption {
   id: string;
   name: string;
+  industry?: string | null;
+  website?: string | null;
 }
 
 interface CommunicationFormProps {
@@ -51,7 +54,6 @@ function parseCommunicationEntries(description?: string | null): { info: string 
 
 export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: CommunicationFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedCompanyName, setSelectedCompanyName] = useState<string | null>(null);
   const { confirmFormClose } = useFormConfirmation();
   const { success, error: showError } = useToastContext();
 
@@ -85,20 +87,31 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
   const watchedEnquiryRelated = watch('enquiryRelated');
   const watchedEntries = watch('entries');
 
+  const customerOptions: Customer[] = useMemo(
+    () =>
+      (customers ?? []).map((customer: CompanyOption) => ({
+        id: customer.id,
+        name: customer.name,
+        industry: customer.industry ?? undefined,
+        website: customer.website ?? undefined,
+      })),
+    [customers],
+  );
+
+  const selectedCustomer = useMemo(
+    () => customerOptions.find((customer) => customer.id === watchedCompanyId) ?? null,
+    [customerOptions, watchedCompanyId],
+  );
+
   const filteredEnquiries = useMemo(
     () => enquiries?.filter((enquiry) => enquiry.companyId === watchedCompanyId) ?? [],
     [enquiries, watchedCompanyId],
   );
 
-  useEffect(() => {
-    if (!watchedCompanyId) {
-      setSelectedCompanyName(null);
-      return;
-    }
-
-    const company = customers?.find((customer: CompanyOption) => customer.id === watchedCompanyId);
-    setSelectedCompanyName(company?.name ?? null);
-  }, [watchedCompanyId, customers]);
+  const handleCustomerSelect = (customer: Customer | null) => {
+    setValue('companyId', customer?.id ?? '');
+    setValue('enquiryRelated', '');
+  };
 
   useEffect(() => {
     if (!watchedEnquiryRelated) return;
@@ -116,7 +129,6 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
     onSuccess: () => {
       success('Communication created', 'The communication has been saved.');
       setIsSubmitting(false);
-      setSelectedCompanyName(null);
       reset({
         date: new Date().toISOString().split('T')[0],
         entries: [{ info: '' }],
@@ -209,30 +221,30 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
           <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Customer</h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Customer name</label>
-              <div className="relative">
-                <Building className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <select
-                  {...register('companyId')}
-                  className="w-full rounded-lg border border-slate-300 py-2 pl-10 pr-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                  disabled={loadingCustomers}
-                >
-                  <option value="">{loadingCustomers ? 'Loading...' : 'Select company'}</option>
-                  {customers?.map((customer: CompanyOption) => (
-                    <option key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {errors.companyId && <p className="mt-1 text-sm text-red-600">{errors.companyId.message}</p>}
+              <CustomerSelector
+                customers={customerOptions}
+                selectedCustomer={selectedCustomer}
+                onCustomerSelect={handleCustomerSelect}
+                loading={loadingCustomers}
+                error={errors.companyId?.message}
+                placeholder="Search and select company"
+                emptyMessage="No companies found"
+                loadingMessage="Loading companies..."
+                helpText="Type to search companies by name"
+              />
+              <input type="hidden" {...register('companyId')} value={watchedCompanyId ?? ''} />
             </div>
 
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">Customer details</label>
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">
-                {selectedCompanyName ? (
-                  <span>{selectedCompanyName}</span>
+                {selectedCustomer ? (
+                  <div className="space-y-1">
+                    <p className="font-medium text-slate-900">{selectedCustomer.name}</p>
+                    {selectedCustomer.industry && (
+                      <p className="text-slate-500">{selectedCustomer.industry}</p>
+                    )}
+                  </div>
                 ) : (
                   <span className="text-slate-400">Select a customer to view details</span>
                 )}
@@ -333,7 +345,6 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
               confirmFormClose({
                 hasUnsavedChanges: true,
                 onConfirm: () => {
-                  setSelectedCompanyName(null);
                   reset({
                     date: new Date().toISOString().split('T')[0],
                     entries: [{ info: '' }],

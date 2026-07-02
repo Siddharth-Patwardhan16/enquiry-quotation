@@ -25,6 +25,7 @@ interface CustomerSelectorProps {
   searchDelay?: number;
   emptyMessage?: string;
   loadingMessage?: string;
+  helpText?: string;
   className?: string;
 }
 
@@ -40,6 +41,7 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
   searchDelay = 300,
   emptyMessage = "No customers found",
   loadingMessage = "Loading customers...",
+  helpText = "Search and select the customer for this enquiry",
   className = ""
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -329,9 +331,9 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
       )}
 
       {/* Help Text */}
-      {!error && (
+      {!error && helpText && (
         <p className="text-xs text-gray-500 mt-1">
-          Search and select the customer for this enquiry
+          {helpText}
         </p>
       )}
     </div>
