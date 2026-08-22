@@ -94,32 +94,54 @@ export const tasksRouter = createTRPCRouter({
       orderBy: { createdAt: 'desc' }, // Order by creation date (will be sorted by due date later in the task mapping)
     });
 
-    // Fetch enquiry information for communications that have enquiryId or enquiryRelated
-    const communicationsWithEnquiry = await Promise.all(
-      allCommunications.map(async (comm) => {
-        // Prefer enquiryId (new foreign key) over enquiryRelated (legacy string field)
-        const enquiryIdToUse = comm.enquiryId ?? (comm.enquiryRelated ? parseInt(comm.enquiryRelated) : null);
-        
-        if (enquiryIdToUse) {
-          const enquiry = await db.enquiry.findUnique({
-            where: { id: enquiryIdToUse },
+    // Fetch enquiry information for communications that have enquiryId or enquiryRelated.
+    // Batched lookup (fixes N+1): resolve each communication's enquiry ID, deduplicate,
+    // then fetch all referenced enquiries in a single query.
+    // Resolution order: prefer enquiryId (new foreign key) over enquiryRelated (legacy
+    // free-text string field). Invalid/non-numeric enquiryRelated values resolve to null
+    // and never reach Prisma (prevents `where: { id: NaN }` errors).
+    const resolveEnquiryId = (comm: {
+      enquiryId: number | null;
+      enquiryRelated: string | null;
+    }): number | null => {
+      if (comm.enquiryId !== null && comm.enquiryId !== undefined) {
+        return comm.enquiryId;
+      }
+      if (!comm.enquiryRelated) {
+        return null;
+      }
+      const parsed = Number.parseInt(comm.enquiryRelated, 10);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const enquiryIds = [
+      ...new Set(
+        allCommunications
+          .map(resolveEnquiryId)
+          .filter((id): id is number => id !== null)
+      ),
+    ];
+
+    const referencedEnquiries =
+      enquiryIds.length > 0
+        ? await db.enquiry.findMany({
+            where: { id: { in: enquiryIds } },
             select: {
               id: true,
               quotationNumber: true,
               subject: true,
             },
-          });
-          return {
-            ...comm,
-            enquiry: enquiry,
-          };
-        }
-        return {
-          ...comm,
-          enquiry: null,
-        };
-      })
-    );
+          })
+        : [];
+    const enquiryMap = new Map(referencedEnquiries.map((e) => [e.id, e]));
+
+    const communicationsWithEnquiry = allCommunications.map((comm) => {
+      const enquiryId = resolveEnquiryId(comm);
+      return {
+        ...comm,
+        enquiry: enquiryId !== null ? enquiryMap.get(enquiryId) ?? null : null,
+      };
+    });
 
     // 3. Transform both data sets into a unified "Task" format
     const quotationTasks: UnifiedTask[] = activeQuotations.map(q => {
