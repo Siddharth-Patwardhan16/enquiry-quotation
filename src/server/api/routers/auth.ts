@@ -5,13 +5,21 @@ import { TRPCError } from '@trpc/server';
 import { db } from '../../db';
 import { z } from 'zod';
 
-// Simple in-memory rate limiting (in production, use Redis or similar)
+// Robust helper to check if an error is a TRPCError even across bundlers
+const isTRPCError = (err: unknown): err is TRPCError => {
+  return (
+    err instanceof TRPCError ||
+    (typeof err === 'object' && err !== null && (err as { name?: string }).name === 'TRPCError')
+  );
+};
+
+// Rate limiting: tracks consecutive failed attempts only
 const loginAttempts = new Map<string, { count: number; lastAttempt: number; blockedUntil?: number }>();
 
 const RATE_LIMIT = {
   MAX_ATTEMPTS: 5,
   WINDOW_MS: 15 * 60 * 1000, // 15 minutes
-  BLOCK_DURATION_MS: 30 * 60 * 1000, // 30 minutes
+  BLOCK_DURATION_MS: 15 * 60 * 1000, // 15 minutes
 };
 
 const checkRateLimit = (email: string): boolean => {
@@ -19,34 +27,40 @@ const checkRateLimit = (email: string): boolean => {
   const attempts = loginAttempts.get(email);
 
   if (!attempts) {
-    loginAttempts.set(email, { count: 1, lastAttempt: now });
     return true;
   }
 
   // Reset if window has passed
   if (now - attempts.lastAttempt > RATE_LIMIT.WINDOW_MS) {
-    attempts.count = 1;
-    attempts.lastAttempt = now;
-    attempts.blockedUntil = undefined;
+    loginAttempts.delete(email);
     return true;
   }
 
-  // Check if blocked
+  // Check if currently blocked
   if (attempts.blockedUntil && now < attempts.blockedUntil) {
     return false;
   }
 
-  // Increment attempts
+  return true;
+};
+
+const recordFailedAttempt = (email: string): void => {
+  const now = Date.now();
+  const attempts = loginAttempts.get(email) ?? { count: 0, lastAttempt: now };
+
+  if (now - attempts.lastAttempt > RATE_LIMIT.WINDOW_MS) {
+    attempts.count = 0;
+    attempts.blockedUntil = undefined;
+  }
+
   attempts.count++;
   attempts.lastAttempt = now;
 
-  // Block if too many attempts
   if (attempts.count >= RATE_LIMIT.MAX_ATTEMPTS) {
     attempts.blockedUntil = now + RATE_LIMIT.BLOCK_DURATION_MS;
-    return false;
   }
 
-  return true;
+  loginAttempts.set(email, attempts);
 };
 
 export const authRouter = createTRPCRouter({
@@ -68,7 +82,7 @@ export const authRouter = createTRPCRouter({
         // Check rate limiting
         if (!checkRateLimit(input.email)) {
           const attempts = loginAttempts.get(input.email);
-          const remainingTime = Math.ceil((attempts!.blockedUntil! - Date.now()) / 1000 / 60);
+          const remainingTime = Math.max(1, Math.ceil(((attempts?.blockedUntil ?? Date.now()) - Date.now()) / 1000 / 60));
           throw new TRPCError({
             code: 'TOO_MANY_REQUESTS',
             message: `Too many failed login attempts. Please try again in ${remainingTime} minutes.`
@@ -81,6 +95,7 @@ export const authRouter = createTRPCRouter({
         });
 
         if (!employee?.passwordHash) {
+          recordFailedAttempt(input.email);
           throw new TRPCError({ 
             code: 'UNAUTHORIZED', 
             message: 'Invalid email or password' 
@@ -90,6 +105,7 @@ export const authRouter = createTRPCRouter({
         // Strictly verify password using bcrypt
         const isPasswordValid = await verifyPassword(input.password, employee.passwordHash);
         if (!isPasswordValid) {
+          recordFailedAttempt(input.email);
           throw new TRPCError({ 
             code: 'UNAUTHORIZED', 
             message: 'Invalid email or password' 
@@ -109,9 +125,10 @@ export const authRouter = createTRPCRouter({
           }
         };
       } catch (error) {
-        if (error instanceof TRPCError) {
+        if (isTRPCError(error)) {
           throw error;
         }
+        console.error('Unhandled login error:', error);
         throw new TRPCError({ 
           code: 'INTERNAL_SERVER_ERROR', 
           message: 'Login failed' 

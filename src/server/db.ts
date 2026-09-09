@@ -22,9 +22,9 @@ export const prisma =
     },
   });
 
-// 3. In development, save the newly created instance back to the global
-//    object so it can be reused on the next hot reload.
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+// 3. Cache the prisma instance on the global object so that serverless
+//    warm lambdas reuse the connection pool rather than exhausting database connections.
+globalForPrisma.prisma = prisma;
 
 // 4. Export the same instance as `db` for convenience, a common
 //    convention in many modern frameworks (like the T3 Stack).
