@@ -116,6 +116,40 @@ export const companyRouter = createTRPCRouter({
       });
     }),
 
+  // Lightweight list for selectors and enquiry forms (avoids massive nested contact joins)
+  getSimpleList: publicProcedure
+    .query(async ({ ctx }) => {
+      return ctx.prisma.company.findMany({
+        select: {
+          id: true,
+          name: true,
+          offices: {
+            select: {
+              id: true,
+              name: true,
+              city: true,
+              state: true,
+              address: true,
+              area: true,
+              country: true,
+            },
+          },
+          plants: {
+            select: {
+              id: true,
+              name: true,
+              city: true,
+              state: true,
+              address: true,
+              area: true,
+              country: true,
+            },
+          },
+        },
+        orderBy: { name: 'asc' },
+      });
+    }),
+
   getAll: publicProcedure
     .input(z.object({
       sortBy: z.enum(['name', 'createdAt', 'updatedAt', 'type']).optional().default('name'),

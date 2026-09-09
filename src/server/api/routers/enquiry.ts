@@ -122,46 +122,44 @@ export const enquiryRouter = createTRPCRouter({
         ];
       }
 
-      const [total, items] = await Promise.all([
-        db.enquiry.count({ where }),
-        db.enquiry.findMany({
-          where,
-          skip,
-          take: pageSize,
-          orderBy: { createdAt: 'desc' },
-          include: {
-            company: {
-              select: {
-                name: true,
-              },
-            },
-            office: {
-              select: {
-                name: true,
-              },
-            },
-            plant: {
-              select: {
-                name: true,
-              },
-            },
-            marketingPerson: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            attendedBy: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
+      const total = await db.enquiry.count({ where });
+      const items = await db.enquiry.findMany({
+        where,
+        skip,
+        take: pageSize,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          company: {
+            select: {
+              name: true,
             },
           },
-        }),
-      ]);
+          office: {
+            select: {
+              name: true,
+            },
+          },
+          plant: {
+            select: {
+              name: true,
+            },
+          },
+          marketingPerson: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          attendedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
 
       const totalPages = Math.ceil(total / pageSize);
 
@@ -216,31 +214,46 @@ export const enquiryRouter = createTRPCRouter({
     });
   }),
 
-  // Get enquiry statistics - moved from frontend calculations
+  // Get enquiry statistics - optimized to a single groupBy query
   getStats: publicProcedure
     .input(FinancialYearFilterSchema)
     .query(async ({ input }) => {
-    const base = input.financialYear ? { financialYear: input.financialYear } : {};
-    const [total, liveCount, deadCount, rcdCount, lostCount, wonCount, budgetaryCount] = await Promise.all([
-      db.enquiry.count({ where: base }),
-      db.enquiry.count({ where: { ...base, status: 'LIVE' } }),
-      db.enquiry.count({ where: { ...base, status: 'DEAD' } }),
-      db.enquiry.count({ where: { ...base, status: 'RCD' } }),
-      db.enquiry.count({ where: { ...base, status: 'LOST' } }),
-      db.enquiry.count({ where: { ...base, status: 'WON' } }),
-      db.enquiry.count({ where: { ...base, status: 'BUDGETARY' } })
-    ]);
+      const base = input.financialYear ? { financialYear: input.financialYear } : {};
+      const statusGroups = await db.enquiry.groupBy({
+        by: ['status'],
+        where: base,
+        _count: {
+          _all: true,
+        },
+      });
 
-    return {
-      total,
-      live: liveCount,
-      dead: deadCount,
-      rcd: rcdCount,
-      lost: lostCount,
-      won: wonCount,
-      budgetary: budgetaryCount
-    };
-  }),
+      const counts: Record<string, number> = {
+        LIVE: 0,
+        DEAD: 0,
+        RCD: 0,
+        LOST: 0,
+        WON: 0,
+        BUDGETARY: 0,
+      };
+
+      let total = 0;
+      for (const group of statusGroups) {
+        if (group.status && group.status in counts) {
+          counts[group.status] = group._count._all;
+        }
+        total += group._count._all;
+      }
+
+      return {
+        total,
+        live: counts.LIVE,
+        dead: counts.DEAD,
+        rcd: counts.RCD,
+        lost: counts.LOST,
+        won: counts.WON,
+        budgetary: counts.BUDGETARY,
+      };
+    }),
 
   // Procedure to get a single enquiry by ID
   getById: publicProcedure

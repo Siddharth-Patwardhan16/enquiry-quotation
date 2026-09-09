@@ -136,7 +136,7 @@ export default function EnquiriesPage() {
   });
   const { data: stats } = api.enquiry.getStats.useQuery({ financialYear });
   const { data: employees } = api.employee.getAll.useQuery();
-  const { data: companies, isLoading: isLoadingCompanies } = api.company.getAll.useQuery();
+  const { data: companies, isLoading: isLoadingCompanies } = api.company.getSimpleList.useQuery();
   const updateEnquiryMutation = api.enquiry.update.useMutation({
     onSuccess: () => {
       void utils.enquiry.getPaginated.invalidate();
@@ -331,9 +331,6 @@ export default function EnquiriesPage() {
           id: company.id,
           name: company.name,
           type: 'Company',
-          industry: company.industry ?? undefined,
-          website: company.website ?? undefined,
-          location: company.offices?.[0] ? `${company.offices[0].city ?? ''}, ${company.offices[0].state ?? ''}` : undefined
         });
       }
     });
