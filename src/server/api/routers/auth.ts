@@ -1,5 +1,6 @@
 import { createTRPCRouter, publicProcedure } from '../trpc';
-import { LoginSchema, SignupSchema, checkPasswordStrength } from '../../../lib/validators/auth';
+import { LoginSchema, SignupSchema } from '../../../lib/validators/auth';
+import { hashPassword, verifyPassword } from '../../auth/password';
 import { TRPCError } from '@trpc/server';
 import { db } from '../../db';
 import { z } from 'zod';
@@ -51,58 +52,13 @@ const checkRateLimit = (email: string): boolean => {
 export const authRouter = createTRPCRouter({
   signup: publicProcedure
     .input(SignupSchema)
-    .mutation(async ({ input }) => {
-      try {
-        // Check if user already exists
-        const existingEmployee = await db.employee.findUnique({
-          where: { email: input.email },
-        });
-
-        if (existingEmployee) {
-          throw new TRPCError({ 
-            code: 'CONFLICT', 
-            message: 'User with this email already exists' 
-          });
-        }
-
-        // Additional password strength validation on server side
-        const passwordCheck = checkPasswordStrength(input.password);
-        if (!passwordCheck.isStrong) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Password does not meet security requirements'
-          });
-        }
-
-        // Create a new Employee record with MARKETING role by default
-        const employee = await db.employee.create({
-          data: {
-            id: `emp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Generate unique ID
-            name: input.name,
-            email: input.email,
-            role: 'MARKETING', // Default role - only admins can change this
-          },
-        });
-
-        return { 
-          success: true, 
-          message: 'Account created successfully',
-          user: {
-            id: employee.id,
-            name: employee.name,
-            email: employee.email,
-            role: employee.role,
-          }
-        };
-      } catch (error) {
-        if (error instanceof TRPCError) {
-          throw error;
-        }
-        throw new TRPCError({ 
-          code: 'INTERNAL_SERVER_ERROR', 
-          message: 'User could not be created.' 
-        });
-      }
+    .mutation(() => {
+      // Public self-registration is permanently disabled to protect proprietary CRM data.
+      // New employee accounts can only be provisioned by an administrator.
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Public registration is disabled. Please contact your administrator to obtain access.',
+      });
     }),
 
   login: publicProcedure
@@ -124,15 +80,22 @@ export const authRouter = createTRPCRouter({
           where: { email: input.email },
         });
 
-        if (!employee) {
+        if (!employee?.passwordHash) {
           throw new TRPCError({ 
             code: 'UNAUTHORIZED', 
             message: 'Invalid email or password' 
           });
         }
 
-        // Note: In production, implement proper password hashing and verification
-        // For now, accept any password for existing users (demo purposes)
+        // Strictly verify password using bcrypt
+        const isPasswordValid = await verifyPassword(input.password, employee.passwordHash);
+        if (!isPasswordValid) {
+          throw new TRPCError({ 
+            code: 'UNAUTHORIZED', 
+            message: 'Invalid email or password' 
+          });
+        }
+
         // Reset rate limiting on successful login
         loginAttempts.delete(input.email);
         return { 
@@ -145,11 +108,6 @@ export const authRouter = createTRPCRouter({
             role: employee.role,
           }
         };
-
-        throw new TRPCError({ 
-          code: 'UNAUTHORIZED', 
-          message: 'Invalid email or password' 
-        });
       } catch (error) {
         if (error instanceof TRPCError) {
           throw error;
@@ -159,6 +117,48 @@ export const authRouter = createTRPCRouter({
           message: 'Login failed' 
         });
       }
+    }),
+
+  changePassword: publicProcedure
+    .input(
+      z.object({
+        email: z.string().email(),
+        currentPassword: z.string().min(1),
+        newPassword: z.string().min(4, 'New password must be at least 4 characters'),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const employee = await db.employee.findUnique({
+        where: { email: input.email },
+      });
+
+      if (!employee) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'User not found',
+        });
+      }
+
+      if (employee.passwordHash) {
+        const isValid = await verifyPassword(input.currentPassword, employee.passwordHash);
+        if (!isValid) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'Current password is incorrect',
+          });
+        }
+      }
+
+      const newHash = await hashPassword(input.newPassword);
+      await db.employee.update({
+        where: { id: employee.id },
+        data: { passwordHash: newHash },
+      });
+
+      return {
+        success: true,
+        message: 'Password updated successfully',
+      };
     }),
 
   signOut: publicProcedure.mutation(() => {

@@ -12,6 +12,7 @@ model Employee {
   id                String          @id @unique
   name              String
   email             String          @unique
+  passwordHash      String?
   role              Role
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
