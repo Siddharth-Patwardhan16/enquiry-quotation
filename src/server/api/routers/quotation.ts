@@ -1,4 +1,3 @@
-
 import { createTRPCRouter, publicProcedure } from '../trpc';
 import { CreateQuotationSchema } from '@/lib/validators/quotation';
 import { UpdateQuotationStatusSchema } from '@/lib/validators/quotationStatus';
@@ -6,6 +5,7 @@ import { FinancialYearFilterSchema } from '@/lib/financial-year';
 import { db } from '@/server/db';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 
 export const quotationRouter = createTRPCRouter({
   create: publicProcedure
@@ -117,6 +117,90 @@ export const quotationRouter = createTRPCRouter({
           message: 'Failed to create quotation. Please try again.',
         });
       }
+    }),
+
+  getPaginated: publicProcedure
+    .input(
+      z.object({
+        financialYear: z.string().optional(),
+        page: z.number().int().min(1).default(1),
+        pageSize: z.number().int().min(1).max(100).default(25),
+        search: z.string().optional(),
+        status: z.enum(['LIVE', 'WON', 'LOST', 'BUDGETARY', 'DEAD', 'RECEIVED']).optional().nullable(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const page = input.page ?? 1;
+      const pageSize = input.pageSize ?? 25;
+      const skip = (page - 1) * pageSize;
+
+      const where: Prisma.QuotationWhereInput = {};
+
+      if (input.financialYear) {
+        where.enquiry = {
+          financialYear: input.financialYear,
+        };
+      }
+
+      if (input.status) {
+        where.status = input.status;
+      }
+
+      if (input.search?.trim()) {
+        const query = input.search.trim();
+        where.OR = [
+          { quotationNumber: { contains: query, mode: 'insensitive' } },
+          { purchaseOrderNumber: { contains: query, mode: 'insensitive' } },
+          { enquiry: { company: { name: { contains: query, mode: 'insensitive' } } } },
+          { enquiry: { customer: { name: { contains: query, mode: 'insensitive' } } } },
+        ];
+      }
+
+      const [total, items] = await Promise.all([
+        db.quotation.count({ where }),
+        db.quotation.findMany({
+          where,
+          skip,
+          take: pageSize,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            quotationNumber: true,
+            quotationDate: true,
+            createdAt: true,
+            totalValue: true,
+            purchaseOrderNumber: true,
+            status: true,
+            enquiry: {
+              select: {
+                company: {
+                  select: { name: true },
+                },
+                customer: {
+                  select: { name: true },
+                },
+              },
+            },
+            createdBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        }),
+      ]);
+
+      const totalPages = Math.ceil(total / pageSize);
+
+      return {
+        items,
+        total,
+        page,
+        pageSize,
+        totalPages,
+      };
     }),
 
   getAll: publicProcedure

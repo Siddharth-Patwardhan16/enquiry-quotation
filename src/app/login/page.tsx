@@ -33,7 +33,7 @@ export default function LoginPage() {
   const loginMutation = api.auth.login.useMutation({
     onSuccess: (data) => {
       if (data.user) {
-        login(data.user);
+        login(data.user, data.token);
         setError('');
         setSuccess('Login successful! Redirecting...');
         setTimeout(() => {

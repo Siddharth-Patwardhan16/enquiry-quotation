@@ -1,6 +1,7 @@
 import { createTRPCRouter, publicProcedure } from '../trpc';
 import { LoginSchema, SignupSchema } from '../../../lib/validators/auth';
 import { hashPassword, verifyPassword } from '../../auth/password';
+import { signAuthToken } from '../../auth/token';
 import { TRPCError } from '@trpc/server';
 import { db } from '../../db';
 import { z } from 'zod';
@@ -112,11 +113,19 @@ export const authRouter = createTRPCRouter({
           });
         }
 
+        // Generate tamper-proof signed session token
+        const token = signAuthToken({
+          id: employee.id,
+          email: employee.email,
+          role: employee.role,
+        });
+
         // Reset rate limiting on successful login
         loginAttempts.delete(input.email);
         return { 
           success: true, 
           message: 'Login successful',
+          token,
           user: {
             id: employee.id,
             name: employee.name,
@@ -184,13 +193,20 @@ export const authRouter = createTRPCRouter({
     return { success: true };
   }),
 
-  getSession: publicProcedure.query(async ({ ctx: _ctx }) => {
+  getSession: publicProcedure.query(({ ctx }) => {
     try {
-      // Test database connection
-      await db.$queryRaw`SELECT 1`;
-      return null; // Single user system - no session needed
+      if (ctx.currentUser) {
+        return {
+          user: {
+            id: ctx.currentUser.id,
+            name: ctx.currentUser.name,
+            email: ctx.currentUser.email,
+            role: ctx.currentUser.role,
+          },
+        };
+      }
+      return null;
     } catch {
-      // Database connection error
       throw new TRPCError({ 
         code: 'INTERNAL_SERVER_ERROR', 
         message: 'Database connection failed' 

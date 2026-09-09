@@ -1,6 +1,7 @@
 import { prisma } from "../db";
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/lib/supabase-config';
+import { verifyAuthToken } from '../auth/token';
 
 const supabaseServerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -13,6 +14,18 @@ const getCurrentUser = async (req?: Request) => {
       return null;
     }
 
+    // 1. Check custom tamper-proof HMAC session token
+    const tokenPayload = verifyAuthToken(bearerToken);
+    if (tokenPayload) {
+      const employee = await prisma.employee.findUnique({
+        where: { id: tokenPayload.id },
+      });
+      if (employee) {
+        return employee;
+      }
+    }
+
+    // 2. Fallback to Supabase auth for legacy or direct Supabase clients
     const { data, error } = await supabaseServerClient.auth.getUser(bearerToken);
     if (error || !data.user?.email) {
       return null;

@@ -18,10 +18,20 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
             url: (typeof window !== 'undefined' ? window.location.origin : env.NEXT_PUBLIC_APP_URL) + "/api/trpc",
             transformer: superjson,
             headers: async () => {
-              const supabase = createClient();
-              const { data } = await supabase.auth.getSession();
-              const token = data.session?.access_token;
-              return token ? { Authorization: `Bearer ${token}` } : {};
+              if (typeof window !== 'undefined') {
+                const authToken = localStorage.getItem('auth_token');
+                if (authToken) {
+                  return { Authorization: `Bearer ${authToken}` };
+                }
+              }
+              try {
+                const supabase = createClient();
+                const { data } = await supabase.auth.getSession();
+                const token = data.session?.access_token;
+                return token ? { Authorization: `Bearer ${token}` } : {};
+              } catch {
+                return {};
+              }
             },
           }),
         ],
