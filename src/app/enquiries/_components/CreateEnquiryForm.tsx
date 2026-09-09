@@ -355,6 +355,7 @@ export function CreateEnquiryForm({ onSuccess }: CreateEnquiryFormProps) {
   const createEnquiry = api.enquiry.create.useMutation({
     onSuccess: () => {
       setIsSubmitting(false);
+      void utils.enquiry.getPaginated.invalidate();
       void utils.enquiry.getAll.invalidate();
       void utils.enquiry.getStats.invalidate();
       reset();

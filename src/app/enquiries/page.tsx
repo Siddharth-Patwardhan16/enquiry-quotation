@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useDebounce } from '@/app/customer-details/_hooks/useDebounce';
 import { buildFinancialYearOptions, getFinancialYear } from '@/lib/financial-year';
 import { normalizeOptionalUuidValue, UpdateEnquiryFullSchema } from '@/lib/validators/enquiry';
 import { api } from '@/trpc/client';
@@ -21,8 +22,24 @@ import {
   Trash2,
   X,
   Building,
-  MessageSquare
+  MessageSquare,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
+
+function formatDateSafe(date: Date | string | null | undefined, options?: Intl.DateTimeFormatOptions): string {
+  if (!date) return '-';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '-';
+  return d.toLocaleDateString(undefined, options);
+}
+
+function toISODateSafe(date: Date | string | null | undefined): string | undefined {
+  if (!date) return undefined;
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return undefined;
+  return d.toISOString().split('T')[0];
+}
 
 function getEnquiryMutationErrorMessage(errorMessage: string): string {
   try {
@@ -100,14 +117,29 @@ export default function EnquiriesPage() {
   const utils = api.useUtils();
   const [financialYear, setFinancialYear] = useState(() => getFinancialYear(new Date()));
   const financialYearOptions = buildFinancialYearOptions(6, 1);
-  const enquiriesQuery = api.enquiry.getAll.useQuery({ financialYear });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 350);
+  const [statusFilter, setStatusFilter] = useState<'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'WON' | 'BUDGETARY' | null>(null);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter, financialYear]);
+
+  const enquiriesQuery = api.enquiry.getPaginated.useQuery({
+    financialYear,
+    page: currentPage,
+    pageSize,
+    search: debouncedSearch.trim() || undefined,
+    status: statusFilter ?? undefined,
+  });
   const { data: stats } = api.enquiry.getStats.useQuery({ financialYear });
-  const { data: enquiries, isLoading, error } = enquiriesQuery;
   const { data: employees } = api.employee.getAll.useQuery();
   const { data: companies, isLoading: isLoadingCompanies } = api.company.getAll.useQuery();
-  const { data: customers, isLoading: isLoadingCustomers } = api.company.getAll.useQuery();
   const updateEnquiryMutation = api.enquiry.update.useMutation({
     onSuccess: () => {
+      void utils.enquiry.getPaginated.invalidate();
       void utils.enquiry.getAll.invalidate();
       void utils.enquiry.getStats.invalidate();
       success('Enquiry Updated', 'The enquiry has been successfully updated.');
@@ -129,8 +161,10 @@ export default function EnquiriesPage() {
   const updateStatusMutation = api.enquiry.updateStatus.useMutation({
     onSuccess: () => {
       success('Status Updated', 'The enquiry status has been successfully updated.');
+      void utils.enquiry.getPaginated.invalidate();
+      void utils.enquiry.getAll.invalidate();
       void utils.enquiry.getStats.invalidate();
-      enquiriesQuery.refetch();
+      void enquiriesQuery.refetch();
     },
     onError: (error) => {
       // Extract error message from tRPC error
@@ -167,6 +201,7 @@ export default function EnquiriesPage() {
   });
   const deleteEnquiryMutation = api.enquiry.delete.useMutation({
     onSuccess: (_, variables) => {
+      void utils.enquiry.getPaginated.invalidate();
       void utils.enquiry.getAll.invalidate();
       void utils.enquiry.getStats.invalidate();
       setDeletingEnquiryId(null);
@@ -194,8 +229,6 @@ export default function EnquiriesPage() {
     },
   });
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   // Define the edit data type
   type EditEnquiryData = {
     customerId?: string;
@@ -240,27 +273,13 @@ export default function EnquiriesPage() {
     setIsCommunicationDrawerOpen(false);
   }, [financialYear]);
 
-  if (error) return <div>Error: {error.message}</div>;
+  const paginatedData = enquiriesQuery.data;
+  const allEnquiries = ((paginatedData?.items ?? []) as unknown) as EnquiryRow[];
+  const totalEnquiries = paginatedData?.total ?? 0;
+  const totalPages = paginatedData?.totalPages ?? 1;
+  const isLoading = enquiriesQuery.isLoading;
 
-  const allEnquiries = ((enquiries ?? []) as unknown) as EnquiryRow[];
-
-  // Filter enquiries based on search and status
-  const filteredEnquiries = allEnquiries.filter((enquiry: EnquiryRow) => {
-    const companyName = enquiry.company?.name ?? '';
-    const entityName = companyName;
-    
-    const subjectStr = String(enquiry.subject ?? '');
-    const marketingPersonName = enquiry.marketingPerson?.name ?? '';
-    
-    const matchesSearch = 
-      subjectStr.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      entityName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      marketingPersonName.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === null || enquiry.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
+  const filteredEnquiries = allEnquiries;
 
   // Use backend stats if available, otherwise show loading
   const displayStats = stats ? {
@@ -298,15 +317,15 @@ export default function EnquiriesPage() {
     );
   };
 
-  // Combine customers and companies into a unified list with deduplication
-  const allEntities: Customer[] = (() => {
+  // Combine companies into a unified list with deduplication
+  const allEntities: Customer[] = useMemo(() => {
     const entities: Customer[] = [];
     const seenNames = new Set<string>();
     
-    // First, add all companies (new structure takes priority)
     (companies ?? []).forEach((company) => {
-      const normalizedName = company.name.trim().toLowerCase();
-      if (!seenNames.has(normalizedName)) {
+      const rawName = company?.name ?? '';
+      const normalizedName = rawName.trim().toLowerCase();
+      if (normalizedName && !seenNames.has(normalizedName)) {
         seenNames.add(normalizedName);
         entities.push({
           id: company.id,
@@ -314,29 +333,15 @@ export default function EnquiriesPage() {
           type: 'Company',
           industry: company.industry ?? undefined,
           website: company.website ?? undefined,
-          location: company.offices?.[0] ? `${company.offices[0].city}, ${company.offices[0].state}` : undefined
+          location: company.offices?.[0] ? `${company.offices[0].city ?? ''}, ${company.offices[0].state ?? ''}` : undefined
         });
       }
     });
     
-    // Then, add customers that don't have duplicate names
-    (customers ?? []).forEach((customer) => {
-      const normalizedName = customer.name.trim().toLowerCase();
-      if (!seenNames.has(normalizedName)) {
-        seenNames.add(normalizedName);
-        entities.push({
-          id: customer.id,
-          name: customer.name,
-          type: 'Customer',
-          location: customer.offices?.[0] ? `${customer.offices[0].city}, ${customer.offices[0].state}` : undefined
-        });
-      }
-    });
-    
-    return entities.sort((a, b) => a.name.localeCompare(b.name));
-  })();
+    return entities.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+  }, [companies]);
   
-  const isLoadingEntities = isLoadingCustomers || isLoadingCompanies;
+  const isLoadingEntities = isLoadingCompanies;
 
   // Determine if selected customer is a company
   const isCompany = selectedCustomer?.type === 'Company';
@@ -432,20 +437,20 @@ export default function EnquiriesPage() {
         locationId: enquiry.officeId ?? enquiry.plantId ?? enquiry.locationId ?? undefined,
         entityType: enquiry.companyId ? 'company' : (enquiry.customerId ? 'customer' : undefined),
         subject: enquiry.subject ?? undefined,
-        enquiryDate: enquiry.enquiryDate ? new Date(enquiry.enquiryDate).toISOString().split('T')[0] : undefined,
+        enquiryDate: toISODateSafe(enquiry.enquiryDate),
         source: enquiry.source ? (enquiry.source as 'Website' | 'Email' | 'Phone' | 'Referral' | 'Trade Show' | 'Social Media' | 'Visit') : undefined,
         quotationNumber: enquiry.quotationNumber ?? undefined,
-        quotationDate: enquiry.quotationDate ? new Date(enquiry.quotationDate).toISOString().split('T')[0] : undefined,
+        quotationDate: toISODateSafe(enquiry.quotationDate),
         region: enquiry.region ?? undefined,
         oaNumber: enquiry.oaNumber ?? undefined,
-        oaDate: enquiry.oaDate ? new Date(enquiry.oaDate).toISOString().split('T')[0] : undefined,
+        oaDate: toISODateSafe(enquiry.oaDate),
         blockModel: enquiry.blockModel ?? undefined,
         numberOfBlocks: enquiry.numberOfBlocks ? String(enquiry.numberOfBlocks) : undefined,
         designRequired: enquiry.designRequired ? (enquiry.designRequired as 'Yes' | 'No') : undefined,
         attendedById: enquiry.attendedById ?? undefined,
         customerType: enquiry.customerType ? (enquiry.customerType as 'NEW' | 'OLD') : undefined,
         status: enquiry.status ? (enquiry.status as 'LIVE' | 'DEAD' | 'RCD' | 'LOST') : undefined,
-        dateOfReceipt: enquiry.dateOfReceipt ? new Date(enquiry.dateOfReceipt).toISOString().split('T')[0] : undefined,
+        dateOfReceipt: toISODateSafe(enquiry.dateOfReceipt),
       });
     }
   };
@@ -518,6 +523,17 @@ export default function EnquiriesPage() {
   const handleEnquirySuccess = () => {
     setShowCreateForm(false);
   };
+
+  if (enquiriesQuery.error) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <div className="p-6 max-w-md bg-white rounded-lg border border-red-200 shadow-sm text-center">
+          <p className="text-red-600 font-medium">Failed to load enquiries</p>
+          <p className="text-sm text-gray-500 mt-1">{enquiriesQuery.error.message}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (showCreateForm) {
     return (
@@ -822,13 +838,11 @@ export default function EnquiriesPage() {
                             </div>
                           </td>
                           <td className="p-3 align-middle text-sm text-gray-500 whitespace-nowrap min-w-[118px] tabular-nums text-left font-medium">
-                            {enquiry.enquiryDate
-                              ? new Date(enquiry.enquiryDate).toLocaleDateString(undefined, {
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric',
-                                })
-                              : '-'}
+                            {formatDateSafe(enquiry.enquiryDate, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
                           </td>
                           <td className="p-3 align-middle whitespace-nowrap">
                             <div className="space-y-1">
@@ -882,7 +896,7 @@ export default function EnquiriesPage() {
                                     <div>Value: ₹{Number(enquiry.poValue).toLocaleString()}</div>
                                   )}
                                   {enquiry.poDate && (
-                                    <div>Date: {new Date(enquiry.poDate).toLocaleDateString()}</div>
+                                    <div>Date: {formatDateSafe(enquiry.poDate)}</div>
                                   )}
                                 </div>
                               )}
@@ -951,11 +965,55 @@ export default function EnquiriesPage() {
               </div>
             </div>
 
-            {/* Pagination */}
-            {filteredEnquiries.length > 0 && (
-              <div className="flex items-center justify-between mt-6">
+            {/* Pagination Controls */}
+            {totalEnquiries > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-gray-200">
                 <div className="text-sm text-gray-500">
-                  Showing {filteredEnquiries.length} of {allEnquiries.length} enquiries
+                  Showing <span className="font-medium text-gray-900">{((currentPage - 1) * pageSize) + 1}</span> to{' '}
+                  <span className="font-medium text-gray-900">{Math.min(currentPage * pageSize, totalEnquiries)}</span> of{' '}
+                  <span className="font-medium text-gray-900">{totalEnquiries}</span> enquiries
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <span>Rows per page:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="border border-gray-300 rounded px-2 py-1 text-sm bg-white focus:ring-blue-500 focus:outline-none"
+                    >
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                      disabled={currentPage <= 1 || isLoading}
+                      className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                      title="Previous Page"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Prev
+                    </button>
+                    <span className="px-3 text-sm text-gray-700 font-medium">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                      disabled={currentPage >= totalPages || isLoading}
+                      className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                      title="Next Page"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1404,7 +1462,7 @@ export default function EnquiriesPage() {
                                 Enquiry Date
                               </label>
                               <p className="text-gray-900">
-                                {enquiry.enquiryDate ? new Date(enquiry.enquiryDate).toLocaleDateString() : 'Not specified'}
+                                {formatDateSafe(enquiry.enquiryDate) !== '-' ? formatDateSafe(enquiry.enquiryDate) : 'Not specified'}
                               </p>
                             </div>
                             <div>
@@ -1423,7 +1481,7 @@ export default function EnquiriesPage() {
                               <label className="block text-sm font-medium text-gray-700 mb-1">
                                 O.A. Date
                               </label>
-                              <p className="text-gray-900">{enquiry.oaDate ? new Date(enquiry.oaDate).toLocaleDateString() : 'Not specified'}</p>
+                              <p className="text-gray-900">{formatDateSafe(enquiry.oaDate) !== '-' ? formatDateSafe(enquiry.oaDate) : 'Not specified'}</p>
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1436,7 +1494,7 @@ export default function EnquiriesPage() {
                                 Quotation Date
                               </label>
                               <p className="text-gray-900">
-                                {enquiry.quotationDate ? new Date(enquiry.quotationDate).toLocaleDateString() : 'Not specified'}
+                                {formatDateSafe(enquiry.quotationDate) !== '-' ? formatDateSafe(enquiry.quotationDate) : 'Not specified'}
                               </p>
                             </div>
                             {enquiry.status === 'RCD' && (
@@ -1445,7 +1503,7 @@ export default function EnquiriesPage() {
                                   Date of Receipt
                                 </label>
                                 <p className="text-gray-900">
-                                  {enquiry.dateOfReceipt ? new Date(enquiry.dateOfReceipt).toLocaleDateString() : 'Not received'}
+                                  {formatDateSafe(enquiry.dateOfReceipt) !== '-' ? formatDateSafe(enquiry.dateOfReceipt) : 'Not received'}
                                 </p>
                               </div>
                             )}
@@ -1520,7 +1578,7 @@ export default function EnquiriesPage() {
                                 Created Date
                               </label>
                               <p className="text-gray-900">
-                                {new Date(enquiry.createdAt).toLocaleDateString()}
+                                {formatDateSafe(enquiry.createdAt)}
                               </p>
                             </div>
                             <div>
@@ -1528,7 +1586,7 @@ export default function EnquiriesPage() {
                                 Last Updated
                               </label>
                               <p className="text-gray-900">
-                                {new Date(enquiry.updatedAt).toLocaleDateString()}
+                                {formatDateSafe(enquiry.updatedAt)}
                               </p>
                             </div>
                           </div>

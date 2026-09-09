@@ -55,8 +55,8 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
   // Filter customers locally if no onSearch function provided
   const filteredCustomers = onSearch 
     ? customers 
-    : customers.filter(customer =>
-        customer.name.toLowerCase().includes(searchTerm.toLowerCase())
+    : (customers ?? []).filter(customer =>
+        (customer?.name ?? '').toLowerCase().includes((searchTerm ?? '').toLowerCase())
       );
 
   // Handle search with debouncing for external search

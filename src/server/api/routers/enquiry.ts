@@ -3,6 +3,7 @@ import { CreateEnquirySchema, UpdateEnquirySchema, UpdateEnquiryFullSchema } fro
 import { FinancialYearFilterSchema, getFinancialYear } from '@/lib/financial-year';
 import { db } from '@/server/db';
 import { z } from 'zod';
+import type { Prisma } from '@prisma/client';
 
 export const enquiryRouter = createTRPCRouter({
   // Procedure to create a new enquiry
@@ -80,6 +81,97 @@ export const enquiryRouter = createTRPCRouter({
           },
         });
       });
+    }),
+
+  // Procedure to get paginated enquiries with server-side filtering
+  getPaginated: publicProcedure
+    .input(
+      z.object({
+        financialYear: z.string().optional(),
+        page: z.number().int().min(1).default(1),
+        pageSize: z.number().int().min(1).max(100).default(25),
+        search: z.string().optional(),
+        status: z.enum(['LIVE', 'DEAD', 'RCD', 'LOST', 'WON', 'BUDGETARY']).optional().nullable(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const page = input.page ?? 1;
+      const pageSize = input.pageSize ?? 25;
+      const skip = (page - 1) * pageSize;
+
+      const where: Prisma.EnquiryWhereInput = {};
+
+      if (input.financialYear) {
+        where.financialYear = input.financialYear;
+      }
+
+      if (input.status) {
+        where.status = input.status;
+      }
+
+      if (input.search?.trim()) {
+        const query = input.search.trim();
+        where.OR = [
+          { subject: { contains: query, mode: 'insensitive' } },
+          { quotationNumber: { contains: query, mode: 'insensitive' } },
+          { region: { contains: query, mode: 'insensitive' } },
+          { company: { name: { contains: query, mode: 'insensitive' } } },
+          { customer: { name: { contains: query, mode: 'insensitive' } } },
+          { marketingPerson: { name: { contains: query, mode: 'insensitive' } } },
+          { attendedBy: { name: { contains: query, mode: 'insensitive' } } },
+        ];
+      }
+
+      const [total, items] = await Promise.all([
+        db.enquiry.count({ where }),
+        db.enquiry.findMany({
+          where,
+          skip,
+          take: pageSize,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            company: {
+              select: {
+                name: true,
+              },
+            },
+            office: {
+              select: {
+                name: true,
+              },
+            },
+            plant: {
+              select: {
+                name: true,
+              },
+            },
+            marketingPerson: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            attendedBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        }),
+      ]);
+
+      const totalPages = Math.ceil(total / pageSize);
+
+      return {
+        items,
+        total,
+        page,
+        pageSize,
+        totalPages,
+      };
     }),
 
   // Procedure to get all enquiries with company and location names
