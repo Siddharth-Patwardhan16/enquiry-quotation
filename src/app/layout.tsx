@@ -9,6 +9,7 @@ import { UserSyncProvider } from "../components/providers/UserSyncProvider";
 import { ToastProvider } from "../components/providers/ToastProvider";
 import { PerformanceProvider } from "../components/providers/PerformanceProvider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 import { Suspense } from "react";
 import { NavigationSkeleton } from "../components/ui/loading-skeleton";
 
@@ -56,6 +57,7 @@ export default function RootLayout({
           </PerformanceProvider>
         </Suspense>
         <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );
