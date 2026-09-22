@@ -240,7 +240,7 @@ export const quotationRouter = createTRPCRouter({
     });
   }),
 
-  // Get quotation statistics - moved from frontend calculations
+  // Get quotation statistics - a single groupBy replaces 6 counts + 2 aggregates
   getStats: publicProcedure
     .input(FinancialYearFilterSchema)
     .query(async ({ input }) => {
@@ -251,26 +251,52 @@ export const quotationRouter = createTRPCRouter({
           },
         }
       : {};
-    const [total, live, won, lost, budgetary, dead] = await Promise.all([
-      db.quotation.count({ where }),
-      db.quotation.count({ where: { ...where, status: { in: ['LIVE'] } } }),
-      db.quotation.count({ where: { ...where, status: 'WON' } }),
-      db.quotation.count({ where: { ...where, status: 'LOST' } }),
-      db.quotation.count({ where: { ...where, status: 'BUDGETARY' } }),
-      db.quotation.count({ where: { ...where, status: 'DEAD' } })
-    ]);
 
-    // Calculate total value for live/submitted quotations
-    const liveTotalValue = await db.quotation.aggregate({
-      where: { ...where, status: { in: ['LIVE'] } },
-      _sum: { totalValue: true }
+    const statusGroups = await db.quotation.groupBy({
+      by: ['status'],
+      where,
+      _count: { _all: true },
+      _sum: { totalValue: true },
     });
 
-    // Calculate total value for all active quotations (live, submitted, won, budgetary)
-    const activeTotalValue = await db.quotation.aggregate({
-      where: { ...where, status: { in: ['LIVE', 'WON', 'BUDGETARY'] } },
-      _sum: { totalValue: true }
-    });
+    let total = 0;
+    let live = 0;
+    let won = 0;
+    let lost = 0;
+    let budgetary = 0;
+    let dead = 0;
+    let liveTotalValue = 0;
+    let activeTotalValue = 0;
+
+    for (const group of statusGroups) {
+      const count = group._count._all;
+      const sum = Number(group._sum.totalValue ?? 0);
+      total += count;
+
+      switch (group.status) {
+        case 'LIVE':
+          live = count;
+          liveTotalValue += sum;
+          activeTotalValue += sum;
+          break;
+        case 'WON':
+          won = count;
+          activeTotalValue += sum;
+          break;
+        case 'LOST':
+          lost = count;
+          break;
+        case 'BUDGETARY':
+          budgetary = count;
+          activeTotalValue += sum;
+          break;
+        case 'DEAD':
+          dead = count;
+          break;
+        default:
+          break;
+      }
+    }
 
     return {
       total,
@@ -279,10 +305,61 @@ export const quotationRouter = createTRPCRouter({
       lost,
       budgetary,
       dead,
-      liveTotalValue: liveTotalValue._sum.totalValue ?? 0,
-      activeTotalValue: activeTotalValue._sum.totalValue ?? 0
+      liveTotalValue,
+      activeTotalValue,
     };
   }),
+
+  // Slim list for the quotation-status page: no line items, select only what
+  // QuotationStatusUpdater and the status page render.
+  getStatusList: publicProcedure
+    .input(
+      z.object({
+        financialYear: z.string().optional(),
+        status: z.enum(['LIVE', 'SUBMITTED', 'WON', 'LOST', 'BUDGETARY', 'DEAD', 'RECEIVED']).optional(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const where: Prisma.QuotationWhereInput = {};
+
+      if (input.financialYear) {
+        where.enquiry = { financialYear: input.financialYear };
+      }
+
+      if (input.status) {
+        where.status = input.status;
+      }
+
+      return db.quotation.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          quotationNumber: true,
+          quotationDate: true,
+          status: true,
+          totalValue: true,
+          purchaseOrderNumber: true,
+          poValue: true,
+          poDate: true,
+          lostReason: true,
+          createdAt: true,
+          enquiry: {
+            select: {
+              id: true,
+              subject: true,
+              financialYear: true,
+              company: {
+                select: { name: true },
+              },
+              customer: {
+                select: { name: true },
+              },
+            },
+          },
+        },
+      });
+    }),
 
   // Check if quotation number already exists
   checkDuplicateNumber: publicProcedure

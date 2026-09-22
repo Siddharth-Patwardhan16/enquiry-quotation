@@ -19,7 +19,10 @@ function getNormalizedDatabaseUrl(): string | undefined {
       // PgBouncer requires disabling prepared statements
       parsed.searchParams.set("pgbouncer", "true");
       if (!parsed.searchParams.has("connection_limit")) {
-        parsed.searchParams.set("connection_limit", "1");
+        // The Supabase transaction pooler multiplexes many client connections onto few
+        // server-side ones, so a small per-instance pool (instead of 1) lets the several
+        // procedures batched into one tRPC HTTP request run their queries in parallel.
+        parsed.searchParams.set("connection_limit", "5");
       }
       return parsed.toString();
     }

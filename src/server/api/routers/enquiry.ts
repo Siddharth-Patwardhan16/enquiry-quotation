@@ -10,32 +10,40 @@ export const enquiryRouter = createTRPCRouter({
   create: publicProcedure
     .input(CreateEnquirySchema)
     .mutation(async ({ ctx, input }) => {
-      // Find the first marketing person in the database
-      const marketingPerson = await db.employee.findFirst({
-        where: { role: 'MARKETING' },
-      });
-      
+      // Only look up a fallback marketing person when there is no current user;
+      // this is a fallback path only, skip it when ctx.currentUser already has an id.
+      const marketingPersonPromise = ctx.currentUser
+        ? Promise.resolve(null)
+        : db.employee.findFirst({
+            where: { role: 'MARKETING' },
+            select: { id: true },
+          });
+
       // Determine if the location is an office or plant for companies
       let officeId = null;
       let plantId = null;
-      
+
       if (input.entityType === 'company' && input.locationId) {
-        // Check if the location is an office or plant
-        const office = await db.office.findUnique({
-          where: { id: input.locationId }
-        });
-        
+        // Check office and plant in parallel; at most one will match.
+        const [office, plant] = await Promise.all([
+          db.office.findUnique({
+            where: { id: input.locationId },
+            select: { id: true },
+          }),
+          db.plant.findUnique({
+            where: { id: input.locationId },
+            select: { id: true },
+          }),
+        ]);
+
         if (office) {
           officeId = input.locationId;
-        } else {
-          const plant = await db.plant.findUnique({
-            where: { id: input.locationId }
-          });
-          if (plant) {
-            plantId = input.locationId;
-          }
+        } else if (plant) {
+          plantId = input.locationId;
         }
       }
+
+      const marketingPerson = await marketingPersonPromise;
 
       const fy = getFinancialYear(new Date());
 
@@ -122,44 +130,46 @@ export const enquiryRouter = createTRPCRouter({
         ];
       }
 
-      const total = await db.enquiry.count({ where });
-      const items = await db.enquiry.findMany({
-        where,
-        skip,
-        take: pageSize,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          company: {
-            select: {
-              name: true,
+      const [total, items] = await Promise.all([
+        db.enquiry.count({ where }),
+        db.enquiry.findMany({
+          where,
+          skip,
+          take: pageSize,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            company: {
+              select: {
+                name: true,
+              },
+            },
+            office: {
+              select: {
+                name: true,
+              },
+            },
+            plant: {
+              select: {
+                name: true,
+              },
+            },
+            marketingPerson: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            attendedBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
             },
           },
-          office: {
-            select: {
-              name: true,
-            },
-          },
-          plant: {
-            select: {
-              name: true,
-            },
-          },
-          marketingPerson: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          attendedBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-      });
+        }),
+      ]);
 
       const totalPages = Math.ceil(total / pageSize);
 
@@ -213,6 +223,60 @@ export const enquiryRouter = createTRPCRouter({
       },
     });
   }),
+
+  // Slim, filterable list for dropdowns/selectors (quotations/new, CommunicationForm, ...).
+  // Replaces the pattern of pulling getAll's full 5-join payload just to populate a select.
+  getOptions: publicProcedure
+    .input(
+      z.object({
+        financialYear: z.string().optional(),
+        companyId: z.string().optional(),
+        search: z.string().optional(),
+        limit: z.number().int().min(1).max(500).default(200),
+      }),
+    )
+    .query(async ({ input }) => {
+      const where: Prisma.EnquiryWhereInput = {};
+
+      if (input.financialYear) {
+        where.financialYear = input.financialYear;
+      }
+
+      if (input.companyId) {
+        where.companyId = input.companyId;
+      }
+
+      if (input.search?.trim()) {
+        const query = input.search.trim();
+        where.OR = [
+          { subject: { contains: query, mode: 'insensitive' } },
+          { quotationNumber: { contains: query, mode: 'insensitive' } },
+          { company: { name: { contains: query, mode: 'insensitive' } } },
+        ];
+      }
+
+      return db.enquiry.findMany({
+        where,
+        take: input.limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          subject: true,
+          quotationNumber: true,
+          quotationDate: true,
+          financialYear: true,
+          sequenceNumber: true,
+          status: true,
+          companyId: true,
+          customerId: true,
+          company: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+    }),
 
   // Get enquiry statistics - optimized to a single groupBy query
   getStats: publicProcedure
@@ -338,36 +402,29 @@ export const enquiryRouter = createTRPCRouter({
         data: updateData,
       });
 
-      // Sync status to related quotations
-      const relatedQuotations = await db.quotation.findMany({
-        where: { enquiryId: id },
-      });
+      // Sync status to related quotations (updateMany is a no-op if none match, so
+      // there is no need to pre-check with a findMany first).
+      let quotationStatus: 'LIVE' | 'WON' | 'LOST' | 'BUDGETARY' | 'RECEIVED' | 'DEAD' | undefined;
 
-      if (relatedQuotations.length > 0) {
-        // Map enquiry status to quotation status
-        let quotationStatus: 'LIVE' | 'WON' | 'LOST' | 'BUDGETARY' | 'RECEIVED' | 'DEAD' | undefined;
-        
-        if (status === 'BUDGETARY') {
-          quotationStatus = 'BUDGETARY';
-        } else if (status === 'RCD') {
-          quotationStatus = 'RECEIVED';
-        } else if (status === 'LOST') {
-          quotationStatus = 'LOST';
-        } else if (status === 'WON') {
-          quotationStatus = 'WON';
-        } else if (status === 'DEAD') {
-          quotationStatus = 'DEAD';
-        } else if (status === 'LIVE') {
-          quotationStatus = 'LIVE';
-        }
+      if (status === 'BUDGETARY') {
+        quotationStatus = 'BUDGETARY';
+      } else if (status === 'RCD') {
+        quotationStatus = 'RECEIVED';
+      } else if (status === 'LOST') {
+        quotationStatus = 'LOST';
+      } else if (status === 'WON') {
+        quotationStatus = 'WON';
+      } else if (status === 'DEAD') {
+        quotationStatus = 'DEAD';
+      } else if (status === 'LIVE') {
+        quotationStatus = 'LIVE';
+      }
 
-        // Update all related quotations
-        if (quotationStatus) {
-          await db.quotation.updateMany({
-            where: { enquiryId: id },
-            data: { status: quotationStatus },
-          });
-        }
+      if (quotationStatus) {
+        await db.quotation.updateMany({
+          where: { enquiryId: id },
+          data: { status: quotationStatus },
+        });
       }
 
       return updatedEnquiry;
@@ -384,20 +441,22 @@ export const enquiryRouter = createTRPCRouter({
       let plantId = null;
       
       if (entityType === 'company' && locationId) {
-        // Check if the location is an office or plant
-        const office = await db.office.findUnique({
-          where: { id: locationId }
-        });
-        
+        // Check office and plant in parallel; at most one will match.
+        const [office, plant] = await Promise.all([
+          db.office.findUnique({
+            where: { id: locationId },
+            select: { id: true },
+          }),
+          db.plant.findUnique({
+            where: { id: locationId },
+            select: { id: true },
+          }),
+        ]);
+
         if (office) {
           officeId = locationId;
-        } else {
-          const plant = await db.plant.findUnique({
-            where: { id: locationId }
-          });
-          if (plant) {
-            plantId = locationId;
-          }
+        } else if (plant) {
+          plantId = locationId;
         }
       }
       

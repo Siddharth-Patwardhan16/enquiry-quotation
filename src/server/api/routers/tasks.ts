@@ -27,72 +27,83 @@ export const tasksRouter = createTRPCRouter({
     .query(async ({ input }) => {
     const today = new Date();
 
-    // 1. Fetch active quotations (excluding completed ones)
-    const activeQuotations = await db.quotation.findMany({
-      where: {
-        NOT: {
-          status: { in: ['WON', 'LOST'] },
-        },
-      },
-      include: {
-        enquiry: {
-          include: {
-            company: {
-              select: { name: true, id: true },
-            },
-            customer: {
-              select: { name: true, id: true },
-            },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    // 2. Fetch all communications (including future ones for management)
     // Include communications with nextCommunicationDate OR recent communications without it
     const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const allCommunications = await db.communication.findMany({
-      where: {
-        OR: [
-          {
-            nextCommunicationDate: {
-              not: null, // Communications with scheduled dates
+
+    // 1 & 2. Fetch active quotations and communications concurrently. When the caller
+    // already filters to a single task type, skip the query for the other type entirely
+    // instead of fetching and discarding it.
+    const [activeQuotations, allCommunications] = await Promise.all([
+      input.type === 'COMMUNICATION'
+        ? Promise.resolve([])
+        : db.quotation.findMany({
+            where: {
+              NOT: {
+                status: { in: ['WON', 'LOST'] },
+              },
             },
-          },
-          {
-            // Recent communications without nextCommunicationDate (created in last 30 days)
-            nextCommunicationDate: null,
-            createdAt: {
-              gte: thirtyDaysAgo,
+            select: {
+              id: true,
+              quotationNumber: true,
+              status: true,
+              validityPeriod: true,
+              createdAt: true,
+              enquiry: {
+                select: {
+                  company: {
+                    select: { name: true },
+                  },
+                  customer: {
+                    select: { name: true },
+                  },
+                },
+              },
             },
-          },
-        ],
-      },
-      select: {
-        id: true,
-        subject: true,
-        description: true,
-        type: true,
-        nextCommunicationDate: true,
-        createdAt: true, // Include createdAt for fallback due date
-        proposedNextAction: true,
-        enquiryId: true,
-        enquiryRelated: true,
-        company: {
-          select: { name: true, id: true },
-        },
-        customer: {
-          select: { name: true, id: true },
-        },
-        contact: {
-          select: { name: true, designation: true },
-        },
-      },
-      orderBy: { createdAt: 'desc' }, // Order by creation date (will be sorted by due date later in the task mapping)
-    });
+            orderBy: { createdAt: 'desc' },
+          }),
+      input.type === 'QUOTATION'
+        ? Promise.resolve([])
+        : db.communication.findMany({
+            where: {
+              OR: [
+                {
+                  nextCommunicationDate: {
+                    not: null, // Communications with scheduled dates
+                  },
+                },
+                {
+                  // Recent communications without nextCommunicationDate (created in last 30 days)
+                  nextCommunicationDate: null,
+                  createdAt: {
+                    gte: thirtyDaysAgo,
+                  },
+                },
+              ],
+            },
+            select: {
+              id: true,
+              subject: true,
+              description: true,
+              type: true,
+              nextCommunicationDate: true,
+              createdAt: true, // Include createdAt for fallback due date
+              proposedNextAction: true,
+              enquiryId: true,
+              enquiryRelated: true,
+              company: {
+                select: { name: true, id: true },
+              },
+              customer: {
+                select: { name: true, id: true },
+              },
+              contact: {
+                select: { name: true, designation: true },
+              },
+            },
+            orderBy: { createdAt: 'desc' }, // Order by creation date (will be sorted by due date later in the task mapping)
+          }),
+    ]);
 
     // Fetch enquiry information for communications that have enquiryId or enquiryRelated.
     // Batched lookup (fixes N+1): resolve each communication's enquiry ID, deduplicate,

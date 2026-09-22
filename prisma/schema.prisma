@@ -88,6 +88,8 @@ model Office {
   contactPersons  ContactPerson[]
   enquiries       Enquiry[]
   company         Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
 }
 
 model Plant {
@@ -107,6 +109,8 @@ model Plant {
   contactPersons  ContactPerson[]
   enquiries       Enquiry[]
   company         Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
 }
 
 model ContactPerson {
@@ -125,6 +129,10 @@ model ContactPerson {
   company        Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
   office         Office?         @relation(fields: [officeId], references: [id], onDelete: Cascade)
   plant          Plant?          @relation(fields: [plantId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([officeId])
+  @@index([plantId])
 }
 
 model Location {
@@ -142,6 +150,7 @@ model Location {
   customer        Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@unique([customerId, name, type])
+  @@index([customerId])
 }
 
 model Contact {
@@ -157,6 +166,9 @@ model Contact {
   communications     Communication[]
   customer           Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
   location           Location        @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([locationId])
 }
 
 model Enquiry {
@@ -208,6 +220,16 @@ model Enquiry {
 
   @@unique([financialYear, sequenceNumber])
   @@index([financialYear])
+  @@index([companyId])
+  @@index([customerId])
+  @@index([officeId])
+  @@index([plantId])
+  @@index([marketingPersonId])
+  @@index([attendedById])
+  @@index([status])
+  @@index([createdAt])
+  @@index([financialYear, createdAt])
+  @@index([financialYear, status])
 }
 
 model Quotation {
@@ -242,6 +264,12 @@ model Quotation {
   createdBy                   Employee?       @relation("QuotationCreatedBy", fields: [createdById], references: [id])
   enquiry                     Enquiry?        @relation(fields: [enquiryId], references: [id])
   items                       QuotationItem[]
+
+  @@index([enquiryId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([validityPeriod])
 }
 
 model QuotationItem {
@@ -254,6 +282,8 @@ model QuotationItem {
   createdAt           DateTime  @default(now())
   quotationId         String
   quotation           Quotation @relation(fields: [quotationId], references: [id])
+
+  @@index([quotationId])
 }
 
 model Communication {
@@ -279,6 +309,15 @@ model Communication {
   customer              Customer?           @relation(fields: [customerId], references: [id])
   employee              Employee?           @relation(fields: [employeeId], references: [id])
   enquiry               Enquiry?            @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+
+  @@index([enquiryId])
+  @@index([companyId])
+  @@index([customerId])
+  @@index([contactId])
+  @@index([contactPersonId])
+  @@index([employeeId])
+  @@index([nextCommunicationDate])
+  @@index([createdAt])
 }
 
 model Document {
@@ -291,6 +330,9 @@ model Document {
   quotationId String?
   enquiry     Enquiry?     @relation(fields: [enquiryId], references: [id])
   quotation   Quotation?   @relation(fields: [quotationId], references: [id])
+
+  @@index([enquiryId])
+  @@index([quotationId])
 }
 
 enum Role {

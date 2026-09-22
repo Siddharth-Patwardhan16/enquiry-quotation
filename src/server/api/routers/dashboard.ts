@@ -21,16 +21,17 @@ export const dashboardRouter = createTRPCRouter({
       ? { enquiry: { financialYear: input.financialYear } }
       : {};
 
-    const customerCount = await db.customer.count();
-    const enquiryCount = await db.enquiry.count({ where: enquiryFy });
-    const quotationCount = await db.quotation.count({ where: quotationEnquiryFy });
-
-    const wonDealsCount = await db.quotation.count({
-      where: {
-        status: 'WON',
-        ...quotationEnquiryFy,
-      },
-    });
+    const [customerCount, enquiryCount, quotationCount, wonDealsCount] = await Promise.all([
+      db.customer.count(),
+      db.enquiry.count({ where: enquiryFy }),
+      db.quotation.count({ where: quotationEnquiryFy }),
+      db.quotation.count({
+        where: {
+          status: 'WON',
+          ...quotationEnquiryFy,
+        },
+      }),
+    ]);
 
     return {
       customerCount,
@@ -80,7 +81,11 @@ export const dashboardRouter = createTRPCRouter({
       orderBy: {
         createdAt: 'desc',
       },
-      include: {
+      select: {
+        id: true,
+        subject: true,
+        status: true,
+        createdAt: true,
         customer: {
           select: {
             name: true,
@@ -109,9 +114,13 @@ export const dashboardRouter = createTRPCRouter({
       orderBy: {
         createdAt: 'desc',
       },
-      include: {
+      select: {
+        id: true,
+        quotationNumber: true,
+        status: true,
+        createdAt: true,
         enquiry: {
-          include: {
+          select: {
             customer: {
               select: {
                 name: true,
@@ -201,31 +210,34 @@ export const dashboardRouter = createTRPCRouter({
         return Number(quotation.totalValue ?? 0);
       };
 
-      const quotations = await db.quotation.findMany({
-        select: {
-          totalValue: true,
-          status: true,
-          quotationDate: true,
-          poValue: true,
-          enquiry: {
-            select: {
-              financialYear: true,
-            },
-          },
-        },
-        where: {
-          totalValue: {
-            not: null,
-          },
-        },
-      });
-
       if (input.view === 'yearly') {
         const currentFy = getFinancialYear(new Date());
         const { startYear: currentStart } = parseFinancialYearLabel(currentFy);
         const yearLabels = Array.from({ length: input.yearsBack ?? 6 }, (_, index) => {
           const startYear = currentStart - ((input.yearsBack ?? 6) - 1 - index);
           return `${startYear}-${String(startYear + 1).slice(-2)}`;
+        });
+
+        const quotations = await db.quotation.findMany({
+          select: {
+            totalValue: true,
+            status: true,
+            quotationDate: true,
+            poValue: true,
+            enquiry: {
+              select: {
+                financialYear: true,
+              },
+            },
+          },
+          where: {
+            totalValue: {
+              not: null,
+            },
+            enquiry: {
+              financialYear: { in: yearLabels },
+            },
+          },
         });
 
         const counts = new Map<string, number>();
@@ -261,9 +273,29 @@ export const dashboardRouter = createTRPCRouter({
       const counts = Array.from({ length: 12 }, () => 0);
       const values = Array.from({ length: 12 }, () => 0);
 
-      for (const quotation of quotations) {
-        if (quotation.enquiry?.financialYear !== financialYear) continue;
+      const quotations = await db.quotation.findMany({
+        select: {
+          totalValue: true,
+          status: true,
+          quotationDate: true,
+          poValue: true,
+          enquiry: {
+            select: {
+              financialYear: true,
+            },
+          },
+        },
+        where: {
+          totalValue: {
+            not: null,
+          },
+          enquiry: {
+            financialYear,
+          },
+        },
+      });
 
+      for (const quotation of quotations) {
         const monthIndex = dateToFinancialYearMonthIndex(quotation.quotationDate);
         counts[monthIndex] += 1;
         values[monthIndex] += getQuotationValue(quotation);
@@ -288,74 +320,93 @@ export const dashboardRouter = createTRPCRouter({
     const now = new Date();
     const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-    // Get tasks from enquiries that need follow-up
-    const enquiryTasks = await db.enquiry.findMany({
-      where: {
-        status: {
-          in: ['LIVE', 'RCD']
+    // Fetch enquiries, quotations and communications that need follow-up in parallel;
+    // each is an independent query, so there is no reason to run them sequentially.
+    const [enquiryTasks, quotationTasks, communicationTasks] = await Promise.all([
+      // Get tasks from enquiries that need follow-up
+      db.enquiry.findMany({
+        where: {
+          status: {
+            in: ['LIVE', 'RCD']
+          },
+          createdAt: {
+            gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) // Enquiries from last 7 days
+          }
         },
-        createdAt: {
-          gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) // Enquiries from last 7 days
-        }
-      },
-      include: {
-        customer: {
-          select: { name: true }
+        select: {
+          id: true,
+          subject: true,
+          createdAt: true,
+          priority: true,
+          description: true,
+          requirements: true,
+          customer: {
+            select: { name: true }
+          },
+          marketingPerson: {
+            select: { name: true }
+          }
         },
-        marketingPerson: {
-          select: { name: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 10
-    });
+        orderBy: { createdAt: 'desc' },
+        take: 10
+      }),
 
-    // Get tasks from quotations that need attention
-    const quotationTasks = await db.quotation.findMany({
-      where: {
-        status: {
-          in: ['LIVE']
+      // Get tasks from quotations that need attention
+      db.quotation.findMany({
+        where: {
+          status: {
+            in: ['LIVE']
+          },
+          validityPeriod: {
+            gte: now,
+            lte: thirtyDaysFromNow
+          }
         },
-        validityPeriod: {
-          gte: now,
-          lte: thirtyDaysFromNow
-        }
-      },
-      include: {
-        enquiry: {
-          include: {
-            customer: {
-              select: { name: true }
+        select: {
+          id: true,
+          quotationNumber: true,
+          validityPeriod: true,
+          status: true,
+          enquiry: {
+            select: {
+              customer: {
+                select: { name: true }
+              }
             }
           }
-        }
-      },
-      orderBy: { validityPeriod: 'asc' },
-      take: 10
-    });
+        },
+        orderBy: { validityPeriod: 'asc' },
+        take: 10
+      }),
 
-    // Get tasks from communications that need follow-up
-    const communicationTasks = await db.communication.findMany({
-      where: {
-        nextCommunicationDate: {
-          gte: now,
-          lte: thirtyDaysFromNow
-        }
-      },
-      include: {
-        customer: {
-          select: { name: true }
+      // Get tasks from communications that need follow-up
+      db.communication.findMany({
+        where: {
+          nextCommunicationDate: {
+            gte: now,
+            lte: thirtyDaysFromNow
+          }
         },
-        contact: {
-          select: { name: true }
+        select: {
+          id: true,
+          subject: true,
+          nextCommunicationDate: true,
+          proposedNextAction: true,
+          description: true,
+          customer: {
+            select: { name: true }
+          },
+          contact: {
+            select: { name: true }
+          },
+          employee: {
+            select: { name: true }
+          }
         },
-        employee: {
-          select: { name: true }
-        }
-      },
-      orderBy: { nextCommunicationDate: 'asc' },
-      take: 10
-    });
+        orderBy: { nextCommunicationDate: 'asc' },
+        take: 10
+      }),
+    ]);
 
     // Convert enquiries to tasks
     const enquiryTaskList = enquiryTasks.map((enquiry) => {
