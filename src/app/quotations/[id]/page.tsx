@@ -6,7 +6,6 @@ import { ArrowLeft, Download, Upload, AlertTriangle, Edit, DollarSign, Calendar,
 import { useState } from 'react';
 import type { AppRouter } from '@/server/api/root';
 import type { inferRouterOutputs } from '@trpc/server';
-import jsPDF from 'jspdf';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 
@@ -83,10 +82,12 @@ export default function QuotationDetailPage() {
     await updateQuotationStatus('LOST', lostReason);
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!quotation) return;
 
     try {
+      // jsPDF is ~130 kB; load it only when the user actually exports.
+      const { default: jsPDF } = await import('jspdf');
       // Create a new PDF document
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = 210;

@@ -12,7 +12,13 @@ import { CustomerFilters } from './_components/CustomerFilters';
 import { CustomerTable } from './_components/CustomerTable';
 import { CustomerActions } from './_components/CustomerActions';
 import { Pagination } from './_components/Pagination';
-import { ImportModal } from './_components/ImportModal';
+import dynamic from 'next/dynamic';
+
+// ImportModal pulls in the xlsx + mammoth parsers (~250 kB); load it only when opened.
+const ImportModal = dynamic(
+  () => import('./_components/ImportModal').then((m) => m.ImportModal),
+  { ssr: false },
+);
 import { exportCustomersToCSV } from './_utils/exportCustomers';
 import { CustomerFilters as CustomerFiltersType, CompanyApiResponse } from './_types/customer.types';
 
@@ -260,12 +266,14 @@ function CustomerDetailsContent() {
           />
         )}
 
-        {/* Import Modal */}
-        <ImportModal
-          isOpen={showImportModal}
-          onClose={() => setShowImportModal(false)}
-          onImport={handleImportData}
-        />
+        {/* Import Modal (mounted only when opened so its parsers are not downloaded up front) */}
+        {showImportModal && (
+          <ImportModal
+            isOpen={showImportModal}
+            onClose={() => setShowImportModal(false)}
+            onImport={handleImportData}
+          />
+        )}
       </div>
     </div>
   );
