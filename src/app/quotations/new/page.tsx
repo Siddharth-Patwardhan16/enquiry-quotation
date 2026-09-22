@@ -28,8 +28,8 @@ export default function NewQuotationPage() {
   const { confirmFormClose } = useFormConfirmation();
   const { success, error: showError } = useToastContext();
   
-  // Fetch enquiries to populate the dropdown
-  const { data: enquiries, isLoading: isLoadingEnquiries } = api.enquiry.getAll.useQuery({});
+  // Fetch enquiries to populate the dropdown (slim options list instead of the full getAll payload)
+  const { data: enquiries, isLoading: isLoadingEnquiries } = api.enquiry.getOptions.useQuery({ limit: 500 });
 
   const {
     register,

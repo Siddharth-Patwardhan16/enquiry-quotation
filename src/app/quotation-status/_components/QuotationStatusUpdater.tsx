@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DollarSign, Calendar, Shield, HelpCircle, AlertTriangle } from 'lucide-react';
 
-type Quotation = inferRouterOutputs<AppRouter>['quotation']['getAll'][0];
+type Quotation = inferRouterOutputs<AppRouter>['quotation']['getStatusList'][0];
 
 export function QuotationStatusUpdater({ quotation }: { quotation: Quotation }) {
   const utils = api.useUtils();
@@ -26,7 +26,8 @@ export function QuotationStatusUpdater({ quotation }: { quotation: Quotation }) 
   const updateStatusMutation = api.quotation.updateStatus.useMutation({
     onSuccess: () => {
       // Refresh the quotation list after a successful update
-      utils.quotation.getAll.invalidate();
+      utils.quotation.getStatusList.invalidate();
+      utils.quotation.getStats.invalidate();
       setShowModal(false);
       setPendingStatus(null);
       setLostReason('');

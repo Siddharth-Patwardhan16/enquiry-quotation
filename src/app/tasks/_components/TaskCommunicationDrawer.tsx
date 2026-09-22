@@ -67,11 +67,12 @@ export function TaskCommunicationDrawer({
     );
 
   // Fetch communications by customer/company if no enquiryId
-  const { data: customerCommunications, isLoading: isLoadingCustomerCommunications, refetch: refetchCustomerCommunications } = 
-    api.communication.getAll.useQuery(
-      { customerId: communication?.companyId ?? communication?.customerId ?? '' },
+  const { data: customerCommunicationsData, isLoading: isLoadingCustomerCommunications, refetch: refetchCustomerCommunications } =
+    api.communication.getPaginated.useQuery(
+      { customerId: communication?.companyId ?? communication?.customerId ?? '', page: 1, pageSize: 50 },
       { enabled: isOpen && !!communication && !communication.enquiryId && (!!communication.companyId || !!communication.customerId) }
     );
+  const customerCommunications = customerCommunicationsData?.items;
 
   const utils = api.useUtils();
 
@@ -96,7 +97,7 @@ export function TaskCommunicationDrawer({
         utils.communication.getCommunicationsByEnquiryId.invalidate({ enquiryId: communication.enquiryId });
       } else {
         refetchCustomerCommunications();
-        utils.communication.getAll.invalidate();
+        utils.communication.getPaginated.invalidate();
       }
       utils.tasks.getUpcoming.invalidate();
       onSuccess?.();
@@ -118,7 +119,7 @@ export function TaskCommunicationDrawer({
         utils.communication.getCommunicationsByEnquiryId.invalidate({ enquiryId: communication.enquiryId });
       } else {
         refetchCustomerCommunications();
-        utils.communication.getAll.invalidate();
+        utils.communication.getPaginated.invalidate();
       }
       utils.tasks.getUpcoming.invalidate();
       onSuccess?.();

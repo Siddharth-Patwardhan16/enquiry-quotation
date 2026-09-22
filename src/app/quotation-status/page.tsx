@@ -4,13 +4,25 @@ import { useState } from 'react';
 import { api } from '@/trpc/client';
 import { QuotationStatusUpdater } from './_components/QuotationStatusUpdater';
 import type { ComponentProps } from 'react';
+import { keepPreviousData } from '@tanstack/react-query';
+import { buildFinancialYearOptions, getFinancialYear } from '@/lib/financial-year';
 
 type Quotation = ComponentProps<typeof QuotationStatusUpdater>['quotation'];
+type QuotationStatusValue = 'LIVE' | 'SUBMITTED' | 'WON' | 'LOST' | 'BUDGETARY' | 'DEAD' | 'RECEIVED';
 
 export default function QuotationStatusPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const { data: quotations, isLoading, error } = api.quotation.getAll.useQuery({});
-  const { data: stats, isLoading: isLoadingStats, error: statsError } = api.quotation.getStats.useQuery({});
+  const [financialYear, setFinancialYear] = useState(() => getFinancialYear(new Date()));
+  const financialYearOptions = buildFinancialYearOptions(6, 1);
+
+  const { data: quotations, isLoading, error } = api.quotation.getStatusList.useQuery(
+    { financialYear, status: (statusFilter as QuotationStatusValue | null) ?? undefined },
+    { placeholderData: keepPreviousData },
+  );
+  const { data: stats, isLoading: isLoadingStats, error: statsError } = api.quotation.getStats.useQuery(
+    { financialYear },
+    { placeholderData: keepPreviousData },
+  );
   const typedQuotations = ((quotations ?? []) as unknown) as Quotation[];
 
   if (error) {
@@ -53,14 +65,11 @@ export default function QuotationStatusPage() {
     dead: isLoadingStats ? '...' : 0
   };
 
-  // Filter quotations based on status filter
-  const filteredQuotations = statusFilter 
-    ? typedQuotations.filter(q => q.status === statusFilter)
-    : typedQuotations;
+  // Status filtering is now done server-side by quotation.getStatusList.
 
-  // Calculate total value from filtered quotations
+  // Calculate total value from the (already status-filtered) rows returned by the server.
   // Use PO value for WON quotations (matching dashboard chart logic)
-  const displayTotalValue = filteredQuotations.reduce((sum, q) => {
+  const displayTotalValue = typedQuotations.reduce((sum, q) => {
     // Use PO value if status is WON and poValue is available, otherwise use totalValue
     const value = q.status === 'WON' && q.poValue 
       ? Number(q.poValue) 
@@ -83,6 +92,27 @@ export default function QuotationStatusPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Quotation Status</h1>
         <p className="text-gray-600 mt-1">Track and update the status of all quotations as you receive feedback from customers</p>
+      </div>
+
+      {/* Financial Year Selector */}
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <span className="font-semibold text-gray-900 whitespace-nowrap">Financial Year:</span>
+          <select
+            value={financialYear}
+            onChange={(e) => setFinancialYear(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm"
+          >
+            {financialYearOptions.map((fy) => (
+              <option key={fy} value={fy}>
+                {fy}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="text-sm text-gray-500">
+          Quotations filtered for FY {financialYear}
+        </p>
       </div>
 
       {/* Stats Cards */}
@@ -305,7 +335,7 @@ export default function QuotationStatusPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredQuotations.map((quotation: Quotation) => (
+                    {typedQuotations.map((quotation: Quotation) => (
                       (() => {
                         const q = quotation as Quotation & {
                           enquiry?: {

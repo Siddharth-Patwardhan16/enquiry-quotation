@@ -1,7 +1,10 @@
 'use client';
 
-import { useState, useCallback, Suspense } from 'react';
+import { useState, useCallback, useMemo, Suspense } from 'react';
 import { api } from '@/trpc/client';
+import type { AppRouter } from '@/server/api/root';
+import type { inferRouterOutputs } from '@trpc/server';
+import { keepPreviousData } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/toast';
 import { useDebounce } from './_hooks/useDebounce';
 import { useCustomerFilters } from './_hooks/useCustomerFilters';
@@ -11,16 +14,48 @@ import { CustomerActions } from './_components/CustomerActions';
 import { Pagination } from './_components/Pagination';
 import { ImportModal } from './_components/ImportModal';
 import { exportCustomersToCSV } from './_utils/exportCustomers';
-import { CustomerFilters as CustomerFiltersType } from './_types/customer.types';
+import { CustomerFilters as CustomerFiltersType, CompanyApiResponse } from './_types/customer.types';
+
+type CompanyPaginatedItem = inferRouterOutputs<AppRouter>['company']['getPaginated']['items'][number];
+
+// company.getPaginated's contactPersons are flat (officeId/plantId, no nested office/plant
+// object) to avoid the N+1-ish nested include getAll used. CustomerRow (and the
+// CompanyApiResponse type it's built against) still expect each contact to carry a small
+// { id, name } office/plant object, so we derive it here by looking the ids up against the
+// row's own offices/plants arrays, without touching the shared type or CustomerRow itself.
+function attachContactLocations(company: CompanyPaginatedItem): CompanyApiResponse {
+  const officesById = new Map(company.offices.map((office) => [office.id, office]));
+  const plantsById = new Map(company.plants.map((plant) => [plant.id, plant]));
+  // createdBy isn't used anywhere in this feature, and getPaginated's createdBy select
+  // ({id, name}) doesn't carry the `email` field CompanyApiResponse's type declares, so
+  // it's dropped here rather than widening the shared type for an unused field.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+  const { createdBy, ...companyRest } = company;
+
+  return {
+    ...companyRest,
+    type: 'company' as const,
+    contactPersons: company.contactPersons.map((contact) => {
+      const office = contact.officeId ? officesById.get(contact.officeId) : undefined;
+      const plant = contact.plantId ? plantsById.get(contact.plantId) : undefined;
+      return {
+        ...contact,
+        office: office ? { id: office.id, name: office.name } : null,
+        plant: plant ? { id: plant.id, name: plant.name } : null,
+      };
+    }),
+  };
+}
 
 function CustomerDetailsContent() {
   const { success, error: toastError } = useToast();
   const [showImportModal, setShowImportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const utils = api.useUtils();
 
   // Custom hooks for state management
   const {
     filterState,
-    queryParams,
     updateSearch,
     updatePage,
     updatePageSize,
@@ -32,24 +67,35 @@ function CustomerDetailsContent() {
   // Debounce search term to avoid excessive API calls
   const debouncedSearchTerm = useDebounce(filterState.searchTerm, 500);
 
-  // Fetch both companies and customers with sorting
-  const { 
-    data: companiesData, 
-    isLoading: isLoadingCompanies, 
-    error: companiesError, 
+  // Companies: server-side search/sort/pagination via company.getPaginated instead of
+  // fetching + filtering + slicing the whole table client-side.
+  const {
+    data: companiesPage,
+    isLoading: isLoadingCompanies,
+    error: companiesError,
     isFetching: isFetchingCompanies,
-    refetch: refetchCompanies 
-  } = api.company.getAll.useQuery({
-    sortBy: filterState.sortBy,
-    sortOrder: filterState.sortOrder,
-  });
+    refetch: refetchCompanies,
+  } = api.company.getPaginated.useQuery(
+    {
+      page: filterState.page,
+      pageSize: filterState.pageSize,
+      search: debouncedSearchTerm.trim() || undefined,
+      sortBy: filterState.sortBy,
+      sortOrder: filterState.sortOrder,
+    },
+    { placeholderData: keepPreviousData },
+  );
 
-  const { 
-    data: customersData, 
-    isLoading: isLoadingCustomers, 
-    error: customersError, 
+  // Legacy customer.getAll rows: there are few or none of these, so the whole (small)
+  // table is still fetched in one shot. They're appended after the company rows, only on
+  // the last page, filtered by the same debounced search (on name only, since they don't
+  // have offices/plants to search), so nothing that used to be visible disappears.
+  const {
+    data: customersData,
+    isLoading: isLoadingCustomers,
+    error: customersError,
     isFetching: isFetchingCustomers,
-    refetch: refetchCustomers 
+    refetch: refetchCustomers
   } = api.customer.getAll.useQuery({
     sortBy: filterState.sortBy,
     sortOrder: filterState.sortOrder,
@@ -63,214 +109,37 @@ function CustomerDetailsContent() {
     refetchCustomers();
   }, [refetchCompanies, refetchCustomers]);
 
-  // Combine companies and customers into a single list
-  const allEntities = [
-    ...(companiesData ?? []).map(company => ({
-      ...company,
-      type: 'company' as const,
-    })),
-    ...(customersData ?? []).map(customer => ({
+  const companyEntities = useMemo(
+    () => (companiesPage?.items ?? []).map(attachContactLocations),
+    [companiesPage],
+  );
+
+  const totalCount = companiesPage?.total ?? 0;
+  const totalPages = Math.max(1, companiesPage?.totalPages ?? 1);
+  const currentPage = companiesPage?.page ?? filterState.page;
+  const pageSize = companiesPage?.pageSize ?? filterState.pageSize;
+  const isLastPage = currentPage >= totalPages;
+
+  const filteredCustomerEntities = useMemo(() => {
+    const term = debouncedSearchTerm.trim().toLowerCase();
+    const matches = (customersData ?? []).filter(
+      (customer) => !term || customer.name.toLowerCase().includes(term),
+    );
+    return matches.map(customer => ({
       ...customer,
       type: 'customer' as const,
       offices: [],
       plants: [],
       contactPersons: [],
-    })),
-  ];
+    }));
+  }, [customersData, debouncedSearchTerm]);
 
-  // Helper function to get location string for search
-  const getLocationStringForSearch = (entity: typeof allEntities[0]): string => {
-    const locationParts: string[] = [];
-    
-    // For companies, get office and plant locations
-    if (entity.type === 'company' || 'offices' in entity) {
-      // Get all office locations
-      entity.offices?.forEach(office => {
-        if (office.address) locationParts.push(office.address);
-        if (office.city) locationParts.push(office.city);
-        if (office.state) locationParts.push(office.state);
-        if (office.country) locationParts.push(office.country);
-        if (office.area) locationParts.push(office.area);
-        if (office.name) locationParts.push(office.name);
-      });
-      
-      // Get all plant locations
-      entity.plants?.forEach(plant => {
-        if (plant.address) locationParts.push(plant.address);
-        if (plant.city) locationParts.push(plant.city);
-        if (plant.state) locationParts.push(plant.state);
-        if (plant.country) locationParts.push(plant.country);
-        if (plant.area) locationParts.push(plant.area);
-        if (plant.name) locationParts.push(plant.name);
-      });
-    }
-    
-    // For customers, get location data
-    if ((entity.type === 'customer' || 'locations' in entity) && 'locations' in entity && Array.isArray(entity.locations)) {
-      const locations = entity.locations as Array<{ address?: string | null; city?: string | null; state?: string | null; country?: string | null; name?: string }>;
-      for (const location of locations) {
-        if (location.address) locationParts.push(location.address);
-        if (location.city) locationParts.push(location.city);
-        if (location.state) locationParts.push(location.state);
-        if (location.country) locationParts.push(location.country);
-        if (location.name) locationParts.push(location.name);
-      }
-    }
-    
-    return locationParts.join(' ');
-  };
-
-  // Apply client-side filtering and pagination - search across ALL fields
-  const filteredEntities = allEntities.filter(entity => {
-    const searchTerm = debouncedSearchTerm.toLowerCase().trim();
-    if (!searchTerm) return true;
-    
-    // Search in entity name
-    if (entity.name?.toLowerCase().includes(searchTerm)) {
-      return true;
-    }
-    
-    // For companies, search in contact persons
-    if ((entity.type === 'company' || 'contactPersons' in entity) && 'contactPersons' in entity && Array.isArray(entity.contactPersons) && entity.contactPersons.length > 0) {
-      const contactPersons = entity.contactPersons as Array<{ name?: string; designation?: string | null; phoneNumber?: string | null; emailId?: string | null; office?: { name?: string } | null; plant?: { name?: string } | null }>;
-      for (const contact of contactPersons) {
-        // Search in contact name
-        if (contact.name?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        // Search in designation
-        if (contact.designation?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        // Search in phone number
-        if (contact.phoneNumber?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        // Search in email
-        if (contact.emailId?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        // Search in office/plant names
-        if (contact.office?.name?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (contact.plant?.name?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-      }
-    }
-    
-    // For customers, search in contacts
-    if ((entity.type === 'customer' || 'contacts' in entity) && 'contacts' in entity && Array.isArray(entity.contacts) && entity.contacts.length > 0) {
-      const contacts = entity.contacts as Array<{ name?: string; designation?: string | null; officialCellNumber?: string | null; personalCellNumber?: string | null; location?: { name?: string } | null }>;
-      for (const contact of contacts) {
-        if (contact.name?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (contact.designation?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (contact.officialCellNumber?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (contact.personalCellNumber?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (contact.location?.name?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-      }
-    }
-    
-    // Search in office names and locations (for companies)
-    if ((entity.type === 'company' || 'offices' in entity) && 'offices' in entity && Array.isArray(entity.offices) && entity.offices.length > 0) {
-      const offices = entity.offices as Array<{ name?: string; address?: string | null; city?: string | null; state?: string | null; country?: string | null; area?: string | null }>;
-      for (const office of offices) {
-        if (office.name?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (office.address?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (office.city?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (office.state?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (office.country?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (office.area?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-      }
-    }
-    
-    // Search in plant names and locations (for companies)
-    if ((entity.type === 'company' || 'plants' in entity) && 'plants' in entity && Array.isArray(entity.plants) && entity.plants.length > 0) {
-      const plants = entity.plants as Array<{ name?: string; address?: string | null; city?: string | null; state?: string | null; country?: string | null; area?: string | null }>;
-      for (const plant of plants) {
-        if (plant.name?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (plant.address?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (plant.city?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (plant.state?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (plant.country?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (plant.area?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-      }
-    }
-    
-    // Search in customer locations
-    if ((entity.type === 'customer' || 'locations' in entity) && 'locations' in entity && Array.isArray(entity.locations) && entity.locations.length > 0) {
-      const locations = entity.locations as Array<{ name?: string; address?: string | null; city?: string | null; state?: string | null; country?: string | null }>;
-      for (const location of locations) {
-        if (location.name?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (location.address?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (location.city?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (location.state?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        if (location.country?.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-      }
-    }
-    
-    // Search in all location strings combined
-    const locationString = getLocationStringForSearch(entity).toLowerCase();
-    if (locationString.includes(searchTerm)) {
-      return true;
-    }
-    
-    return false;
-  });
-
-  const totalCount = filteredEntities.length;
-  const pageSize = queryParams.pageSize || 20;
-  const currentPage = queryParams.page || 1;
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedEntities = filteredEntities.slice(startIndex, endIndex);
-  const totalPages = Math.ceil(totalCount / pageSize);
-
+  // Only append the legacy customer rows on the last page of companies, so they show up
+  // exactly once regardless of how many company pages there are.
+  const paginatedEntities = useMemo(
+    () => (isLastPage ? [...companyEntities, ...filteredCustomerEntities] : companyEntities),
+    [isLastPage, companyEntities, filteredCustomerEntities],
+  );
 
   // Event handlers
   const handleSearchChange = useCallback((searchTerm: string) => {
@@ -302,16 +171,38 @@ function CustomerDetailsContent() {
     refetch();
   }, [success, refetch]);
 
-  const handleExport = useCallback(() => {
-    if (filteredEntities.length === 0) {
-      toastError('Export Error', 'No companies to export');
-      return;
-    }
+  const handleExport = useCallback(async () => {
+    setIsExporting(true);
+    try {
+      // The page itself only loads one page of companies (company.getPaginated), so for an
+      // explicit export click we fetch the full company table on demand via the heavier
+      // company.getAll instead. Its rows already carry nested office/plant objects on each
+      // contact person, so they satisfy CompanyApiResponse as-is (no id-lookup shaping
+      // needed like attachContactLocations does for the paginated rows).
+      const searchTerm = debouncedSearchTerm.trim().toLowerCase();
+      const allCompanies = await utils.company.getAll.fetch({
+        sortBy: filterState.sortBy,
+        sortOrder: filterState.sortOrder,
+      });
+      const matchingCompanies: CompanyApiResponse[] = (allCompanies ?? [])
+        .filter((company) => !searchTerm || company.name.toLowerCase().includes(searchTerm))
+        .map((company) => ({ ...company, type: 'company' as const }));
 
-    // Export all companies
-    exportCustomersToCSV(filteredEntities);
-    success('Export', `Exported ${filteredEntities.length} companies to CSV`);
-  }, [filteredEntities, success, toastError]);
+      const exportRows = [...matchingCompanies, ...filteredCustomerEntities];
+
+      if (exportRows.length === 0) {
+        toastError('Export Error', 'No companies to export');
+        return;
+      }
+
+      exportCustomersToCSV(exportRows);
+      success('Export', `Exported ${exportRows.length} companies to CSV`);
+    } catch (err) {
+      toastError('Export Error', err instanceof Error ? err.message : 'Failed to export companies');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [debouncedSearchTerm, filterState.sortBy, filterState.sortOrder, filteredCustomerEntities, success, toastError, utils]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -330,6 +221,7 @@ function CustomerDetailsContent() {
         <CustomerActions
           onImport={handleImport}
           onExport={handleExport}
+          isExporting={isExporting}
         />
 
         {/* Search and Filters */}

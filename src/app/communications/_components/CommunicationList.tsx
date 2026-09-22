@@ -1,20 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '@/trpc/client';
-import { 
-  Phone, 
-  Mail, 
-  Video, 
-  Building, 
-  MapPin, 
-  Search, 
+import { keepPreviousData } from '@tanstack/react-query';
+import { useDebounce } from '@/app/customer-details/_hooks/useDebounce';
+import {
+  Phone,
+  Mail,
+  Video,
+  Building,
+  MapPin,
+  Search,
   Calendar,
   User,
   Edit,
   Trash2,
   Plus,
-  Eye
+  Eye,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import type { Communication } from '@/types/communication';
 
@@ -24,23 +28,48 @@ interface CommunicationListProps {
   onCreateNew?: () => void;
 }
 
-export function CommunicationList({ 
-  onEdit, 
-  onView, 
-  onCreateNew 
+type CommunicationType = 'TELEPHONIC' | 'VIRTUAL_MEETING' | 'EMAIL' | 'PLANT_VISIT' | 'OFFICE_VISIT';
+type QuotationStatusFilter = 'LIVE' | 'SUBMITTED' | 'WON' | 'LOST' | 'BUDGETARY' | 'DEAD' | 'RECEIVED';
+
+export function CommunicationList({
+  onEdit,
+  onView,
+  onCreateNew
 }: CommunicationListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterCustomer, setFilterCustomer] = useState<string>('all');
   const [filterQuotation, setFilterQuotation] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
-  const { data: communications, isLoading, refetch } = api.communication.getAll.useQuery({});
-  const { data: customers } = api.company.getAll.useQuery();
+  const debouncedSearchTerm = useDebounce(searchTerm, 350);
+  const utils = api.useUtils();
+
+  // Reset to page 1 whenever a filter or the debounced search changes.
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearchTerm, filterType, filterCustomer, filterQuotation, filterStatus]);
+
+  const { data: customers } = api.company.getOptions.useQuery();
+
+  const { data: paginatedData, isLoading } = api.communication.getPaginated.useQuery(
+    {
+      page,
+      pageSize,
+      search: debouncedSearchTerm.trim() || undefined,
+      type: filterType !== 'all' ? (filterType as CommunicationType) : undefined,
+      customerId: filterCustomer !== 'all' ? filterCustomer : undefined,
+      hasQuotation: filterQuotation !== 'all' ? (filterQuotation as 'with' | 'without') : undefined,
+      quotationStatus: filterStatus === 'all' ? undefined : (filterStatus as QuotationStatusFilter),
+    },
+    { placeholderData: keepPreviousData },
+  );
 
   const deleteCommunication = api.communication.delete.useMutation({
     onSuccess: () => {
-      refetch();
+      utils.communication.getPaginated.invalidate();
     },
     onError: (error) => {
       alert(`Failed to delete communication: ${error.message}`);
@@ -72,59 +101,33 @@ export function CommunicationList({
   const getCommunicationTypeBadge = (type: string) => {
     const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
     switch (type) {
-      case 'TELEPHONIC': 
+      case 'TELEPHONIC':
         return `${baseClasses} bg-blue-100 text-blue-800`;
-      case 'VIRTUAL_MEETING': 
+      case 'VIRTUAL_MEETING':
         return `${baseClasses} bg-green-100 text-green-800`;
-      case 'EMAIL': 
+      case 'EMAIL':
         return `${baseClasses} bg-purple-100 text-purple-800`;
-      case 'PLANT_VISIT': 
+      case 'PLANT_VISIT':
         return `${baseClasses} bg-orange-100 text-orange-800`;
-      case 'OFFICE_VISIT': 
+      case 'OFFICE_VISIT':
         return `${baseClasses} bg-red-100 text-red-800`;
-      default: 
+      default:
         return `${baseClasses} bg-gray-100 text-gray-800`;
     }
   };
 
-  // Filter communications based on search and filters
-  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/prefer-nullish-coalescing */
-  const filteredCommunications = communications?.filter((comm: any) => {
-    const matchesSearch = 
-      (comm.subject ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (comm.company?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (comm.contactPerson?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (comm.enquiry?.office?.contactPersons?.[0]?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (comm.enquiry?.plant?.contactPersons?.[0]?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (comm.description ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (comm.enquiry?.quotationNumber ?? '').toLowerCase().includes(searchTerm.toLowerCase());
+  const items = (paginatedData?.items ?? []) as unknown as Communication[];
+  const total = paginatedData?.total ?? 0;
+  const totalPages = Math.max(1, paginatedData?.totalPages ?? 1);
 
-    const matchesType = filterType === 'all' || comm.type === filterType;
-    const matchesCustomer = filterCustomer === 'all' || comm.companyId === filterCustomer;
-    const matchesQuotation = filterQuotation === 'all' || 
-      (filterQuotation === 'with' && (comm.enquiry?.quotationNumber ?? false)) ||
-      (filterQuotation === 'without' && !comm.enquiry?.quotationNumber);
-    
-    // Filter by quotation status (WON/LIVE)
-    let matchesStatus = true;
-    if (filterStatus !== 'all') {
-      // When filtering by status, must have enquiry with quotationStatus
-      if (!comm.enquiry?.quotationStatus) {
-        return false;
-      }
-      // Status must match exactly
-      matchesStatus = comm.enquiry.quotationStatus === filterStatus;
-    }
+  // Quotation status filtering is now done server-side by communication.getPaginated.
+  const filteredCommunications = items;
 
-    return matchesSearch && matchesType && matchesCustomer && matchesQuotation && matchesStatus;
-  }) ?? [];
-  
-  // Calculate total value from filtered communications
-  const totalValue = filteredCommunications.reduce((sum: number, comm: any) => {
+  // Calculate total value from communications on the current page.
+  const totalValue = filteredCommunications.reduce((sum: number, comm) => {
     const value = comm.enquiry?.quotationTotalValue ?? 0;
     return sum + (typeof value === 'number' ? value : 0);
   }, 0);
-  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -167,6 +170,7 @@ export function CommunicationList({
                   {filterStatus === 'WON' ? 'Total Won Value' : filterStatus === 'LIVE' ? 'Total Live Value' : 'Total Value'}
                 </dt>
                 <dd className="text-2xl font-bold text-gray-900">{formatCurrency(totalValue)}</dd>
+                <dd className="text-xs text-gray-400 mt-0.5">on this page</dd>
               </dl>
             </div>
           </div>
@@ -270,7 +274,7 @@ export function CommunicationList({
                 if (filterStatus === 'WON') return 'Won';
                 if (filterStatus === 'LIVE') return 'Live';
                 return 'Total';
-              })()}: {filteredCommunications.length} communication{filteredCommunications.length !== 1 ? 's' : ''}
+              })()}: {filterStatus === 'all' ? total : filteredCommunications.length} communication{(filterStatus === 'all' ? total : filteredCommunications.length) !== 1 ? 's' : ''}
             </span>
             {filterStatus !== 'all' && (
               <span className="text-sm font-semibold text-green-600">
@@ -291,14 +295,13 @@ export function CommunicationList({
         {filteredCommunications.length === 0 ? (
           <div className="px-6 py-12 text-center">
             <div className="text-gray-500">
-              {searchTerm || filterType !== 'all' || filterCustomer !== 'all' 
-                ? 'No communications match your filters.' 
+              {searchTerm || filterType !== 'all' || filterCustomer !== 'all'
+                ? 'No communications match your filters.'
                 : 'No communications found.'}
             </div>
           </div>
         ) : (
-          /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
-          filteredCommunications.map((communication: any) => (
+          filteredCommunications.map((communication) => (
             <div key={communication.id} className="px-6 py-4 hover:bg-gray-50">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
@@ -324,16 +327,16 @@ export function CommunicationList({
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <User className="h-4 w-4" />
                       <span>
-                        {communication.enquiry?.office?.contactPersons?.[0]?.name || 
-                         communication.enquiry?.plant?.contactPersons?.[0]?.name || 
-                         communication.contactPerson?.name || 
+                        {communication.enquiry?.office?.contactPersons?.[0]?.name ||
+                         communication.enquiry?.plant?.contactPersons?.[0]?.name ||
+                         communication.contactPerson?.name ||
                          'No contact person'}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Calendar className="h-4 w-4" />
                       <span>
-                        {communication.nextCommunicationDate 
+                        {communication.nextCommunicationDate
                           ? new Date(communication.nextCommunicationDate).toLocaleDateString()
                           : 'No follow-up scheduled'
                         }
@@ -406,11 +409,62 @@ export function CommunicationList({
               </div>
             </div>
           ))
-          /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {total > 0 && (
+        <div className="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-sm text-gray-500">
+            Showing <span className="font-medium text-gray-900">{((page - 1) * pageSize) + 1}</span> to{' '}
+            <span className="font-medium text-gray-900">{Math.min(page * pageSize, total)}</span> of{' '}
+            <span className="font-medium text-gray-900">{total}</span> communications
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <span>Rows per page:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="border border-gray-300 rounded px-2 py-1 text-sm bg-white focus:ring-blue-500 focus:outline-none"
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                disabled={page <= 1 || isLoading}
+                className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                title="Previous Page"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Prev
+              </button>
+              <span className="px-3 text-sm text-gray-700 font-medium">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                disabled={page >= totalPages || isLoading}
+                className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                title="Next Page"
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );
 }
-

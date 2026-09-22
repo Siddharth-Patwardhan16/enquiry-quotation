@@ -61,7 +61,7 @@ interface Entity {
   createdBy?: {
     id: string;
     name: string;
-    email: string;
+    email?: string;
     role?: string;
   } | null;
   poRuptureDiscs: boolean;

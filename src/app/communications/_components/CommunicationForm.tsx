@@ -57,8 +57,8 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
   const { confirmFormClose } = useFormConfirmation();
   const { success, error: showError } = useToastContext();
 
-  const { data: customers, isLoading: loadingCustomers } = api.company.getAll.useQuery();
-  const { data: enquiries } = api.enquiry.getAll.useQuery({});
+  const utils = api.useUtils();
+  const { data: customers, isLoading: loadingCustomers } = api.company.getOptions.useQuery();
 
   const {
     register,
@@ -87,6 +87,11 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
   const watchedEnquiryRelated = watch('enquiryRelated');
   const watchedEntries = watch('entries');
 
+  const { data: enquiries } = api.enquiry.getOptions.useQuery(
+    { companyId: watchedCompanyId || undefined, limit: 500 },
+    { enabled: !!watchedCompanyId },
+  );
+
   const customerOptions: Customer[] = useMemo(
     () =>
       (customers ?? []).map((customer: CompanyOption) => ({
@@ -103,10 +108,8 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
     [customerOptions, watchedCompanyId],
   );
 
-  const filteredEnquiries = useMemo(
-    () => enquiries?.filter((enquiry) => enquiry.companyId === watchedCompanyId) ?? [],
-    [enquiries, watchedCompanyId],
-  );
+  // Server already filters by companyId (enquiry.getOptions), so no client-side filter needed.
+  const filteredEnquiries = useMemo(() => enquiries ?? [], [enquiries]);
 
   const handleCustomerSelect = (customer: Customer | null) => {
     setValue('companyId', customer?.id ?? '');
@@ -129,6 +132,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
     onSuccess: () => {
       success('Communication created', 'The communication has been saved.');
       setIsSubmitting(false);
+      utils.communication.getPaginated.invalidate();
       reset({
         date: new Date().toISOString().split('T')[0],
         entries: [{ info: '' }],
@@ -145,6 +149,7 @@ export function CommunicationForm({ onSuccess, initialData, mode = 'create' }: C
     onSuccess: () => {
       success('Communication updated', 'The communication has been saved.');
       setIsSubmitting(false);
+      utils.communication.getPaginated.invalidate();
       onSuccess?.();
     },
     onError: (error) => {

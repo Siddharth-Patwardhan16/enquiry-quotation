@@ -6,14 +6,18 @@ import { EntityEditForm } from './_components/EntityEditForm';
 import { DeleteConfirmationDialog } from './_components/DeleteConfirmationDialog';
 import { ToastContainer, useToast } from '@/components/ui/toast';
 import { useState, useEffect } from 'react';
-import { 
-  Search, 
+import { keepPreviousData } from '@tanstack/react-query';
+import { useDebounce } from '@/app/customer-details/_hooks/useDebounce';
+import {
+  Search,
   Plus,
-  Eye, 
-  Edit, 
+  Eye,
+  Edit,
   Trash2,
   Building,
-  MapPin
+  MapPin,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 
@@ -31,7 +35,7 @@ type Company = {
   createdBy?: {
     id: string;
     name: string;
-    email: string;
+    email?: string;
   } | null;
   poRuptureDiscs: boolean;
   poThermowells: boolean;
@@ -92,14 +96,37 @@ export default function CustomersPage() {
   // Sort state
   const [sortBy, setSortBy] = useState<'name' | 'createdAt' | 'updatedAt' | 'type'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  
-  // Fetch companies only (new company-based structure) with sorting
-  const { data: companies, isLoading: companiesLoading, error: companiesError } = api.company.getAll.useQuery({
-    sortBy,
-    sortOrder,
-  });
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState<'all' | 'office' | 'plant'>('all');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const debouncedSearchTerm = useDebounce(searchTerm, 350);
+
+  // Reset to page 1 whenever search/sort/searchType changes.
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearchTerm, searchType, sortBy, sortOrder]);
+
+  // Fetch companies only (new company-based structure) with server-side search/sort/pagination
+  const { data: paginatedData, isLoading: companiesLoading, error: companiesError } = api.company.getPaginated.useQuery(
+    {
+      page,
+      pageSize,
+      search: debouncedSearchTerm.trim() || undefined,
+      searchType,
+      sortBy,
+      sortOrder,
+    },
+    { placeholderData: keepPreviousData },
+  );
+  const companies = paginatedData?.items;
+  const totalCompaniesServer = paginatedData?.total ?? 0;
+  const totalPages = Math.max(1, paginatedData?.totalPages ?? 1);
+
+  // Server-computed count of distinct countries across all offices/plants (not just the
+  // current page).
+  const { data: regionCountData } = api.company.getRegionCount.useQuery();
+
   const [showForm, setShowForm] = useState(false);
   
   // State for modals
@@ -121,6 +148,7 @@ export default function CustomersPage() {
   const deleteCompany = api.company.delete.useMutation({
     onSuccess: () => {
       // Invalidate and refetch companies
+      utils.company.getPaginated.invalidate();
       utils.company.getAll.invalidate();
       // Close delete dialog
       setShowDeleteDialog(false);
@@ -164,39 +192,14 @@ export default function CustomersPage() {
     return <div>Error: {companiesError?.message}</div>;
   }
 
-  // Filter companies based on search term (including location fields)
-  const filteredCompanies = searchTerm.length > 0 
-    ? companiesList.filter(company => {
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          company.name.toLowerCase().includes(searchLower) ||
-          // Search in office locations
-          company.offices.some(office => 
-            (office.city?.toLowerCase() ?? '').includes(searchLower) ||
-            (office.state?.toLowerCase() ?? '').includes(searchLower) ||
-            (office.area?.toLowerCase() ?? '').includes(searchLower) ||
-            (office.country?.toLowerCase() ?? '').includes(searchLower)
-          ) ||
-          // Search in plant locations
-          company.plants.some(plant => 
-            (plant.city?.toLowerCase() ?? '').includes(searchLower) ||
-            (plant.state?.toLowerCase() ?? '').includes(searchLower) ||
-            (plant.area?.toLowerCase() ?? '').includes(searchLower) ||
-            (plant.country?.toLowerCase() ?? '').includes(searchLower)
-          )
-        );
-      })
-    : companiesList;
+  // Search/sort are now done server-side by company.getPaginated; this page's list is
+  // already the current, filtered page of results.
+  const filteredCompanies = companiesList;
 
-  // Calculate stats
-  const totalCompanies = companiesList.length;
-  const activeRegions = new Set(
-    companiesList.flatMap(company => {
-      const officeCountries = company.offices.map(office => office.country).filter(Boolean);
-      const plantCountries = company.plants.map(plant => plant.country).filter(Boolean);
-      return [...officeCountries, ...plantCountries];
-    })
-  ).size;
+  // Calculate stats. Both are server-reported aggregates across all companies, not just
+  // the current page.
+  const totalCompanies = totalCompaniesServer;
+  const activeRegions = regionCountData?.count ?? 0;
 
   // Handle view customer
   const handleViewCustomer = (company: Company) => {
@@ -522,14 +525,55 @@ export default function CustomersPage() {
             </div>
           )}
 
-          {/* Pagination */}
-          {filteredCompanies.length > 0 && (
-            <div className="flex items-center justify-between mt-6">
+          {/* Pagination Controls */}
+          {totalCompaniesServer > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-gray-200">
               <div className="text-sm text-gray-500">
-                {searchTerm.length > 0 
-                  ? `Found ${filteredCompanies.length} matching companies`
-                  : `Showing ${filteredCompanies.length} of ${companiesList.length} companies`
-                }
+                Showing <span className="font-medium text-gray-900">{((page - 1) * pageSize) + 1}</span> to{' '}
+                <span className="font-medium text-gray-900">{Math.min(page * pageSize, totalCompaniesServer)}</span> of{' '}
+                <span className="font-medium text-gray-900">{totalCompaniesServer}</span> companies
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <span>Rows per page:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setPage(1);
+                    }}
+                    className="border border-gray-300 rounded px-2 py-1 text-sm bg-white focus:ring-blue-500 focus:outline-none"
+                  >
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                    disabled={page <= 1 || companiesLoading}
+                    className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                    title="Previous Page"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Prev
+                  </button>
+                  <span className="px-3 text-sm text-gray-700 font-medium">
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                    disabled={page >= totalPages || companiesLoading}
+                    className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                    title="Next Page"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -558,9 +602,10 @@ export default function CustomersPage() {
           onSuccess={async () => {
             setCustomerToEdit(null);
             // Refresh data and wait for it to complete
+            await utils.company.getPaginated.invalidate();
             await utils.company.getAll.invalidate();
             // Refetch to ensure we have the latest data
-            await utils.company.getAll.refetch();
+            await utils.company.getPaginated.refetch();
             // Show success toast
             success('Company Updated', 'The company information has been successfully updated.');
           }}
