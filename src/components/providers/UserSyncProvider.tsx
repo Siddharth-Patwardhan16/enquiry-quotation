@@ -1,33 +1,29 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSupabase } from './supabase-provider';
 import { api } from '../../trpc/client';
 
 export function UserSyncProvider({ children }: { children: React.ReactNode }) {
   const { user: supabaseUser, session } = useSupabase();
-  const createEmployeeMutation = api.auth.createEmployee.useMutation();
+  const { mutate: createEmployee } = api.auth.createEmployee.useMutation();
+  const lastSyncedUserId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (supabaseUser && session) {
+    if (supabaseUser && session && lastSyncedUserId.current !== supabaseUser.id) {
+      lastSyncedUserId.current = supabaseUser.id;
+
       // Create employee record for the Supabase user
       const userMetadata = supabaseUser.user_metadata as { full_name?: string } | null;
       const fullName = userMetadata?.full_name ?? supabaseUser.email?.split('@')[0] ?? 'Unknown User';
-      
-      createEmployeeMutation.mutate({
+
+      createEmployee({
         email: supabaseUser.email ?? '',
         name: fullName,
         role: 'MARKETING', // Default role
-      }, {
-        onSuccess: (_data) => {
-        },
-        onError: (_error) => {
-          // Failed to create employee
-        }
       });
     }
-  }, [supabaseUser, session, createEmployeeMutation]);
+  }, [supabaseUser?.id, supabaseUser?.email, session?.access_token, createEmployee]);
 
   return <>{children}</>;
 }
-

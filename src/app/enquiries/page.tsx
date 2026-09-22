@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { keepPreviousData } from '@tanstack/react-query';
 import { useDebounce } from '@/app/customer-details/_hooks/useDebounce';
 import { buildFinancialYearOptions, getFinancialYear } from '@/lib/financial-year';
 import { normalizeOptionalUuidValue, UpdateEnquiryFullSchema } from '@/lib/validators/enquiry';
@@ -122,25 +123,33 @@ export default function EnquiriesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 350);
   const [statusFilter, setStatusFilter] = useState<'LIVE' | 'DEAD' | 'RCD' | 'LOST' | 'WON' | 'BUDGETARY' | null>(null);
+  // Declared early: referenced by the lazily-enabled employee/company queries below.
+  const [editingEnquiry, setEditingEnquiry] = useState<number | null>(null);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch, statusFilter, financialYear]);
 
-  const enquiriesQuery = api.enquiry.getPaginated.useQuery({
-    financialYear,
-    page: currentPage,
-    pageSize,
-    search: debouncedSearch.trim() || undefined,
-    status: statusFilter ?? undefined,
-  });
+  const enquiriesQuery = api.enquiry.getPaginated.useQuery(
+    {
+      financialYear,
+      page: currentPage,
+      pageSize,
+      search: debouncedSearch.trim() || undefined,
+      status: statusFilter ?? undefined,
+    },
+    { placeholderData: keepPreviousData },
+  );
   const { data: stats } = api.enquiry.getStats.useQuery({ financialYear });
-  const { data: employees } = api.employee.getAll.useQuery();
-  const { data: companies, isLoading: isLoadingCompanies } = api.company.getSimpleList.useQuery();
+  const { data: employees } = api.employee.getAll.useQuery(undefined, {
+    enabled: editingEnquiry !== null,
+  });
+  const { data: companies, isLoading: isLoadingCompanies } = api.company.getSimpleList.useQuery(undefined, {
+    enabled: editingEnquiry !== null,
+  });
   const updateEnquiryMutation = api.enquiry.update.useMutation({
     onSuccess: () => {
       void utils.enquiry.getPaginated.invalidate();
-      void utils.enquiry.getAll.invalidate();
       void utils.enquiry.getStats.invalidate();
       success('Enquiry Updated', 'The enquiry has been successfully updated.');
       setEditingEnquiry(null);
@@ -162,9 +171,7 @@ export default function EnquiriesPage() {
     onSuccess: () => {
       success('Status Updated', 'The enquiry status has been successfully updated.');
       void utils.enquiry.getPaginated.invalidate();
-      void utils.enquiry.getAll.invalidate();
       void utils.enquiry.getStats.invalidate();
-      void enquiriesQuery.refetch();
     },
     onError: (error) => {
       // Extract error message from tRPC error
@@ -202,7 +209,6 @@ export default function EnquiriesPage() {
   const deleteEnquiryMutation = api.enquiry.delete.useMutation({
     onSuccess: (_, variables) => {
       void utils.enquiry.getPaginated.invalidate();
-      void utils.enquiry.getAll.invalidate();
       void utils.enquiry.getStats.invalidate();
       setDeletingEnquiryId(null);
 
@@ -251,7 +257,6 @@ export default function EnquiriesPage() {
     dateOfReceipt?: string;
   };
 
-  const [editingEnquiry, setEditingEnquiry] = useState<number | null>(null);
   const [editData, setEditData] = useState<EditEnquiryData>({});
   const [deletingEnquiryId, setDeletingEnquiryId] = useState<number | null>(null);
   const [originalAttendedById, setOriginalAttendedById] = useState<string | null | undefined>(undefined);
@@ -339,6 +344,23 @@ export default function EnquiriesPage() {
   }, [companies]);
   
   const isLoadingEntities = isLoadingCompanies;
+
+  // company.getSimpleList is now lazy (enabled only while editing), so the customer entity
+  // for the row being edited may not exist in `allEntities` yet at the moment the edit form
+  // opens. Resync selectedCustomer once companies finish loading so the selector/location
+  // fields reflect the enquiry's actual customer instead of staying blank.
+  useEffect(() => {
+    if (editingEnquiry === null || !companies) return;
+    const enquiry = allEnquiries.find((e) => e.id === editingEnquiry);
+    const customerId = enquiry?.companyId ?? enquiry?.customerId;
+    if (!customerId) return;
+    setSelectedCustomer((prev) => {
+      if (prev?.id === customerId) return prev;
+      const entity = allEntities.find((e) => e.id === customerId);
+      return entity ?? prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companies, editingEnquiry, allEntities]);
 
   // Determine if selected customer is a company
   const isCompany = selectedCustomer?.type === 'Company';
@@ -1620,8 +1642,10 @@ export default function EnquiriesPage() {
                   setReceiptModalEnquiryId(null);
                 }}
                 enquiryId={receiptModalEnquiryId}
+                enquiry={allEnquiries.find((e) => e.id === receiptModalEnquiryId)}
                 onSuccess={() => {
-                  enquiriesQuery.refetch();
+                  void utils.enquiry.getPaginated.invalidate();
+                  void utils.enquiry.getStats.invalidate();
                   setEditingEnquiry(null);
                   setEditData({});
                 }}
@@ -1636,9 +1660,11 @@ export default function EnquiriesPage() {
                   setWonModalEnquiryId(null);
                 }}
                 enquiryId={wonModalEnquiryId}
+                enquiry={allEnquiries.find((e) => e.id === wonModalEnquiryId)}
                 newStatus="WON"
                 onSuccess={() => {
-                  enquiriesQuery.refetch();
+                  void utils.enquiry.getPaginated.invalidate();
+                  void utils.enquiry.getStats.invalidate();
                   setEditingEnquiry(null);
                   setEditData({});
                 }}

@@ -9,18 +9,28 @@ import { Label } from '@/components/ui/label';
 import { FileText, Calendar, Building } from 'lucide-react';
 import { useToastContext } from '@/components/providers/ToastProvider';
 
+interface ReceiptDateModalEnquiry {
+  subject: string | null;
+  quotationNumber: string | null;
+  company?: { name?: string | null } | null;
+  office?: { name?: string | null } | null;
+  plant?: { name?: string | null } | null;
+}
+
 interface ReceiptDateModalProps {
   isOpen: boolean;
   onClose: () => void;
   enquiryId: number;
+  enquiry: ReceiptDateModalEnquiry | null | undefined;
   onSuccess?: () => void;
 }
 
-export function ReceiptDateModal({ 
-  isOpen, 
-  onClose, 
-  enquiryId, 
-  onSuccess 
+export function ReceiptDateModal({
+  isOpen,
+  onClose,
+  enquiryId,
+  enquiry,
+  onSuccess
 }: ReceiptDateModalProps) {
   const [receiptDate, setReceiptDate] = useState('');
   const [purchaseOrderNumber, setPurchaseOrderNumber] = useState('');
@@ -28,10 +38,6 @@ export function ReceiptDateModal({
   const [poDate, setPoDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { success, error: showError } = useToastContext();
-
-  // Fetch enquiry details
-  const { data: enquiries } = api.enquiry.getAll.useQuery({});
-  const enquiry = enquiries?.find((e) => e.id === enquiryId);
 
   const updateEnquiryMutation = api.enquiry.updateStatusWithReceipt.useMutation({
     onSuccess: () => {
@@ -100,11 +106,7 @@ export function ReceiptDateModal({
     );
   }
 
-  const enquiryDetails = enquiry as typeof enquiry & {
-    company?: { name?: string | null } | null;
-    office?: { name?: string | null } | null;
-    plant?: { name?: string | null } | null;
-  };
+  const enquiryDetails = enquiry;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

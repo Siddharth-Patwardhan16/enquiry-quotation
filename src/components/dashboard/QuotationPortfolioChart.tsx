@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { keepPreviousData } from '@tanstack/react-query';
 import { api } from '@/trpc/client';
 import { buildFinancialYearOptions, getFinancialYear } from '@/lib/financial-year';
 
@@ -68,11 +69,14 @@ export function QuotationPortfolioChart() {
   const [financialYear, setFinancialYear] = useState(() => getFinancialYear(new Date()));
   const yearOptions = useMemo(() => buildFinancialYearOptions(6, 1), []);
 
-  const { data, isLoading } = api.dashboard.getQuotationValueVsLive.useQuery({
-    view,
-    financialYear: view === 'monthly' ? financialYear : undefined,
-    yearsBack: 6,
-  });
+  const { data, isLoading } = api.dashboard.getQuotationValueVsLive.useQuery(
+    {
+      view,
+      financialYear: view === 'monthly' ? financialYear : undefined,
+      yearsBack: 6,
+    },
+    { placeholderData: keepPreviousData },
+  );
 
   const trends: PortfolioPoint[] = data?.trends ?? [];
   const totalCount = data?.totalCount ?? 0;

@@ -18,23 +18,7 @@ const nextConfig: NextConfig = {
   
   // Compression
   compress: true,
-  
-  // Bundle optimization
-  webpack: (config, { isServer }) => {
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-    };
-    
-    // Optimize bundle size
-    if (!isServer) {
-      config.resolve.alias = {
-        ...config.resolve.alias,
-      };
-    }
-    
-    return config;
-  },
-  
+
   // Headers for better caching
   async headers() {
     return [

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { TRPCProvider } from "../trpc/provider";
@@ -27,7 +27,11 @@ export const metadata: Metadata = {
   description: "Customer Relationship Management Portal for handling enquiries and quotations",
   keywords: ["CRM", "enquiry", "quotations", "customer management"],
   authors: [{ name: "CRM Portal Team" }],
-  viewport: "width=device-width, initial-scale=1",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({

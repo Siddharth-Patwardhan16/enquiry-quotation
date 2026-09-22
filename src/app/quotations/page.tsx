@@ -16,8 +16,10 @@ import {
   ChevronRight,
   Filter
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { keepPreviousData } from '@tanstack/react-query';
 import { buildFinancialYearOptions, getFinancialYear } from '@/lib/financial-year';
+import { useDebounce } from '@/app/customer-details/_hooks/useDebounce';
 
 type QuotationStatus = 'LIVE' | 'WON' | 'LOST' | 'BUDGETARY' | 'DEAD' | 'RECEIVED';
 
@@ -42,16 +44,24 @@ export default function QuotationsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const debouncedSearchQuery = useDebounce(searchQuery, 350);
 
   const financialYearOptions = buildFinancialYearOptions(6, 1);
 
-  const { data: paginatedData, isLoading, error, refetch } = api.quotation.getPaginated.useQuery({
-    financialYear,
-    page: currentPage,
-    pageSize,
-    search: searchQuery.trim() || undefined,
-    status: (statusFilter as QuotationStatus) || undefined,
-  });
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery]);
+
+  const { data: paginatedData, isLoading, error, refetch } = api.quotation.getPaginated.useQuery(
+    {
+      financialYear,
+      page: currentPage,
+      pageSize,
+      search: debouncedSearchQuery.trim() || undefined,
+      status: (statusFilter as QuotationStatus) || undefined,
+    },
+    { placeholderData: keepPreviousData },
+  );
 
   const { data: stats } = api.quotation.getStats.useQuery({ financialYear });
   const quotations = (paginatedData?.items ?? []) as unknown as Quotation[];
@@ -266,7 +276,6 @@ export default function QuotationsPage() {
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
-                    setCurrentPage(1);
                   }}
                   className="pl-9 pr-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64 shadow-sm"
                 />

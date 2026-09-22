@@ -10,7 +10,19 @@ import { env } from "../lib/env";
 import { createClient } from "@/lib/supabase-client";
 
 export function TRPCProvider({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 60_000,
+            gcTime: 5 * 60_000,
+            refetchOnWindowFocus: false,
+            retry: 1,
+          },
+        },
+      }),
+  );
   const [trpcClient] = useState(() =>
           api.createClient({
         links: [

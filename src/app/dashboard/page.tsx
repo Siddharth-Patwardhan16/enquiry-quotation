@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { keepPreviousData } from '@tanstack/react-query';
 import { buildFinancialYearOptions, getFinancialYear } from '@/lib/financial-year';
 import { useAuth } from '../../components/providers/AuthProvider';
 import { api } from '../../trpc/client';
@@ -23,14 +24,20 @@ export default function DashboardPage() {
   const financialYearOptions = buildFinancialYearOptions(6, 1);
 
   // Fetch dashboard data
-  const { data: stats, isLoading: isLoadingStats } = api.dashboard.getStats.useQuery(fyQuery);
-  const { data: lostReasons, isLoading: isLoadingReasons } = api.dashboard.getLostReasons.useQuery(fyQuery);
+  const { data: stats, isLoading: isLoadingStats } = api.dashboard.getStats.useQuery(fyQuery, {
+    placeholderData: keepPreviousData,
+  });
+  const { data: lostReasons, isLoading: isLoadingReasons } = api.dashboard.getLostReasons.useQuery(fyQuery, {
+    placeholderData: keepPreviousData,
+  });
   const { data: recentEnquiries, isLoading: isLoadingEnquiries } =
-    api.dashboard.getRecentEnquiries.useQuery(fyQuery);
+    api.dashboard.getRecentEnquiries.useQuery(fyQuery, { placeholderData: keepPreviousData });
   const { data: recentQuotations, isLoading: isLoadingQuotations } =
-    api.dashboard.getRecentQuotations.useQuery(fyQuery);
+    api.dashboard.getRecentQuotations.useQuery(fyQuery, { placeholderData: keepPreviousData });
 
-  // Show loading skeleton while data is loading
+  // With keepPreviousData, isLoading is only true while there is no data at all yet (the
+  // very first load). Switching financial year keeps the previous data and flips isFetching
+  // instead, so this skeleton only appears on initial mount, not on every FY change.
   if (isLoadingStats || isLoadingReasons || isLoadingEnquiries || isLoadingQuotations) {
     return <DashboardSkeleton />;
   }

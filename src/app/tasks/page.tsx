@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { keepPreviousData } from '@tanstack/react-query';
 import { api } from '@/trpc/client';
+import { useDebounce } from '@/app/customer-details/_hooks/useDebounce';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -41,13 +43,17 @@ export default function TasksPage() {
   
   // State for search
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 350);
 
-  const queryResult = api.tasks.getUpcoming.useQuery({
-    search: searchTerm,
-    type: filterType === 'all' ? undefined : filterType,
-    status: filterStatus === 'all' ? undefined : filterStatus,
-    priority: filterPriority === 'all' ? undefined : filterPriority,
-  });
+  const queryResult = api.tasks.getUpcoming.useQuery(
+    {
+      search: debouncedSearch.trim() || undefined,
+      type: filterType === 'all' ? undefined : filterType,
+      status: filterStatus === 'all' ? undefined : filterStatus,
+      priority: filterPriority === 'all' ? undefined : filterPriority,
+    },
+    { placeholderData: keepPreviousData },
+  );
   const { data: taskStats } = api.tasks.getTaskStats.useQuery();
   const tasks = queryResult.data as Task[] | undefined;
   const isLoading = queryResult.isLoading;
