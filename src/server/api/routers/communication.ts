@@ -259,6 +259,7 @@ export const communicationRouter = createTRPCRouter({
       type: z.enum(['TELEPHONIC', 'VIRTUAL_MEETING', 'EMAIL', 'PLANT_VISIT', 'OFFICE_VISIT']).optional(),
       customerId: z.string().optional(),
       hasQuotation: z.enum(['with', 'without']).optional(),
+      quotationStatus: z.enum(['LIVE', 'SUBMITTED', 'WON', 'LOST', 'BUDGETARY', 'DEAD', 'RECEIVED']).optional(),
     }))
     .query(async ({ input }) => {
       try {
@@ -295,6 +296,10 @@ export const communicationRouter = createTRPCRouter({
           andConditions.push({
             OR: [{ enquiryId: null }, { enquiry: { quotationNumber: null } }],
           });
+        }
+
+        if (input.quotationStatus) {
+          andConditions.push({ enquiry: { quotations: { some: { status: input.quotationStatus } } } });
         }
 
         const where: Prisma.CommunicationWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};

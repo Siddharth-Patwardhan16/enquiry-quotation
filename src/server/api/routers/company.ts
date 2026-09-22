@@ -174,6 +174,30 @@ export const companyRouter = createTRPCRouter({
       });
     }),
 
+  // Number of distinct countries across all offices and plants (the "Active Regions"
+  // stat on the customers page), so the page does not need the whole table for it.
+  getRegionCount: publicProcedure
+    .query(async ({ ctx }) => {
+      const [officeCountries, plantCountries] = await Promise.all([
+        ctx.prisma.office.findMany({
+          where: { country: { not: null } },
+          distinct: ['country'],
+          select: { country: true },
+        }),
+        ctx.prisma.plant.findMany({
+          where: { country: { not: null } },
+          distinct: ['country'],
+          select: { country: true },
+        }),
+      ]);
+      const regions = new Set<string>();
+      for (const row of [...officeCountries, ...plantCountries]) {
+        const country = row.country?.trim();
+        if (country) regions.add(country);
+      }
+      return { count: regions.size };
+    }),
+
   // Paginated, server-filtered list for the customers/companies page. Mirrors the
   // client-side search/sort that page used to run over the full company.getAll payload.
   getPaginated: publicProcedure
